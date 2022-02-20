@@ -35,7 +35,7 @@
 #include "TPZYCMohrCoulomb.h"
 #include "TPZMohrCoulomb.h"
 #include "TPZDruckerPrager.h"
-
+#include "KLRandomField.h"
 #include "pzelastoplastic2D.h"
 #include <pzmathyperelastic.h>
 #include "tpzycvonmisescombtresca.h"
@@ -178,38 +178,85 @@ TPZGeoMesh * SimpleGMesh()
     }
   return gmesh;
 }
-TPZCompMesh* CreateKLCMesh(TPZGeoMesh * gmesh);
+TPZCompMesh* CreateKLCMesh(TPZGeoMesh * gmesh,int porder,int expansionorder);
 
 
-void KLConfig(TPZCompMesh * cmesh);
+void KLConfig(TPZGeoMesh * gmesh, int porder, int expansionorder);
+
+TPZVec<TPZFMatrix<REAL>> CreateFields(TPZCompMesh * cmesh,KLAnalysis * klanal);
+
 #include "pzfmatrix.h"
 #include "pzmatrix.h"
 #include "pzsolve.h"
 int main ( int argc, char **argv )
 {
 
-//   TPZSlopeStabilityAnalysis slopeA,slopeB;
-//   int porder=2;
-//   slopeA.GetCurrentConfig()->CreateGeometricMeshSlope(2);
-//   slopeA.GetCurrentConfig()->CreateComputationalMeshSlope ( porder );
-//   TPZGeoMesh * gmesh = &slopeA.GetCurrentConfig()->fGMesh;
-  TPZGeoMesh  gmesh = ConfigSlope();
-  gmesh.Print();
 
-  TPZCompMesh * cmesh = CreateKLCMesh(&gmesh);
-  KLConfig(cmesh);
+   TPZSlopeStabilityAnalysis slopeA,slopeB;
+   int porder=3;
+   slopeA.GetCurrentConfig()->CreateGeometricMeshSlope(3);
+   slopeA.GetCurrentConfig()->CreateComputationalMeshSlope ( porder );
+   TPZGeoMesh * gmesh = &slopeA.GetCurrentConfig()->fGMesh;
+ // TPZGeoMesh  gmesh = ConfigSlope();
+ // gmesh.Print();
+
+
+   int expansionorder=200;
+KLConfig(gmesh, porder,expansionorder);
+  
+	
+	std::cout << " SUCESS " << std::endl; 
   //ConfigSlope();
   return 0;
+  
+//     TPZGeoMesh  gmesh = ConfigSlope();
+//   gmesh.Print();
+// 
+//   TPZCompMesh * cmesh = CreateKLCMesh(&gmesh);
+//   KLConfig(cmesh);
+//   //ConfigSlope();
+//   return 0;
+  
 }
-
-TPZCompMesh* CreateKLCMesh(TPZGeoMesh * gmesh)
+TPZVec<TPZFMatrix<REAL>> CreateFields(TPZCompMesh * cmesh,KLAnalysis * klanal)
 {
-  int porder=2;
+	int samples = 100;
+	TPZVec<REAL> mean(2);
+	TPZVec<REAL> cov(2);
+	mean[0]=10.;
+	mean[1]=30.*M_PI/180.;
+	cov[0]=0.2;
+	cov[1]=0.3;
+	REAL corsscorrelation = -0.5;
+	KLRandomField * klf = new KLRandomField(cmesh,klanal,mean,cov,samples,corsscorrelation);
+	TPZVec<TPZFMatrix<REAL>> hhat;
+  	hhat = klf->CreateLogNormalRandomField();
+	
+	cmesh->LoadSolution(hhat[0]);
+	   	// Post processing
+	TPZManVector<std::string> scalarnames(6), vecnames(0);
+	scalarnames[0] = "vec";
+    scalarnames[1] = "vec1";
+    scalarnames[2] = "vec2";
+    scalarnames[3] = "vec3";
+    scalarnames[4] = "vec4";
+    scalarnames[5] = "vec5";
+
+    TPZAnalysis * anal = new TPZAnalysis(cmesh);
+    
+	anal->DefineGraphMesh(2,scalarnames,vecnames,"coes.vtk");
+
+	anal->PostProcess(0);
+	
+	return hhat;
+}
+TPZCompMesh* CreateKLCMesh(TPZGeoMesh * gmesh,int porder,int expansionorder)
+{
+
   TPZCompMesh * cmesh = new TPZCompMesh(gmesh);
   int id=1;
   REAL Lx=20.,Ly=2.;
   int type=3;
-  int expansionorder=5;
   KLMaterial * klmat = new KLMaterial(id,Lx,Ly,type,expansionorder);
   cmesh->SetDefaultOrder ( porder);
   cmesh->SetDimModel ( 2 );
@@ -219,15 +266,19 @@ TPZCompMesh* CreateKLCMesh(TPZGeoMesh * gmesh)
   cmesh->AdjustBoundaryElements();
   cmesh->CleanUpUnconnectedNodes();
   
+
   return cmesh;
 }
 
-void KLConfig(TPZCompMesh * cmesh)
+void KLConfig(TPZGeoMesh * gmesh, int porder, int expansionorder)
 {
 
-  
+	TPZCompMesh * cmesh = CreateKLCMesh(gmesh,porder, expansionorder);
    KLAnalysis * klanal = new KLAnalysis(cmesh);
+   KLMaterial * mat = dynamic_cast<KLMaterial*> (cmesh->ElementVec()[0]->Material());
+   klanal->SetExpansionOrder(mat->GetExpansioOrder());
    klanal->Solve();
+   
    
    	// Post processing
 	TPZManVector<std::string> scalarnames(6), vecnames(0);
@@ -242,7 +293,10 @@ void KLConfig(TPZCompMesh * cmesh)
     
 	anal->DefineGraphMesh(2,scalarnames,vecnames,"klsol.vtk");
 
-	anal->PostProcess(2);
+	anal->PostProcess(0);
+	
+	CreateFields(cmesh,klanal);
+
 }
 
 

@@ -298,17 +298,17 @@ public:
     virtual int HasffBCForcingFunction() {return (fBCForcingFunction != 0);}
     virtual int HasfTimedependentBCForcingFunction() {return (fTimedependentBCForcingFunction != 0);}    
     
-    /** @brief Gets the order of the integration rule necessary to integrate an element with polinomial order p */
-    virtual int IntegrationRuleOrder(int elPMaxOrder) const
-    {
-		return 10;
-	}
-	
-	/** @brief Gets the order of the integration rule necessary to integrate an element multiphysic */
-    virtual int IntegrationRuleOrder(TPZVec<int> &elPMaxOrder) const
-    {
-		IntegrationRuleOrder(elPMaxOrder);
-	}
+//     /** @brief Gets the order of the integration rule necessary to integrate an element with polinomial order p */
+//     virtual int IntegrationRuleOrder(int elPMaxOrder) const
+//     {
+// 		return IntegrationRuleOrder( elPMaxOrder);
+// 	}
+// 	
+// 	/** @brief Gets the order of the integration rule necessary to integrate an element multiphysic */
+//     virtual int IntegrationRuleOrder(TPZVec<int> &elPMaxOrder) const
+//     {
+// 		IntegrationRuleOrder(elPMaxOrder);
+// 	}
 	
     virtual void Errors(TPZMaterialData &data, TPZVec<STATE> &u_exact, TPZFMatrix<STATE> &du_exact, TPZVec<REAL> &errors)
     {
@@ -421,7 +421,10 @@ public:
 	}
     
 
-	
+	int GetExpansioOrder()
+	{
+		return fExpasionOrder;
+	}
 };
 
 /** @brief Extern variable - Vector of force values */

@@ -33,6 +33,8 @@
 #include <exception>
 #include "pzlog.h"
 #include <complex>
+#include <pzinterpolationspace.h>
+#include <tpzintpoints.h>
 using namespace std;
 
 
@@ -60,9 +62,11 @@ void KLAnalysis::Solve()
 
   TPZFMatrix<REAL> invB,invBC,B,C;
   MatrixXd eigenInvBC,eigenInvB,eigenC,eigenB;
+  std::cout << "start assemble C  " << std::endl; 
   fStrMatrix->AssembleC ( C );
+	std::cout << "end assembling C. Starting Assembling B  " << std::endl; 
   fStrMatrix->AssembleB ( B );
-
+std::cout << "end assembling B.  " << std::endl;
   ToEigen ( B,eigenB );
   ToEigen ( C,eigenC );
 
@@ -73,40 +77,52 @@ void KLAnalysis::Solve()
   MatrixXd val,vec;
 
   ComplexEigenSolver<MatrixXd> ces;
+  std::cout << "Computing Eigenvalues  " << std::endl;
   ces.compute ( eigenInvBC );
-  
+  std::cout << "End Computing Eigenvalues  " << std::endl;
 
 
   int ncols = ces.eigenvectors().cols();
+  int M = fExpansionOrder;
+  //int M = ncols;
   int nrows = ces.eigenvectors().rows();
-  val.resize ( nrows,1 );
-  vec.resize ( nrows,ncols );
-  for ( int irow=0; irow<nrows; irow++ )
-  {
-    val ( irow,0 ) =ces.eigenvalues() [irow].real();
-    for ( int icol=0; icol<ncols; icol++ )
+  val.resize ( M,1 );
+  vec.resize ( nrows,M );
+//   for ( int irow=0; irow<nrows; irow++ )
+//   {
+//     val ( irow,0 ) =ces.eigenvalues() [nrows-irow-1].real();
+//     for ( int icol=0; icol<M; icol++ )
+//       {
+//         vec ( irow,icol ) =ces.eigenvectors() ( irow,ncols-icol-1 ).real();
+//       }
+//   }
+	for ( int icol=0; icol< M; icol++ )
+    {
+	  val ( icol,0 ) =ces.eigenvalues() [nrows-icol-1].real();
+      for(int irow=0;irow<nrows;irow++)
       {
-        vec ( irow,icol ) =ces.eigenvectors() ( irow,icol ).real();
+        vec ( irow,icol ) =ces.eigenvectors() ( irow,ncols-icol-1 ).real();
       }
-  }
-  
-  bool print =false;
+    }
+
+  //std::cout <<"VT * D"   << "\n" << (vec* val.asDiagonal()* vec.inverse() ) << endl;
+  bool print =true;
   if ( print==true )
     {
       std::cout << "Eigenvalues "<<endl;
       std::cout << val << endl;
       std::cout << "Eigenvectors "<<endl;
       std::cout << vec << endl;
-      std::cout << " A "<<endl;
-      std::cout << eigenInvBC <<std::endl;
-      std::cout << " V * D * V^(-1) = " << endl
-                << eigenInvBC-(vec * val.asDiagonal() * vec.inverse()) << endl;
+     // std::cout << " A "<<endl;
+     // std::cout << eigenInvBC <<std::endl;
+     //std::cout << " A- V * D * V^(-1) = " << "\n" << (vec * val.asDiagonal() * vec.inverse()) << endl;
     }
 
-    TPZFMatrix<REAL> vecpz(nrows,ncols);
-    fEigenVectors.Resize(ncols);
-    for(int i=0;i<ncols;i++)fEigenVectors[i].Resize(nrows,1);
-    for ( int icol=0; icol< ncols; icol++ )
+    TPZFMatrix<REAL> vecpz(nrows,M);
+    fEigenVectors.Resize(M);
+	VectorXd intphisqr(M);
+    for(int i=0;i<M;i++)fEigenVectors[i].Resize(nrows,1);
+    for ( int icol=0; icol< M; icol++ )
     {
       for(int irow=0;irow<nrows;irow++)
       {
@@ -116,10 +132,11 @@ void KLAnalysis::Solve()
       //fEigenVectors[icol].Print(std::cout);
       LoadSolution(fEigenVectors[icol]);
       REAL integral = IntegrateSqrEigenVecSolution();
+	  intphisqr(icol)=integral*integral;
       fEigenVectors[icol]*=1./integral;
     }
     
-    for ( int icol=0; icol< ncols; icol++ )
+    for ( int icol=0; icol< M; icol++ )
     {
       for(int irow=0;irow<nrows;irow++)
       {
@@ -127,6 +144,24 @@ void KLAnalysis::Solve()
       }
     }
     LoadSolution(vecpz);
+	
+	REAL err = 0.;
+	REAL err2=0.;
+    for ( int i = 0; i < val.size(); i++ ) {
+        err += fabs ( val(i)*intphisqr(i) ) ;
+		err2 += fabs ( val(i) ) ;
+    }
+    
+    REAL totalarea = ComputeTotalArea();
+	std::cout << "total area = "<<totalarea << std::endl;
+    //std::cout << " err / (fsig * fsig) = " <<err / (fsig * fsig) << std::endl;
+    std::cout << "mean error 1 = " <<1. - 1./totalarea *   err2 << std::endl;
+	std::cout << "mean error 2 = " <<1. - 1./totalarea *   err << std::endl;
+	
+	FromEigen(val,fEigenValues);
+// 	
+// 	vecpz.Print(std::cout);
+	
 }
 REAL KLAnalysis::IntegrateSqrEigenVecSolution()
 {
@@ -147,34 +182,7 @@ REAL KLAnalysis::IntegrateSqrEigenVecSolution()
       sum+=vecsol[0];
     }
 
-
   return sqrt ( sum );
-//     int nels = fCompMesh->NElements(), iel;
-//     const TPZIntPoints &intrule = this->GetIntegrationRule();
-//     for ( iel = 0; iel < nels; iel++ ) {
-//
-//       TPZCompEl * cel = fCompMesh->Element(iel);
-//       const TPZIntPoints &intrule = cel->GetIntegrationRule();
-//         int npts = intrule.nrows();
-//         for ( Int ipt = 0; ipt < npts; ipt++ ) {
-//             xi = intrule[ipt][0];
-//             eta = intrule[ipt][1];
-//             w = intrule[ipt][2];
-//             fshape->shapes ( psis, GradPsi, xi, eta );
-//             GetElCoords ( allcoords, iel, elcoords );
-//             GradPsi.Mult ( elcoords, Jac );
-//             Doub DetJ = -Jac[0][1] * Jac[1][0] + Jac[0][0] * Jac[1][1];
-//             for ( Int inode = 0; inode < psis.nrows(); inode++ ) {
-//                 sum += psis[inode][0] * pow ( Vec[meshtopology[iel][inode]][0], 2 ) *DetJ*w;
-//             }
-//         }
-//     }
-//     solu = sqrt ( sum );
-//     cout << "\n Inte = " << solu << endl;
-//
-//     return solu;
-
-
 
 }
 void KLAnalysis::SetSolver ( TPZMatrixSolver<STATE> &solver )
@@ -182,4 +190,43 @@ void KLAnalysis::SetSolver ( TPZMatrixSolver<STATE> &solver )
   if ( fSolver ) delete fSolver;
   fSolver = ( TPZMatrixSolver<STATE> * ) solver.Clone();
 }
-
+/// Compute the area of the domain
+REAL KLAnalysis::ComputeTotalArea()
+{
+    REAL area = 0.;
+    long nelem = fCompMesh->NElements();
+    TPZMaterial *pMatWithMem2 = fCompMesh->MaterialVec()[1];
+	
+    if (!pMatWithMem2) {
+    }
+    else 
+    {
+        for (long el = 0; el<nelem; el++) {
+            TPZCompEl *cel = fCompMesh->ElementVec()[el];
+            if (!cel) {
+                continue;
+            }
+            TPZGeoEl *gel = cel->Reference();
+            if (gel->MaterialId() != 1) {
+                continue;
+            }
+            TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+            if (!intel) {
+                DebugStop();
+            }
+            TPZIntPoints &rule = intel->GetIntegrationRule();
+            int np = rule.NPoints();
+            for (int ip = 0; ip<np; ip++) {
+                TPZManVector<REAL,3> point(2,0.);
+                REAL weight;
+                rule.Point(ip, point, weight);
+                TPZFNMatrix<4,REAL> jac(2,2),jacinv(2,2);
+                TPZFNMatrix<9,REAL> axes(2,3);
+                REAL detjac;
+                gel->Jacobian(point, jac, axes, detjac, jacinv);
+                area += weight*fabs(detjac);
+            }
+        }
+    }
+    return area;    
+}

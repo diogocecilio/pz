@@ -332,8 +332,13 @@ void TPZInterpolationSpace::CalcStiffC(TPZCompEl *jel, TPZElementMatrix &ce)
     
     TPZAutoPointer<TPZIntPoints> intrule = GetIntegrationRule().Clone();
     TPZAutoPointer<TPZIntPoints> intrule2 = GetIntegrationRule().Clone();
-
-   // std::cout << " intrulepoints " << intrule->NPoints() <<std::endl;
+	int order = material->IntegrationRuleOrder(data1.p);
+	int order2 = material->IntegrationRuleOrder(data2.p);
+	TPZManVector<int,3> intorder(dim,order);
+	intrule->SetOrder(intorder);
+	TPZManVector<int,3> intorder2(dim,order2);
+	intrule2->SetOrder(intorder2);
+	//std::cout << " intrulepoints " << intrule->NPoints() <<std::endl;
     int intrulepoints = intrule->NPoints();
     for(int int_ind = 0; int_ind < intrulepoints; int_ind++){
       
@@ -376,7 +381,8 @@ void TPZInterpolationSpace::CalcStiffB(TPZElementMatrix &be)
     
     TPZAutoPointer<TPZIntPoints> intrule = GetIntegrationRule().Clone();
     int order = material->IntegrationRuleOrder(data.p);
-
+	TPZManVector<int,3> intorder(dim,order);
+	intrule->SetOrder(intorder);
     int intrulepoints = intrule->NPoints();
     for(int int_ind = 0; int_ind < intrulepoints; ++int_ind){
         intrule->Point(int_ind,intpoint,weight);

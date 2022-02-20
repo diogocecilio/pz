@@ -139,65 +139,33 @@ void KLMaterial::Solution ( TPZMaterialData &data, int var, TPZVec<STATE> &Solou
 {
 
   TPZVec<STATE> &Sol =data.sol[0];
-  int sz = data.sol.size();
-      switch ( var )
-        {
-        case EVEC:
-          
-          Sol =data.sol[sz-1];
-          Solout[0] = Sol[0];
-          break;
-        case EVEC1:
-          Sol =data.sol[sz-2];
-          Solout[0] = Sol[0];
-          break;
-                  case EVEC2:
-          Sol =data.sol[sz-3];
-          Solout[0] = Sol[0];
-          break;
-                  case EVEC3:
-          Sol =data.sol[sz-4];
-          Solout[0] = Sol[0];
-          break;
-                  case EVEC4:
-          Sol =data.sol[sz-5];
-          Solout[0] = Sol[0];
-          break;
-                  case EVEC5:
-          Sol =data.sol[sz-6];
-          Solout[0] = Sol[0];
-          break;
-        case EVECSQR:
-          Sol =data.sol[0];
-          Solout[0] = Sol[0]*Sol[0];
-          break;
-        }
-        
-//         switch ( var )
+  //int sz = data.sol.size();
+//   int sz = fExpasionOrder;
+//       switch ( var )
 //         {
 //         case EVEC:
 //           
-//           Sol =data.sol[0];
+//           Sol =data.sol[sz-1];
 //           Solout[0] = Sol[0];
 //           break;
 //         case EVEC1:
-//           Sol =data.sol[1];
+//           Sol =data.sol[sz-2];
 //           Solout[0] = Sol[0];
 //           break;
 //                   case EVEC2:
-//           Sol =data.sol[2];
+//           Sol =data.sol[sz-3];
 //           Solout[0] = Sol[0];
 //           break;
 //                   case EVEC3:
-//           Sol =data.sol[3];
+//           Sol =data.sol[sz-4];
 //           Solout[0] = Sol[0];
 //           break;
 //                   case EVEC4:
-//           Sol =data.sol[4];
+//           Sol =data.sol[sz-5];
 //           Solout[0] = Sol[0];
 //           break;
 //                   case EVEC5:
-//           Sol =data.sol[5];
+//           Sol =data.sol[sz-6];
 //           Solout[0] = Sol[0];
 //           break;
 //         case EVECSQR:
@@ -205,6 +173,39 @@ void KLMaterial::Solution ( TPZMaterialData &data, int var, TPZVec<STATE> &Solou
 //           Solout[0] = Sol[0]*Sol[0];
 //           break;
 //         }
+        
+        switch ( var )
+        {
+        case EVEC:
+          
+          Sol =data.sol[0];
+          Solout[0] = Sol[0];
+          break;
+        case EVEC1:
+          Sol =data.sol[1];
+          Solout[0] = Sol[0];
+          break;
+                  case EVEC2:
+          Sol =data.sol[2];
+          Solout[0] = Sol[0];
+          break;
+                  case EVEC3:
+          Sol =data.sol[3];
+          Solout[0] = Sol[0];
+          break;
+                  case EVEC4:
+          Sol =data.sol[4];
+          Solout[0] = Sol[0];
+          break;
+                  case EVEC5:
+          Sol =data.sol[5];
+          Solout[0] = Sol[0];
+          break;
+        case EVECSQR:
+          Sol =data.sol[0];
+          Solout[0] = Sol[0]*Sol[0];
+          break;
+        }
         
  }
 

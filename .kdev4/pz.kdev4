@@ -1,13 +1,13 @@
 [Buildset]
-BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x14\x00n\x00e\x00o\x00p\x00z\x00-\x002\x000\x001\x004)
+BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x04\x00p\x00z)
 
 [CMake]
 Build Directory Count=2
 Current Build Directory Index-Host System=1
 
 [CMake][CMake Build Directory 0]
-Build Directory Path=/home/diogo/Documents/neopz-build-debug
-Build Type=Debug\n
+Build Directory Path=/home/diogo/projects/pz-build-debug
+Build Type=Debug
 CMake Binary=/usr/bin/cmake
 CMake Executable=/usr/bin/cmake
 Environment Profile=
@@ -16,7 +16,7 @@ Install Directory=/usr/local
 Runtime=Host System
 
 [CMake][CMake Build Directory 1]
-Build Directory Path=/home/diogo/Documents/neopz-build-release
+Build Directory Path=/home/diogo/projects/pz-build-release
 Build Type=Release
 CMake Binary=/usr/bin/cmake
 CMake Executable=/usr/bin/cmake
@@ -31,35 +31,38 @@ Launch Configurations=Launch Configuration 0,Launch Configuration 1
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=slope-release
+Name=debug
 Type=Native Application
 
 [Launch][Launch Configuration 0][Data]
 Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
-Dependency Action=Install
+Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/Documents/neopz-build-release/Projects/SlopeStability/SlopeStability
+Executable=file:///home/diogo/projects/pz-build-debug/Projects/SlopeStability/SlopeStability
 External Terminal=konsole --noclose --workdir %workdir -e %exe
-Project Target=neopz-2014,Projects,AcoplamentoH1Hdiv,AcoplamentoH1Hdiv
+Project Target=pz,Projects,AcoplamentoH1Hdiv,AcoplamentoH1Hdiv
 Use External Terminal=false
-Working Directory=file:///home/diogo/Documents/neopz-build-release/Projects/SlopeStability/output
+Working Directory=file:///home/diogo/projects/pz-build-debug/Projects/SlopeStability/output
 isExecutable=true
 
 [Launch][Launch Configuration 1]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=slope-debug
+Name=release
 Type=Native Application
 
 [Launch][Launch Configuration 1][Data]
 Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
-Dependency Action=Install
+Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/Documents/neopz-build-debug/Projects/SlopeStability/SlopeStability
+Executable=file:///home/diogo/projects/pz-build-release/Projects/SlopeStability/SlopeStability
 External Terminal=konsole --noclose --workdir %workdir -e %exe
-Project Target=neopz-2014,Projects,AcoplamentoH1Hdiv,AcoplamentoH1Hdiv
+Project Target=pz,Projects,AcoplamentoH1Hdiv,AcoplamentoH1Hdiv
 Use External Terminal=false
-Working Directory=file:///home/diogo/Documents/neopz-build-debug/Projects/SlopeStability/output
+Working Directory=file:///home/diogo/projects/pz-build-release/Projects/SlopeStability/output
 isExecutable=true
+
+[Project]
+VersionControlSupport=kdevgit

@@ -12,7 +12,8 @@
 #include "pzvec.h"
 #include <iostream>
 class TPZCompMesh;
-
+#include "KLMaterial.h"
+#include "pzinterpolationspace.h"
 template<class TVar> 
 class TPZFMatrix;
 #include <Eigen/Dense>
@@ -86,16 +87,22 @@ class KLAnalysis: TPZAnalysis {
     
     REAL IntegrateSqrEigenVecSolution();
 	
-	TPZFMatrix<REAL> GetItEigenVec(int it)
+	TPZVec<TPZFMatrix<REAL>> GetEigenVec()
 	{
-		return fEigenVectors[it];
+		return fEigenVectors;
 	}
 	
-	REAL GetItEigenVal(int it)
+	TPZFMatrix<REAL> GetEigenVal()
 	{
-		return fEigenValues(it,0);
+		return fEigenValues;
 	}
+	
+REAL ComputeTotalArea();
 
+void SetExpansionOrder(int ExpansionOrder)
+{
+	fExpansionOrder = ExpansionOrder;
+}
 	
 // 	virtual void DefineGraphMesh(int dimension, const TPZVec<std::string> &scalnames, const TPZVec<std::string> &vecnames, const std::string &plotfile)=0;
 // 
@@ -105,6 +112,7 @@ private:
 	KLStrMatrix * fStrMatrix; 
 	TPZVec<TPZFMatrix<REAL>> fEigenVectors;
 	TPZFMatrix<REAL> fEigenValues;
+	int fExpansionOrder;
 
 };
 
