@@ -26,7 +26,7 @@ Install Directory=/usr/local
 Runtime=Host System
 
 [Launch]
-Launch Configurations=Launch Configuration 0,Launch Configuration 1
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
@@ -62,6 +62,24 @@ External Terminal=konsole --noclose --workdir %workdir -e %exe
 Project Target=pz,Projects,AcoplamentoH1Hdiv,AcoplamentoH1Hdiv
 Use External Terminal=false
 Working Directory=file:///home/diogo/projects/pz-build-release/Projects/SlopeStability/output
+isExecutable=true
+
+[Launch][Launch Configuration 2]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=karhunen-release
+Type=Native Application
+
+[Launch][Launch Configuration 2][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/pz-build-release/Projects/KarhunenLoeveRandomFields/KarhunenLoeveRandomFields
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=
+Use External Terminal=false
+Working Directory=file:///home/diogo/projects/pz-build-release/Projects/KarhunenLoeveRandomFields/
 isExecutable=true
 
 [Project]

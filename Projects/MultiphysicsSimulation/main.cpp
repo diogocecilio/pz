@@ -970,7 +970,7 @@ void AddElements(TPZVec<TPZCompMesh *> cmeshVec, TPZCompMesh *MFMesh)
 		
 	
 }
-
+//Concentra a infrmacao sobre os connects de todas as malhas em uma unica malha
 void AddConnects(TPZVec<TPZCompMesh *> cmeshVec, TPZCompMesh *MFMesh)
 {
 	int nmeshes = cmeshVec.size();
@@ -1041,7 +1041,7 @@ void AddConnects(TPZVec<TPZCompMesh *> cmeshVec, TPZCompMesh *MFMesh)
 		cel->SetConnectIndexes(connectindexes);
 	}
 }
-
+//pega informacao relativa aos connects das outras malhas e tranfere para MFMesh?
 void TransferFromMeshes(TPZVec<TPZCompMesh *> &cmeshVec, TPZCompMesh *MFMesh)
 {
     int imesh;
@@ -1070,6 +1070,7 @@ void TransferFromMeshes(TPZVec<TPZCompMesh *> &cmeshVec, TPZCompMesh *MFMesh)
     }
 }
 
+//pega informacao relativa aos connects da malha MFMesh tranfere para outras malhas?
 void TransferFromMultiPhysics(TPZVec<TPZCompMesh *> &cmeshVec, TPZCompMesh *MFMesh)
 {
     int imesh;

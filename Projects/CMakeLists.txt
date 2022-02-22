@@ -175,6 +175,7 @@ add_subdirectory(proDG)
 			#teste nathan
 			add_subdirectory(PlasticityPV)
 add_subdirectory(SlopeStability)
+add_subdirectory(KarhunenLoeveRandomFields)
 			#Projeto Denise
 			#add_subdirectory(HdivPressureTeste)
 			add_subdirectory(HpAdaptivity)

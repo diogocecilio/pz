@@ -670,6 +670,8 @@ void TPZAnalysis::DefineGraphMesh(int dim, const TPZVec<std::string> &scalnames,
         TPZMaterial *mat = matit->second;
 		if(mat && !bc && mat->Dimension() == dim) break;
 	}
+	//TPZMaterial *mat = dynamic_cast<TPZMaterial*> (fCompMesh->MaterialVec()[0]);
+	//mat->Print();
 	if(matit == fCompMesh->MaterialVec().end())
 	{
 		std::cout << __PRETTY_FUNCTION__ << " The computational mesh has no associated material!!!!\n";
