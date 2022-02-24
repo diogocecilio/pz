@@ -28,7 +28,10 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL>
 {
 	TPZTensor<REAL>::TPZDecomposed DecompSig; // It may be SigTr or SigPr Decomposition, dependes on the part of this method
 	TPZTensor<REAL> sigtr;
-	
+	if(fN.fmatprop.size()!=0 && fN.fmatprop[0]>1.e-3)
+ 	{
+	 fYC.SetLocalMatState(fN);
+	}
 	//
 	TPZTensor<REAL> epsTr,epsPN,epsElaNp1;
 	epsPN = fN.fEpsP;
@@ -71,7 +74,12 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
     TPZTensor<REAL>::TPZDecomposed DecompSig,DecompEps; // It may be SigTr or SigPr Decomposition, dependes on the part of this method
     TPZTensor<REAL> sigtr;
     
-    
+	if(fN.fmatprop.size()!=0 && fN.fmatprop[0]>1.e-3)
+ 	{
+	 fYC.SetLocalMatState(fN);
+	}
+	
+	//fYC.fPhi = cohesion;
     //
     TPZTensor<REAL> epsTr,epsPN,epsElaNp1;
     epsPN = fN.fEpsP;

@@ -113,7 +113,7 @@ REAL KLMaterial::AutocorrelationFunc ( TPZManVector<REAL,3>  x1, TPZManVector<RE
     case 2:
       val = exp ( - ( ( dist / fLx ) * ( dist / fLx ) ) );
     case 3:
-      val = exp ( -fabs ( xx1 - xx2 ) / ( fLx )- fabs ( yy1 - yy2 ) / ( fLy )- fabs ( zz1 - zz2 ) / ( fLz ) );
+      val = exp ( -fabs ( xx1 - xx2 ) / ( fLx )- fabs ( yy1 - yy2 ) / ( fLy ) );
       break;
 	case 4:
       val = exp ( -dist/( fLx * fLy) );

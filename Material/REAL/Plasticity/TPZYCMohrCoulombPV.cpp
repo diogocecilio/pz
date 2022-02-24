@@ -99,6 +99,8 @@ bool TPZYCMohrCoulombPV::ReturnMapPlane(const TPZVec<T> &sigma_trial, TPZVec<T> 
 	const REAL constA = 4.* fER.G() *(1.+ sinphi*sinpsi/3.) + 4.*fER.K() * sinphi*sinpsi;
 	T sigmay,H;
 	T epsbar = T(fEpsPlasticBar+memory.fGamma[0]*2.*cosphi);//diogo aqui
+	//cout << " fPhi = " << fPhi << endl;
+	//cout << " cos = " << fc << endl;
 	PlasticityFunction(epsbar,sigmay, H);
 	T phi = eigenvalues[0]-eigenvalues[2]+(eigenvalues[0]+eigenvalues[2])*sinphi-2.*sigmay*cosphi;
 	T gamma = memory.fGamma[0];

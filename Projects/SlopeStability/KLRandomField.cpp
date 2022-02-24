@@ -75,17 +75,19 @@ TPZVec<TPZFMatrix<REAL>> KLRandomField::CreateLogNormalRandomField()
     REAL lambda = log ( mean ) - xi * xi / 2.;
     for ( int i = 0; i < hhatcoes.Rows(); i++ ) {
         for ( int j = 0; j < hhatcoes.Cols(); j++ ) {
-            hhatcoes(i,j) = exp ( lambda + xi * hhatcoes(i,j) );
+			REAL temp =  hhatcoes(i,j);
+            hhatcoes(i,j) = exp ( lambda + xi * temp );
         }
     }
 
-    mean = fMean[1] * M_PI/180.;
+    mean = fMean[1];
     sdev = fCov[1] * mean;
     xi = sqrt ( log ( 1 + pow ( ( sdev / mean ), 2 ) ) );
     lambda = log ( mean ) - xi * xi / 2.;
     for ( int i = 0; i < hhatphi.Rows(); i++ ) {
         for ( int j = 0; j < hhatphi.Cols(); j++ ) {
-            hhatphi(i,j) = exp ( lambda + xi * hhatphi(i,j) );
+			REAL temp = hhatphi(i,j);
+            hhatphi(i,j) = exp ( lambda + xi *temp );
         }
 
     }

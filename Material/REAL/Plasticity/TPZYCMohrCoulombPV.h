@@ -93,6 +93,12 @@ public:
 		fER = ER;
 	}
 	
+	void SetLocalMatState(TPZPlasticState<REAL> & state){
+		fc =   state.fmatprop[0];
+		fPhi = state.fmatprop[1];
+		fPsi = state.fmatprop[1];
+	}
+	
 	/**
 	 * @brief Operator =
 	 */

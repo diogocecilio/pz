@@ -110,7 +110,13 @@ public:
      */
     void InitialGuess(const TPZElasticResponse &ER, REAL L, TPZTensor<REAL> &sigtrial, REAL &epspproj, 
                       TPZVec<REAL> &delgamma, TPZTensor<REAL> &sigproj);
-
+    	void SetLocalMatState(TPZPlasticState<REAL> & state){
+// 		fc =   state.fmatprop[0];
+// 		fPhi = state.fmatprop[1];
+// 		fPsi = state.fmatprop[1];
+			cout << "Need to be implemented"<< endl;
+			DebugStop();
+	}
     inline REAL InitialDamage()
     {
         // for this particular case!!! toto

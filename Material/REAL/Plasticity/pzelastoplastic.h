@@ -93,7 +93,9 @@ class  TPZMatElastoPlastic : public TPZMatWithMem<TMEM>
 	  // Material
 	  EMatPorosity = 56,
 	  EMatE = 57,
-	  EMatPoisson = 58
+	  EMatPoisson = 58,
+	  ECohes =59,
+	  EFric = 60
 };
 		
 		
@@ -309,6 +311,8 @@ class  TPZMatElastoPlastic : public TPZMatWithMem<TMEM>
 	 */
 	void SetBulkDensity(const REAL & bulk);
 	
+	
+
 	  /**
 	   * Defining what parameters the material needs. In particular this material needs the
 	   * evaluation of normal vector for the sake of boundary conditions
@@ -325,6 +329,7 @@ class  TPZMatElastoPlastic : public TPZMatWithMem<TMEM>
 		{
 			fForce = Force;
 		}
+		
 protected:
 
 	/**

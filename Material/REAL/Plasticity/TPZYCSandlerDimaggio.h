@@ -179,6 +179,15 @@ public:
         return 0.;
     }
     
+    
+    	void SetLocalMatState(TPZPlasticState<REAL> & state){
+// 		fc =   state.fmatprop[0];
+// 		fPhi = state.fmatprop[1];
+// 		fPsi = state.fmatprop[1];
+			cout << "Need to be implemented"<< endl;
+			DebugStop();
+	}
+	
     /**
      Projeto o ponto sigtrial sobre a superficie de plastificacao (se precisar) e atualiza a variavel de dano
      Este metodo utiliza backtracking

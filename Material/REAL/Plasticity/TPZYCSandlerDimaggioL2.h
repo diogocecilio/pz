@@ -49,7 +49,13 @@ public:
         
     }
 
-
+    	void SetLocalMatState(TPZPlasticState<REAL> & state){
+// 		fc =   state.fmatprop[0];
+// 		fPhi = state.fmatprop[1];
+// 		fPsi = state.fmatprop[1];
+			cout << "Need to be implemented"<< endl;
+			DebugStop();
+	}
 	const char * Name() const
     {
 	   return "TPZYCSandlerDimaggioL2";	

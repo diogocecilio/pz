@@ -312,13 +312,13 @@ void TPZSlopeStabilityAnalysis::ExecuteInitialSimulation(int nsteps)
 
     for (int istep = 1; istep <= nsteps; istep++) {
         REAL factor = istep*1./nsteps;
-        ExecuteSimulation(istep,factor);
+        ExecuteSimulation();
     }
 }
 
 
 
-void TPZSlopeStabilityAnalysis::ExecuteSimulation(int substeps, REAL factor)
+void TPZSlopeStabilityAnalysis::ExecuteSimulation()
 {
     
     TConfig &LocalConfig = fCurrentConfig;
@@ -1563,8 +1563,9 @@ scalNames.Push("YieldSurface2");
 scalNames.Push("YieldSurface3");
 scalNames.Push("POrder");
 scalNames.Push("NSteps");
+scalNames.Push("Cohesion");
+scalNames.Push("FrictionAngle");
 
-  
 }
 
 
@@ -1585,36 +1586,6 @@ void TPZSlopeStabilityAnalysis::PostProcess(int resolution)
 
     fPostProcessNumber++;
 
-      
-#ifdef TESTPOLYCHAIN
-    //*** DANGER (definido pelo programador) ***
-    //******************************************
-    REAL J2val = 0.0004;
-    std::multimap<REAL,REAL> polygonalChain;
-
-    GetJ2Isoline(J2val, polygonalChain);
-    
-    {
-        std::stringstream nm;
-        nm << "EllipDots" << passCount << ".nb";
-        std::ofstream outEllips(nm.str().c_str());
-        passCount++;
-        std::multimap<REAL,REAL>::iterator it;
-        outEllips << "ellipDots={";
-        for(it = polygonalChain.begin(); it != polygonalChain.end(); it++)
-        {
-            outEllips << "{" << it->first << " , " << it->second << "}";
-            if(it != polygonalChain.end())
-            {
-                outEllips << ",";
-            }
-        }
-        outEllips << "};\n";
-        outEllips << "aa=ListPlot[ellipDots,Joined->False,AspectRatio->Automatic];\n";
-        outEllips << "bb=Graphics[Circle[{0,0},4.25*0.0254]];\n";
-        outEllips << "Show[aa,bb]\n";
-    }
-#endif
 }
 
 
@@ -1955,10 +1926,81 @@ void TPZSlopeStabilityAnalysis::TConfig::CreateGeometricMeshSlope(int ref)
 
 
 }
+
+void TPZSlopeStabilityAnalysis::TConfig::CreateGeometricMeshSlope2(int ref)
+{
+	const std::string name ( "ElastoPlastic GEOMESH Footing Problem " );
+
+    fGMesh.SetName ( name );
+    fGMesh.SetDimension ( 2 );
+   
+   TPZVec<REAL> coord ( 2 );
+ 
+    //vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+  //40.}, {30., 30.}, {30., 40.}, {26., 26.}, {26., 40.}, {45., 26.}};
+  
+      vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+  40.}, {30., 30.}, {30., 40.}, {20., 20.}, {20., 40.}, {45., 20.}};
+  
+  vector<vector<int>> topol = {{0, 1, 10, 8}, {1, 2, 3, 10}, {10, 3, 6, 8}, {3, 4, 7, 6}, {6, 7, 9, 
+  8}, {0, 8, 9, 5}};
+  
+  fGMesh.NodeVec().Resize ( co.size() );
+  
+  for(int inode=0;inode<co.size();inode++)
+  {
+	coord[0] = co[inode][0];
+    coord[1] = co[inode][1];
+    fGMesh.NodeVec() [inode] = TPZGeoNode ( inode, coord, fGMesh );
+}
+  TPZVec <long> TopoQuad ( 4 );
+    for(int iel=0;iel<topol.size();iel++)
+  {
+    TopoQuad[0] = topol[iel][0];
+    TopoQuad[1] = topol[iel][1];
+    TopoQuad[2] =	topol[iel][2];
+    TopoQuad[3] = topol[iel][3];
+    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( iel, TopoQuad, 1,fGMesh );
+}
+    int id = topol.size();
+    TPZVec <long> TopoLine ( 2 );
+    TopoLine[0] = 0;
+    TopoLine[1] = 1;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, fGMesh );
+
+	id++;
+    TopoLine[0] = 1;
+    TopoLine[1] = 2;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, fGMesh );
+
+	id++;
+    TopoLine[0] = 0;
+    TopoLine[1] = 5;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, fGMesh );
+
+	id++;
+    TopoLine[0] = 4;
+    TopoLine[1] = 5;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, fGMesh);
+	
+	fGMesh.BuildConnectivity();
+	    for ( int d = 0; d<ref; d++ ) {
+        int nel = fGMesh.NElements();
+        TPZManVector<TPZGeoEl *> subels;
+        for ( int iel = 0; iel<nel; iel++ ) {
+            TPZGeoEl *gel = fGMesh.ElementVec() [iel];
+                gel->Divide ( subels );
+        }
+    }
+
+}
+
+
+
 /// Initialize the Sandler DiMaggio object and create the computational mesh
 void TPZSlopeStabilityAnalysis::TConfig::CreateComputationalMeshSlope(int porder)
 {
-      unsigned int dim  = fGMesh.Dimension();
+      unsigned int dim  = 2;
     const std::string name ( "ElastoPlastic COMP MESH Footing Problem " );
 
     // Setting up attributes

@@ -62,14 +62,14 @@ KLAnalysis::~KLAnalysis ( void )
 
 void KLAnalysis::Solve()
 {
-	std::ofstream outfull("outinfofulltime-p2-h3.txt");
+	std::ofstream outfull("outinfofulltime-p2-h4.txt");
 	chrono::steady_clock fulltime;
 	auto startfull = fulltime.now();
-	std::ofstream out("outinfo-p2-h3.txt");
+	std::ofstream out("outinfo-p2-h4.txt");
     TPZFMatrix<REAL> invB,invBC,B,C;
     MatrixXd eigenInvBC,eigenInvB,eigenC,eigenB;
-	out << "Number of Equations =   " << fCompMesh->NEquations() << std::endl;
-    out << "Assembling C  " << std::endl;
+	cout << "Number of Equations =   " << fCompMesh->NEquations() << std::endl;
+    cout << "Assembling C  " << std::endl;
     chrono::steady_clock sc;
     auto start = sc.now();
 
@@ -77,16 +77,16 @@ void KLAnalysis::Solve()
 
     auto end = sc.now();
     auto time_span = static_cast<chrono::duration<double>> ( end - start );
-    out << "| total time taken to assemble C =  " << time_span.count()<< std::endl;
+    cout << "| total time taken to assemble C =  " << time_span.count()<< std::endl;
 
-    out << " Assembling B  " << std::endl;
+   cout << " Assembling B  " << std::endl;
     start = sc.now();
 
     fStrMatrix->AssembleB ( B );
 
     end = sc.now();
     time_span = static_cast<chrono::duration<double>> ( end - start );
-    out << "| total time taken to assemble B =  " << time_span.count()<< std::endl;
+    cout << "| total time taken to assemble B =  " << time_span.count()<< std::endl;
 
     ToEigen ( B,eigenB );
     ToEigen ( C,eigenC );
@@ -97,17 +97,17 @@ void KLAnalysis::Solve()
     MatrixXd val,vec;
 
     ComplexEigenSolver<MatrixXd> ces;
-    out << " Computing Eigensystem  " << std::endl;
+    cout << " Computing Eigensystem  " << std::endl;
     start = sc.now();
     ces.compute ( eigenInvBC );
     end = sc.now();
     time_span = static_cast<chrono::duration<double>> ( end - start );
-    out << "| total time taken to compute the Eigensystem =  " << time_span.count()<< std::endl;
+   cout << "| total time taken to compute the Eigensystem =  " << time_span.count()<< std::endl;
 	
 	
 	auto endfull = fulltime.now();
 	time_span = static_cast<chrono::duration<double>> ( endfull - startfull );
-    outfull << "| total time  =  " << time_span.count()<< std::endl;
+    cout << "| total time  =  " << time_span.count()<< std::endl;
 	
     int ncols = ces.eigenvectors().cols();
     int M = fExpansionOrder;
@@ -137,7 +137,7 @@ void KLAnalysis::Solve()
         //std::cout << " A- V * D * V^(-1) = " << "\n" << (vec * val.asDiagonal() * vec.inverse()) << endl;
     }
     
-    out << "Start to integrate the solution over the domain..  " << std::endl;
+    cout << "Start to integrate the solution over the domain..  " << std::endl;
     start = sc.now();
     TPZFMatrix<REAL> vecpz(nrows,M);
     fEigenVectors.Resize(M);
@@ -155,14 +155,14 @@ void KLAnalysis::Solve()
         int varid=6;
         REAL integral = IntegrateSolution(varid);
         intphisqr(icol)=integral;
-        //fEigenVectors[icol]*=1./sqrt(integral);
-       // vec.col(icol)*=1./sqrt(integral);
+        fEigenVectors[icol]*=1./sqrt(integral);
+        vec.col(icol)*=1./sqrt(integral);
     }
     end = sc.now();
     time_span = static_cast<chrono::duration<double>> ( end - start );
-    out << "| total time taken to integrate the solution over the domain =  " << time_span.count()<< std::endl;
+    cout << "| total time taken to integrate the solution over the domain =  " << time_span.count()<< std::endl;
 
-	out << intphisqr << endl;
+	cout << intphisqr << endl;
     for ( int icol=0; icol< M; icol++ )
     {
         for(int irow=0; irow<nrows; irow++)
@@ -181,10 +181,10 @@ void KLAnalysis::Solve()
     }
 
     REAL totalarea = ComputeTotalArea();
-    out << "total area = "<<totalarea << std::endl;
+    cout << "total area = "<<totalarea << std::endl;
     //std::cout << " err / (fsig * fsig) = " <<err / (fsig * fsig) << std::endl;
-    out << "mean error 1 = " <<1. - 1./totalarea *   err2 << std::endl;
-    out << "mean error 2 = " <<1. - 1./totalarea *   err << std::endl;
+    cout << "mean error 1 = " <<1. - 1./totalarea *   err2 << std::endl;
+    cout << "mean error 2 = " <<1. - 1./totalarea *   err << std::endl;
 
     FromEigen(val,fEigenValues);
 

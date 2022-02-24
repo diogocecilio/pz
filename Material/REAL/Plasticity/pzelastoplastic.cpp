@@ -10,7 +10,7 @@
 #include "TPZThermoForceA.h"
 #include "TPZElasticResponse.h"
 #include "pzlog.h"
-
+#include "TPZYCMohrCoulombPV.h"
 #ifdef LOG4CXX
 static LoggerPtr elastoplasticLogger(Logger::getLogger("pz.material.pzElastoPlastic"));
 static LoggerPtr updatelogger(Logger::getLogger("pz.material.pzElastoPlastic.update"));
@@ -226,7 +226,8 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name)
   if(!strcmp("YieldSurface3",		name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EYieldSurface3;
   if(!strcmp("POrder",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EPOrder;
   if(!strcmp("NSteps",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::ENSteps;
-  
+  if(!strcmp("Cohesion",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::ECohes;
+  if(!strcmp("FrictionAngle",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFric;
   //return TPZMatWithMem<TMEM>::VariableIndex(name);
   PZError << "TPZMatElastoPlastic::VariableIndex Error\n";
   DebugStop();
@@ -329,7 +330,8 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var)
   if(var == TPZMatElastoPlastic<T,TMEM>::EMatPorosity)		 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EMatE)			 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EMatPoisson)		 return 1;
-  
+    if(var == TPZMatElastoPlastic<T,TMEM>::ECohes)			 return 1;
+  if(var == TPZMatElastoPlastic<T,TMEM>::EFric)		 return 1;
   if(var == 100) return 1;
   return TPZMatWithMem<TMEM>::NSolutionVariables(var);
 }
@@ -363,6 +365,7 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
         EpsT.Add(plasticloc.GetState().fEpsT, 1.);
         
         plasticloc.ApplyStrainComputeSigma(EpsT, Sigma);
+		
     }
     TPZPlasticState<STATE> PState = plasticloc.GetState();
     TPZTensor<REAL> totalStrain = PState.fEpsT;
@@ -389,7 +392,14 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
   
     STATE ux = Memory.fDisplacement[0];
     STATE uy = Memory.fDisplacement[1];
-    
+	
+  
+	int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop.size();
+	if(sz==0)
+ {
+	 TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop.Resize(2);
+}
+	
   switch (var) {
     // Total Strain
     case EStrainVol:
@@ -509,6 +519,12 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
     case ENSteps:
    		Solout[0] = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticSteps;
       break;
+	case ECohes:
+		Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop[0];
+		break;
+	case EFric:
+		Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop[1];
+	break;
     default:
       DebugStop();
       break;
@@ -783,7 +799,10 @@ void TPZMatElastoPlastic<T,TMEM>::Contribute(TPZMaterialData &data, REAL weight,
   TPZFNMatrix<36> Dep(6,6);
   TPZFNMatrix<6>  DeltaStrain(6,1);
   TPZFNMatrix<6>  Stress(6,1);//, StressN(6,1);
-    
+   
+   //TPZYCMohrCoulombPV  *mohr = static_cast<TPZYCMohrCoulombPV *> (fPlasticity.fYC);
+
+  //mohr->SetUp(1.1,1.1,1.1,fPlasticity.fER);
   this->ComputeDeltaStrainVector(data, DeltaStrain);
   this->ApplyDeltaStrainComputeDep(data, DeltaStrain, Stress, Dep);
 	
@@ -1420,6 +1439,7 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrain(TPZMaterialData & data, TPZFM
     	TPZMatWithMem<TMEM>::fMemory[intPt].fSigma        = Sigma;
 		TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState = plasticloc.GetState();
 		TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticSteps = plasticloc.IntegrationSteps();
+		//TPZMatWithMem<TMEM>::fMemory[intPt].fMatProperties = MatProperties;
         int solsize = data.sol[0].size();
 		for(int i=0; i<solsize; i++) 
         {
@@ -1614,6 +1634,9 @@ void TPZMatElastoPlastic<T,TMEM>::FillBoundaryConditionDataRequirement(int type,
 #include "TPZVonMises.h"
 #include "TPZYCVonMises.h"
 #include "TPZYCModifiedMohrCoulomb.h"
+#include "TPZYCMohrCoulombPV.h"
+#include "TPZYCMohrCoulombPV.h"
+#include "TPZYCMohrCoulombPV.h"
 #include "pzsandlerextPV.h"
 #include "TPZPlasticStepPV.h"
 #include "TPZYCMohrCoulombPV.h"

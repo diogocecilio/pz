@@ -580,6 +580,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		} else
 			if( (norm - error) > 1.e-9 ) {
 				out << "\nDivergent Method\n";
+				//return;
 			}
 		error = norm;
 		iter++;

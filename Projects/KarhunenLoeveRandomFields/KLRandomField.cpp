@@ -32,7 +32,7 @@ TPZVec<TPZFMatrix<REAL>> KLRandomField::CreateLogNormalRandomField()
 {
     TPZFMatrix<REAL>  PHIt, PHI, vect;
     TPZFMatrix<REAL> val = fKlAnal->GetEigenVal();
-    TPZFMatrix<REAL> vec = fCMesh->Solution();
+    TPZFMatrix<REAL> vec = fKlAnal->Mesh()->Solution();
 
 
     vec.Transpose( &vect );
@@ -40,6 +40,14 @@ TPZVec<TPZFMatrix<REAL>> KLRandomField::CreateLogNormalRandomField()
     int M= val.Rows();
     TPZFMatrix<REAL>  Identity(M,M,0.);
     for ( int i = 0; i < M; i++ ) Identity(i,i) = sqrt ( fabs ( val(i,0) ) );
+	
+	
+	cout << "sqrt(val)" << endl;
+	
+	Identity.Print(std::cout);
+	
+	cout << " vec " << endl;
+	vec.Print(std::cout);
 
     Identity.Multiply ( vect, PHI );
 
@@ -75,17 +83,19 @@ TPZVec<TPZFMatrix<REAL>> KLRandomField::CreateLogNormalRandomField()
     REAL lambda = log ( mean ) - xi * xi / 2.;
     for ( int i = 0; i < hhatcoes.Rows(); i++ ) {
         for ( int j = 0; j < hhatcoes.Cols(); j++ ) {
-            hhatcoes(i,j) = exp ( lambda + xi * hhatcoes(i,j) );
+			REAL temp = hhatcoes(i,j);
+            hhatcoes(i,j) = exp ( lambda + xi *temp);
         }
     }
 
-    mean = fMean[1] * M_PI/180.;
-    sdev = fCov[1] * mean;
-    xi = sqrt ( log ( 1 + pow ( ( sdev / mean ), 2 ) ) );
-    lambda = log ( mean ) - xi * xi / 2.;
+    REAL mean2 = fMean[1];
+    REAL sdev2 = fCov[1] * mean2;
+    xi = sqrt ( log ( 1 + pow ( ( sdev2 / mean2 ), 2 ) ) );
+    lambda = log ( mean2 ) - xi * xi / 2.;
     for ( int i = 0; i < hhatphi.Rows(); i++ ) {
         for ( int j = 0; j < hhatphi.Cols(); j++ ) {
-            hhatphi(i,j) = exp ( lambda + xi * hhatphi(i,j) );
+			REAL temp = hhatphi(i,j);
+            hhatphi(i,j) = exp ( lambda + xi * temp );
         }
 
     }

@@ -224,6 +224,7 @@ public:
         
         
         void CreateGeometricMeshSlope(int ref);
+		void CreateGeometricMeshSlope2(int ref);
 		void CreateComputationalMeshSlope(int porder);
 
          STATE ComputeFarFieldWork();
@@ -297,6 +298,10 @@ public:
         
         static int gNumThreads;
 
+		void SetGMesh(TPZGeoMesh  gmesh)
+		{
+			fGMesh = gmesh;
+		}
         
     };
 
@@ -322,7 +327,7 @@ public:
     void ExecuteInitialSimulation(int nsteps);
     
     /// Computes an equilibrium state corresponding to the current boundary conditions
-    void ExecuteSimulation(int substeps, REAL factor=1.);
+    void ExecuteSimulation();
 
     /// verify the integrity of the elasto plastic material that is being used
     static void CheckDeformation(std::string filename = "deform.nb");

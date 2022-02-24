@@ -22,6 +22,8 @@ public:
 	
 	// Plastic damage variable
 	T fAlpha;
+	
+	TPZVec<T> fmatprop;
     
 
 public:
@@ -29,18 +31,18 @@ public:
 	/**
 	 * Default constructor - all values set to zero
 	 */
-    TPZPlasticState():fEpsT(), fEpsP(), fAlpha(T(0.) ){ }
+    TPZPlasticState(): fEpsT(), fEpsP(), fAlpha(T(0.) ),fmatprop(){ }
 		
 	/**
 	 * Constructor enabling predefinition of Alpha
 	 */
-	TPZPlasticState(const T & alpha):fEpsT(T(0.)), fEpsP(T(0.)), fAlpha(alpha){ }
+	TPZPlasticState(const T & alpha):fEpsT(T(0.)), fEpsP(T(0.)), fAlpha(alpha),fmatprop(T(0.)){ }
 	
 	/**
 	 * Copy constructor
 	 */
 	TPZPlasticState(const TPZPlasticState<T> & source):
-		fEpsT(source.fEpsT), fEpsP(source.fEpsP), fAlpha(source.fAlpha){ }
+		fEpsT(source.fEpsT), fEpsP(source.fEpsP), fAlpha(source.fAlpha),fmatprop(source.fmatprop){ }
 	
 	/**
 	 * Default destructor
@@ -97,6 +99,9 @@ public:
 		{ return fEpsP; }
 	const T & Alpha() const 
 		{ return fAlpha; }
+	const TPZVec<T> & MatProp() const 
+		{ return fmatprop; }
+
 
     
     void Write(TPZStream &buf) const;
@@ -113,7 +118,7 @@ inline const TPZPlasticState<T> & TPZPlasticState<T>::operator=(const TPZPlastic
 	fEpsT = source.EpsT();
 	fEpsP = source.EpsP();
 	fAlpha = source.Alpha();
-
+	fmatprop=source.MatProp();
 		
 	return *this;
 }
@@ -176,6 +181,9 @@ void TPZPlasticState<T>::CopyTo(TPZPlasticState<T1> & target) const
 	EpsT().CopyTo(target.fEpsT);
 	EpsP().CopyTo(target.fEpsP);
 	target.fAlpha = shapeFAD::val( Alpha() );
+	target.fmatprop.Resize(2);
+	target.fmatprop[0]= shapeFAD::val(fmatprop[0]);
+	target.fmatprop[1]= shapeFAD::val(fmatprop[1]);
 }
 
 template<class T>

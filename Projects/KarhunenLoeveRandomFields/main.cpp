@@ -60,7 +60,7 @@ void KLConfig()
 
     int porder=2;
     int expansionorder=100;
-    int ref=3;
+    int ref=4;
 
     TPZGeoMesh * gmesh =  Simple3DGMesh (ref);
 
@@ -80,8 +80,8 @@ void KLConfig()
 
 
     int dim = gmesh->Dimension();
-    ref=4;
-    string file ="outex.vtk";
+    ref=0;
+    string file ="outexp2h4.vtk";
     klanal->Post(file,dim,ref);
 
 }
