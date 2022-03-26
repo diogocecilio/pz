@@ -167,6 +167,7 @@ using namespace pzshape;
 using namespace pzrefine;
 #include "pzlog.h"
 #include "tpzarc3d.h"
+#include "pzelasmat.h"
 using namespace pzgeom;
 using namespace pztopology;
 using namespace pzshape;
@@ -188,26 +189,160 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> ve
 TPZGeoMesh * CreteGeoMesh ( TPZSlopeStabilityAnalysis &slopeA,int porder,int ref );
 TPZCompMesh * CreteCompMesh ( TPZGeoMesh* gmesh,int porder );
 TPZGeoMesh * SimpleGMesh ( int ref );
+TPZCompMesh * SimpleCMesh ( TPZGeoMesh * gmesh, int porder );
+void SolveSimpleElasticProlem();
 void ComputeAdptiveMontecarlo();
 
 int main ( int argc, char **argv )
 {
 
+    
+//     int porder=2;
+//     int ref=1;
+//     TPZSlopeStabilityAnalysis slopeA;
+//     TPZVec<TPZCompMesh *> vecmesh;
+//     vecmesh=CreateFields ( slopeA, porder, ref );
+// 
+// 
+// 
+// 
+//     int nsamples = vecmesh[0]->Solution().Cols();
+// 
+//     vecmesh[0]->Solution().Print ( "SOLUTION PHI" );
+//     
+//     PrintSol ( vecmesh[0] );
+
+ //   SolveSimpleElasticProlem();
 
 
-    ComputeAdptiveMontecarlo();
-    //ConfigSlope();
+    //ComputeAdptiveMontecarlo();
+    ConfigSlope();
 
     cout <<"SUCESS"<<endl;
     return 0;
 
 }
 
+void SolveSimpleElasticProlem( )
+{
+    int uniformref=0;
+    int porder=2;
+
+    //Create Geometry
+    TPZGeoMesh * gmesh =  SimpleGMesh ( uniformref );
+
+    //Create Approx Space
+    TPZCompMesh * cmesh = SimpleCMesh ( gmesh,porder );
+
+    //Create Analysis
+    bool optimizeband =false;
+    TPZAnalysis * anal = new TPZAnalysis ( cmesh,optimizeband );
+
+    //Set Matrix Type
+    TPZFStructMatrix full ( cmesh );
+    full.SetNumThreads ( 0 );
+    anal->SetStructuralMatrix ( full );
+
+    //Set Solver Type
+    TPZStepSolver<REAL> step;
+    step.SetDirect ( ECholesky );
+    anal->SetSolver ( step );
+
+    anal->Run();
+
+    auto exactSol = [] ( const TPZVec<REAL> &loc,
+                         TPZVec<STATE>&u,
+    TPZFMatrix<STATE>&gradU ) {
+        const auto &x=loc[0];
+        const auto &y=loc[1];
+        u[0]=x*4.55e-5;
+        u[1]=-y*1.95e-5;
+        gradU ( 0,0 ) = 4.55e-5;
+        gradU ( 1,0 ) = -1.95e-5;
+        gradU ( 2,0 ) = 0; //optional
+    };
+
+    // Post processing
+    TPZManVector<std::string> scalarnames ( 3 ), vecnames ( 2 );
+    scalarnames[0] = "SigmaX";
+    scalarnames[1] = "SigmaY";
+    scalarnames[1] = "SigmaZ";
+    scalarnames[2] = "Pressure";
+    vecnames[0] = "displacement";
+    vecnames[1] = "Strain";
+    anal->DefineGraphMesh ( 2,scalarnames,vecnames,"SimpleElasticProlem.vtk" );
+
+    anal->PostProcess ( 0 );
+
+    //let us set the exact solution and suggest an integration rule
+    //for calculating the error
+    anal->SetExact ( exactSol );
+
+    ///Calculating approximation error
+    TPZManVector<REAL,3> error;
+    std::ofstream anPostProcessFile ( "postprocess.txt" );
+    anal->PostProcess ( error,anPostProcessFile );
+
+    std::cout << "\nApproximation error:\n";
+    std::cout << "H1 Norm = " << error[0]<<'\n';
+    std::cout << "L1 Norm = " << error[1]<<'\n';
+    std::cout << "H1 Seminorm = " << error[2] << "\n\n";
+
+    cmesh->LoadSolution ( anal->Solution() );
+    
+    cmesh->Solution().Print(std::cout);
+
+
+    PrintSol(cmesh);
+
+}
+void PrintSol ( TPZCompMesh * plasticCmesh )
+{
+    REAL mean=0.;
+    int count=1;
+    int nels = plasticCmesh->NElements();
+    for ( int iel=0; iel<nels; iel++ ) {
+        TPZCompEl *celplastic = plasticCmesh->Element ( iel );
+        if(celplastic->Material()->Id()!=1)continue;
+        TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
+        const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
+        TPZManVector<REAL,3> point ( 3,0. );
+        TPZMaterialData dataplastic;
+        dataplastic.fNeedsSol = true;
+        intelplastic->InitMaterialData ( dataplastic );
+        REAL weight=0;
+        
+        int nint = intpoints.NPoints();
+        for ( long ip =0; ip<nint; ip++ ) {
+            intpoints.Point ( ip, point, weight );
+            //cout << " point = " << point << endl;
+   
+            intelplastic->ComputeRequiredData ( dataplastic, point );
+            cout << "point = " << point <<endl;
+            cout << "dataplastic.x = " << dataplastic.x <<endl;
+            cout << "dataplastic.phi " << dataplastic.phi  <<endl;
+            cout << "dataplastic.sol " << dataplastic.sol  <<endl;
+            cout << "dataplastic.detjac " << dataplastic.detjac <<endl;
+            REAL sum=0.;
+            for ( int iphi=0; iphi<dataplastic.phi.Rows(); iphi++ )
+            {
+                sum+=dataplastic.phi[iphi];
+			}
+			cout << "sum = "<< sum << endl ;
+            //mean+=dataplastic.sol[0][0];
+            count++;
+        }
+        
+    }
+    
+   // mean = mean/count;
+    //cout << "MEAN = "<< mean << endl ;
+}
 void ComputeAdptiveMontecarlo()
 {
     //create random fields and put the random material parameters as a solution in two meshes. One for cohesion and other for friction angle.
     int porder=2;
-    int ref=1;
+    int ref=2;
     TPZSlopeStabilityAnalysis slopeA;
     TPZVec<TPZCompMesh *> vecmesh;
     vecmesh=CreateFields ( slopeA, porder, ref );
@@ -217,19 +352,19 @@ void ComputeAdptiveMontecarlo()
 
     int nsamples = vecmesh[0]->Solution().Cols();
 
-	vecmesh[0]->Solution().Print("SOLUTION PHI");
-	
-	PrintSol( vecmesh[0] );
-	DebugStop();
+    vecmesh[0]->Solution().Print ( "SOLUTION PHI" );
+
+    PrintSol ( vecmesh[0] );
+    DebugStop();
     for ( int imc=0; imc<nsamples; imc++ ) {
         std::cout << "--------------Monte Carlo Realization Number: " << imc << std::endl;
 
         std::string output = "MCSlope";
-	    TPZSlopeStabilityAnalysis slopeB;
-        auto iterstring=std::to_string (imc);
+        TPZSlopeStabilityAnalysis slopeB;
+        auto iterstring=std::to_string ( imc );
         output+=iterstring;
-		string ext=".vtk";
-		output+=ext;
+        string ext=".vtk";
+        output+=ext;
         slopeB.SetVtkOutPutName ( output );
 
         slopeB.GetCurrentConfig()->CreateGeometricMeshSlope2 ( ref );
@@ -238,14 +373,14 @@ void ComputeAdptiveMontecarlo()
 
         //Insert the two meshes material parameters in the elastoplastic mesh.
         SetMaterialParamenters ( &slopeB.GetCurrentConfig()->fCMesh,vecmesh,imc );
-		std::cout << "Creating Post Process mesh = " << std::endl;
+        std::cout << "Creating Post Process mesh = " << std::endl;
         slopeB.GetCurrentConfig()->CreatePostProcessingMesh();
 
-		std::cout << "Post Processing solution = " << std::endl;
-		slopeB.PostProcess ( 0 );
-		
-		//DebugStop();
-		std::cout << "Start to solve deterministic = " << std::endl;
+        std::cout << "Post Processing solution = " << std::endl;
+        slopeB.PostProcess ( 0 );
+
+        //DebugStop();
+        std::cout << "Start to solve deterministic = " << std::endl;
         REAL sqj2_refine=0.0025;
         int steps =10;
         REAL delta=1.7/steps;
@@ -267,51 +402,15 @@ void ComputeAdptiveMontecarlo()
             //well.PostProcess ( 0 );
         }
         slopeB.PostProcess ( 0 );
-		std::cout << "End deterministic = " << std::endl;
-		//slopeB.PopConfiguration();
+        std::cout << "End deterministic = " << std::endl;
+        //slopeB.PopConfiguration();
     }
 
 
 
 }
 
-void PrintSol ( TPZCompMesh * plasticCmesh )
-{
-	REAL mean=0.;
-	int count=1;
-    int nels = plasticCmesh->NElements();
-    for ( int iel=0; iel<nels; iel++ ) {
-        TPZCompEl *celplastic = plasticCmesh->Element ( iel );
-        TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
-        const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
-        TPZManVector<REAL,3> point ( 3,0. );
-        TPZMaterialData dataplastic;
-        intelplastic->InitMaterialData ( dataplastic );
-        REAL weight=0;
-        int nint = intpoints.NPoints();
-        for ( long ip =0; ip<nint; ip++ ) {
-            intpoints.Point ( ip, point, weight );
-			cout << " point = " << point << endl;
-            //intelplastic->ComputeRequiredData ( dataplastic, point );
-			intelplastic->ComputeShape(point,dataplastic);
-			for(int iphi=0;iphi<dataplastic.phi.Rows();iphi++)
-   			{
-	   			cout << "phi[iphi] = " << dataplastic.phi[iphi] <<endl;
-			}
-			intelplastic->ComputeSolution(point,  dataplastic.sol, dataplastic.dsol,dataplastic.axes);
 
-			for(int isol =0; isol< dataplastic.sol.size();isol++)
-   			{
-	   			cout << "just print = " << dataplastic.sol[isol][0] <<endl;
-			}
-			mean+=dataplastic.sol[0][0];
-			count++;
-        }
-    }
-    cout << "count = "<<count << " | sum = " << mean <<endl;
-	mean = mean/count;
-    cout << "MEAN = "<< mean << endl ;
-}
 
 
 void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> vecmesh,int isol )
@@ -320,7 +419,7 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> ve
     int nels = plasticCmesh->NElements();
     int nels0 = vecmesh[0]->NElements();
     int nels1 = vecmesh[1]->NElements();
-	vecmesh[1]->Solution().Print("SOLUTION PHI");
+    vecmesh[1]->Solution().Print ( "SOLUTION PHI" );
     if ( nels!=nels0 || nels!=nels1 || nels0!=nels1 ) {
         cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
         //DebugStop();
@@ -374,29 +473,29 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> ve
         TPZTensor<REAL> epst,epsp;
         for ( long ip =0; ip<nint; ip++ ) {
             intpoints.Point ( ip, point, weight );
-			intpoints1.Point ( ip, point1, weight );
-			intpoints2.Point ( ip, point2, weight );
-			dataplastic.intLocPtIndex = ip;
+            intpoints1.Point ( ip, point1, weight );
+            intpoints2.Point ( ip, point2, weight );
+            dataplastic.intLocPtIndex = ip;
             intelplastic->ComputeRequiredData ( dataplastic, point );
             intelrandom1->ComputeRequiredData ( datarandom1, point1 );
             intelrandom2->ComputeRequiredData ( datarandom2, point2 );
             mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
-      //     TPZVec<STATE> &Sol1 = datarandom1.sol[isol];
-       //    TPZVec<STATE> &Sol2 = datarandom2.sol[isol];
-		   
- 			 TPZVec<STATE> Sol1 ;
-             TPZVec<STATE> Sol2;
- 			int varid=0;
- 			celrandom1->Solution(point1,varid,Sol1);
- 			celrandom2->Solution(point2,varid,Sol2);
-			cout << "Sol2 = " << datarandom2.sol[isol][0] <<endl;
-			cout << "Sol2B = " << Sol2[0] <<endl;
+            //     TPZVec<STATE> &Sol1 = datarandom1.sol[isol];
+            //    TPZVec<STATE> &Sol2 = datarandom2.sol[isol];
+
+            TPZVec<STATE> Sol1 ;
+            TPZVec<STATE> Sol2;
+            int varid=0;
+            celrandom1->Solution ( point1,varid,Sol1 );
+            celrandom2->Solution ( point2,varid,Sol2 );
+            cout << "Sol2 = " << datarandom2.sol[isol][0] <<endl;
+            cout << "Sol2B = " << Sol2[0] <<endl;
             mem[globpt].fPlasticState.fmatprop[0]=Sol1[0];
-           mem[globpt].fPlasticState.fmatprop[1]=Sol2[0];
+            mem[globpt].fPlasticState.fmatprop[1]=Sol2[0];
 // 			mem[globpt].fPlasticState.fmatprop[0]=10;
 //             mem[globpt].fPlasticState.fmatprop[1]=30*M_PI/180.;
-			TPZTensor<REAL> epsTotal,sigma;
-			//pMatWithMem2->ApplyStrainComputeSigma(epsTotal,sigma);
+            TPZTensor<REAL> epsTotal,sigma;
+            //pMatWithMem2->ApplyStrainComputeSigma(epsTotal,sigma);
             globpt++;
 
         }
@@ -404,10 +503,10 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> ve
         //pMatWithMem2->SetUpdateMem ( false );
     }
     pMatWithMem2->SetUpdateMem ( false );
-	
-	plasticCmesh->Solution().Zero();
 
-	
+    plasticCmesh->Solution().Zero();
+
+
 }
 
 TPZGeoMesh * CreteGeoMesh ( TPZSlopeStabilityAnalysis &slopeA,int porder,int ref )
@@ -438,8 +537,8 @@ TPZCompMesh * CreteCompMesh ( TPZGeoMesh* gmesh,int porder )
     cmesh->InsertMaterialObject ( klmat );
     cmesh->SetAllCreateFunctionsContinuous();
     cmesh->AutoBuild();
-   // cmesh->AdjustBoundaryElements();
-  //  cmesh->CleanUpUnconnectedNodes();
+    // cmesh->AdjustBoundaryElements();
+    //  cmesh->CleanUpUnconnectedNodes();
     return cmesh;
 }
 
@@ -458,7 +557,7 @@ TPZVec<TPZCompMesh *> CreateFields ( TPZSlopeStabilityAnalysis &slopeA,int porde
     klanal->Solve();
 
     string file ="out-eigenfunctions.vtk";
-  //  klanal->Post ( file,dim,0 );
+    //  klanal->Post ( file,dim,0 );
 
     TPZVec<TPZCompMesh *> vecmesh ( 2 );
     int samples = 10;
@@ -474,18 +573,18 @@ TPZVec<TPZCompMesh *> CreateFields ( TPZSlopeStabilityAnalysis &slopeA,int porde
     cout << "Creating Log-Normal Random Fields "<<endl;
     hhat = klf->CreateLogNormalRandomField();
 
-	hhat[1].Print("PHI");
+    hhat[1].Print ( "PHI" );
     cmesh->LoadSolution ( hhat[0] );
-	//TPZCompMesh * cmesh2(cmesh);
+    //TPZCompMesh * cmesh2(cmesh);
     cmesh2->LoadSolution ( hhat[1] );
     vecmesh[0]=cmesh;
     vecmesh[1]=cmesh2;
 
     file ="out-coes.vtk";
-   // klanal->Post ( file,dim,0 );
-	KLAnalysis * klanal2 = new KLAnalysis ( cmesh2 );
-	cmesh2->LoadSolution ( hhat[1] );
-	file ="out-phi.vtk";
+    // klanal->Post ( file,dim,0 );
+    KLAnalysis * klanal2 = new KLAnalysis ( cmesh2 );
+    cmesh2->LoadSolution ( hhat[1] );
+    file ="out-phi.vtk";
 //klanal2->Post ( file,dim,0 );
     return vecmesh;
 }
@@ -509,9 +608,9 @@ TPZGeoMesh   ConfigSlope()
     REAL sqj2_refine=0.0025;
     int Startfrom=0;
     const int nsubsteps = 5;
-    int porder=3;
+    int porder=2;
     std::cout << "\n ------- 0 -------- "<<std::endl;
-    well.GetCurrentConfig()->CreateGeometricMeshSlope2 ( 2 );
+    well.GetCurrentConfig()->CreateGeometricMeshSlope2 ( 1 );
 
     well.GetCurrentConfig()->CreateComputationalMeshSlope ( porder );
 
@@ -519,7 +618,7 @@ TPZGeoMesh   ConfigSlope()
 
     well.PostProcess ( 0 );
 
-    int steps =6;
+    int steps =3;
     REAL delta=1.73/steps;
     REAL factor=delta;
     for ( int i=1; i<=steps; i++ ) {
@@ -529,13 +628,13 @@ TPZGeoMesh   ConfigSlope()
         factor+=delta;
     }
 
-    int nref=4;
+    int nref=6;
     for ( int i=1; i<=nref; i++ ) {
         std::cout << "nref = " << i<< std::endl;
-        well.PRefineElementAbove ( sqj2_refine, 4 );
+        well.PRefineElementAbove ( sqj2_refine, 2 );
         well.DivideElementsAbove ( sqj2_refine );
         well.ExecuteSimulation ( );
-        //well.PostProcess ( 0 );
+        well.PostProcess ( 0 );
     }
     well.PostProcess ( 0 );
 //   std::cout << "last = " << std::endl;
@@ -574,54 +673,7 @@ TPZGeoMesh   ConfigSlope()
     return *g;
 }
 
-TPZGeoMesh * SimpleGMesh ( int ref )
-{
-    TPZGeoMesh *gmesh = new TPZGeoMesh;
 
-    gmesh->SetDimension ( 2 );
-//   std::vector<std::vector<double>> co = {	{0.,0.},{1., 0. },{2., 0. },{2., 2. },{1.,2.},{0.,2.}};
-//   std::vector<std::vector<int>> topopology = {{0,1,4,5},{1,2,3,4}};
-
-    gmesh->NodeVec().Resize ( 4 );
-
-    TPZVec<REAL> coord ( 2 );
-    coord[0] = 0.;
-    coord[1] = 0.;
-    gmesh->NodeVec() [0] = TPZGeoNode ( 0, coord, *gmesh );
-
-
-    coord[0] = 1.;
-    coord[1] = 0.;
-    gmesh->NodeVec() [1] = TPZGeoNode ( 1, coord, *gmesh );
-
-    coord[0] = 1.;
-    coord[1] = 1.;
-    gmesh->NodeVec() [2] = TPZGeoNode ( 2, coord, *gmesh );
-
-    coord[0] = 0.;
-    coord[1] = 1.;
-    gmesh->NodeVec() [3] = TPZGeoNode ( 3, coord, *gmesh );
-
-
-    TPZVec <long> TopoQuad ( 4 );
-    TopoQuad[0] = 0;
-    TopoQuad[1] = 1;
-    TopoQuad[2] = 2;
-    TopoQuad[3] = 3;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( 0, TopoQuad, 1,*gmesh );
-
-
-    gmesh->BuildConnectivity();
-    for ( int d = 0; d<ref; d++ ) {
-        int nel = gmesh->NElements();
-        TPZManVector<TPZGeoEl *> subels;
-        for ( int iel = 0; iel<nel; iel++ ) {
-            TPZGeoEl *gel = gmesh->ElementVec() [iel];
-            gel->Divide ( subels );
-        }
-    }
-    return gmesh;
-}
 TPZGeoMesh * Simple3DGMesh ( int ref )
 {
     TPZGeoMesh *gmesh = new TPZGeoMesh;
@@ -810,3 +862,120 @@ TPZGeoMesh * Simple3DGMesh ( int ref )
     return gmesh;
 }
 
+TPZGeoMesh * SimpleGMesh ( int ref )
+{
+    TPZGeoMesh *gmesh = new TPZGeoMesh;
+
+    gmesh->SetDimension ( 2 );
+//   std::vector<std::vector<double>> co = {	{0.,0.},{1., 0. },{2., 0. },{2., 2. },{1.,2.},{0.,2.}};
+//   std::vector<std::vector<int>> topopology = {{0,1,4,5},{1,2,3,4}};
+
+    gmesh->NodeVec().Resize ( 4 );
+
+    TPZVec<REAL> coord ( 2 );
+    coord[0] = 0.;
+    coord[1] = 0.;
+    gmesh->NodeVec() [0] = TPZGeoNode ( 0, coord, *gmesh );
+
+
+    coord[0] = 1.;
+    coord[1] = 0.;
+    gmesh->NodeVec() [1] = TPZGeoNode ( 1, coord, *gmesh );
+
+    coord[0] = 1.;
+    coord[1] = 1.;
+    gmesh->NodeVec() [2] = TPZGeoNode ( 2, coord, *gmesh );
+
+    coord[0] = 0.;
+    coord[1] = 1.;
+    gmesh->NodeVec() [3] = TPZGeoNode ( 3, coord, *gmesh );
+
+
+    TPZVec <long> TopoQuad ( 4 );
+    TopoQuad[0] = 0;
+    TopoQuad[1] = 1;
+    TopoQuad[2] = 2;
+    TopoQuad[3] = 3;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( 0, TopoQuad, 1,*gmesh );
+
+    TPZVec <long> TopoLine ( 2 );
+    TopoLine[0] = 0;
+    TopoLine[1] = 1;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 1, TopoLine, -1,*gmesh );//Bottom
+
+    TopoLine[0] = 1;
+    TopoLine[1] = 2;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 2, TopoLine, -2,*gmesh );//Rigth
+
+    TopoLine[0] = 2;
+    TopoLine[1] = 3;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 3, TopoLine, -3,*gmesh );//Top
+
+    TopoLine[0] = 3;
+    TopoLine[1] = 0;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 4, TopoLine, -4,*gmesh );//Left
+
+    TPZVec <long> TopoNode ( 1 );
+    TopoLine[0] = 0;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( 5, TopoLine, -5,*gmesh );//Bottom
+
+    gmesh->BuildConnectivity();
+    for ( int d = 0; d<ref; d++ ) {
+        int nel = gmesh->NElements();
+        TPZManVector<TPZGeoEl *> subels;
+        for ( int iel = 0; iel<nel; iel++ ) {
+            TPZGeoEl *gel = gmesh->ElementVec() [iel];
+            gel->Divide ( subels );
+        }
+    }
+    return gmesh;
+}
+
+TPZCompMesh * SimpleCMesh ( TPZGeoMesh * gmesh, int porder )
+{
+    TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
+    int id=1;
+    REAL E=20000;
+    REAL nu=0.3;
+    REAL fx=0.;
+    REAL fy=0.;
+    int plainstress=0.;
+    TPZElasticityMaterial *elastmat = new TPZElasticityMaterial ( id,  E,  nu,  fx,  fy,  plainstress );
+    elastmat->SetId ( 1 );
+
+    REAL Sigmaxx = 0.0, Sigmayx = 0.0, Sigmayy = 0.0, Sigmazz = 0.0;
+    elastmat->SetPreStress ( Sigmaxx,Sigmayx,Sigmayy,Sigmazz );
+
+    //BCS
+    TPZFMatrix<STATE> val1 ( 2,2,0. );
+    TPZFMatrix<STATE>  val2 ( 2,1,0. );
+
+    int dirichet =0;
+    int directionaldirichet =3;
+    int newman =1;
+    val2 ( 0,0 ) = 1.;
+    val2 ( 1,0 ) = 0.;
+    auto * bc_left = elastmat->CreateBC ( elastmat,-4,directionaldirichet, val1, val2 );
+
+
+    val2 ( 0,0 ) = 0.;
+    val2 ( 1,0 ) = 1.;
+    auto * bc_node = elastmat->CreateBC ( elastmat,-5,directionaldirichet, val1, val2 );
+
+    val2 ( 0,0 ) = 1000.;
+    val2 ( 1,0 ) = 0.;
+    auto * loadc_top = elastmat->CreateBC ( elastmat,-2,newman, val1, val2 );
+
+    cmesh->InsertMaterialObject ( elastmat );
+    cmesh->InsertMaterialObject ( bc_left );
+    cmesh->InsertMaterialObject ( bc_node );
+    cmesh->InsertMaterialObject ( loadc_top );
+
+
+    cmesh->SetDefaultOrder ( porder );
+    cmesh->SetDimModel ( 2 );
+    cmesh->SetAllCreateFunctionsContinuous();
+    cmesh->AutoBuild();
+
+    return cmesh;
+}
