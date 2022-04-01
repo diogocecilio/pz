@@ -317,6 +317,56 @@ void TPZSlopeStabilityAnalysis::ExecuteInitialSimulation(int nsteps)
 }
 
 
+// void TPZSlopeStabilityAnalysis::ExecuteSimulationShearRed()
+// {
+//     
+//     TConfig &LocalConfig = fCurrentConfig;
+//     
+//     TPZElastoPlasticAnalysis analysis(&LocalConfig.fCMesh,std::cout);
+//     
+// 	TPZSkylineStructMatrix full(&fCurrentConfig.fCMesh);
+//     full.SetNumThreads(TPZSlopeStabilityAnalysis::TConfig::gNumThreads);
+// 
+// 
+// 	TPZStepSolver<REAL> step;
+//     step.SetDirect(ELDLt);
+//     
+//     long neq = LocalConfig.fCMesh.NEquations();
+//     TPZVec<long> activeEquations;
+//     analysis.GetActiveEquations(activeEquations);
+//     TPZEquationFilter filter(neq);
+//     filter.SetActiveEquations(activeEquations);
+//     full.EquationFilter() = filter;
+//     analysis.SetStructuralMatrix(full);
+// 
+//     //step.SetDirect(ECholesky);
+// 	analysis.SetSolver(step);
+//     
+//     
+//     LocalConfig.fSolution.Redim(neq, 1);
+//     int NumIter = 50;
+//     bool linesearch = true;
+//     bool checkconv = false;
+//     REAL tol =1.e-5;
+//     bool conv;
+// 
+// 	well_init.start();
+// 	analysis.IterativeProcess(std::cout, tol, NumIter,linesearch,checkconv);
+// 	well_init.stop();
+//         
+//     TPZFMatrix<STATE> &sol = analysis.Mesh()->Solution();
+//     for (int ieq=0; ieq<neq; ieq++) {
+//         LocalConfig.fSolution(ieq,0) = sol(ieq,0);
+//     }
+//     
+//     analysis.AcceptSolution();
+//     
+//     // dont forget the vertical deformation
+//     LocalConfig.ComputeElementDeformation();
+//     
+//     fSequence.push_back(LocalConfig);
+// }
+
 
 void TPZSlopeStabilityAnalysis::ExecuteSimulation()
 {
@@ -2057,5 +2107,83 @@ void TPZSlopeStabilityAnalysis::TConfig::CreateComputationalMeshSlope(int porder
     fCMesh.SetAllCreateFunctionsContinuousWithMem();
 
     fCMesh.AutoBuild();
+
+}
+void TPZSlopeStabilityAnalysis::SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> vecmesh,int isol,REAL factor )
+{
+
+    int nels = plasticCmesh->NElements();
+    int nels0 = vecmesh[0]->NElements();
+    int nels1 = vecmesh[1]->NElements();
+    vecmesh[1]->Solution().Print ( "SOLUTION PHI" );
+    if ( nels!=nels0 || nels!=nels1 || nels0!=nels1 ) {
+        cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
+        //DebugStop();
+    }
+
+    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
+    TPZAdmChunkVector<TPZElastoPlasticMem>  &mem = pMatWithMem2->GetMemory();
+
+    cout << "mem.NElements() "<< mem.NElements()  <<endl;
+    if ( pMatWithMem2 ) {
+        pMatWithMem2->SetUpdateMem ( true );
+    }
+
+    int globpt=0;
+    for ( int iel=0; iel<nels0; iel++ ) {
+
+        TPZCompEl *celplastic = plasticCmesh->Element ( iel );
+        TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
+
+        TPZCompEl *celrandom1 = vecmesh[0]->Element ( iel );
+        TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celrandom1 );
+
+        TPZCompEl *celrandom2 = vecmesh[1]->Element ( iel );
+        TPZInterpolationSpace *intelrandom2 = dynamic_cast<TPZInterpolationSpace *> ( celrandom2 );
+
+        const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
+        const TPZIntPoints &intpoints1 = intelrandom1->GetIntegrationRule();
+        const TPZIntPoints &intpoints2 = intelrandom2->GetIntegrationRule();
+
+        TPZManVector<REAL,3> point ( 3,0. );
+        TPZManVector<REAL,3> point1 ( 3,0. );
+        TPZManVector<REAL,3> point2 ( 3,0. );
+
+        TPZMaterialData dataplastic,datarandom1,datarandom2;
+
+        intelplastic->InitMaterialData ( dataplastic );
+        intelrandom1->InitMaterialData ( datarandom1 );
+        intelrandom2->InitMaterialData ( datarandom2 );
+
+        REAL weight=0;
+        int nint = intpoints.NPoints();
+        //cout << "intpoints.NPoints() "<< nint  <<endl;
+        TPZTensor<REAL> epst,epsp;
+        for ( long ip =0; ip<nint; ip++ ) {
+            intpoints.Point ( ip, point, weight );
+            intpoints1.Point ( ip, point1, weight );
+            intpoints2.Point ( ip, point2, weight );
+            dataplastic.intLocPtIndex = ip;
+            intelplastic->ComputeRequiredData ( dataplastic, point );
+            intelrandom1->ComputeRequiredData ( datarandom1, point1 );
+            intelrandom2->ComputeRequiredData ( datarandom2, point2 );
+            mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
+            TPZVec<STATE> Sol1 ;
+            TPZVec<STATE> Sol2;
+            int varid=0;
+            celrandom1->Solution ( point1,varid,Sol1 );
+            celrandom2->Solution ( point2,varid,Sol2 );
+            mem[globpt].fPlasticState.fmatprop[0]=Sol1[0]/factor;
+            mem[globpt].fPlasticState.fmatprop[1]=atan(tan(Sol2[0])/factor);
+            TPZTensor<REAL> epsTotal,sigma;
+            globpt++;
+
+        }
+
+    }
+    pMatWithMem2->SetUpdateMem ( false );
+
+    plasticCmesh->Solution().Zero();
+
 
 }

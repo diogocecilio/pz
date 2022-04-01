@@ -1302,7 +1302,7 @@ void TPZSandlerExtended::ProjectSigmaDep(const TPZVec<STATE> &sigtrial, STATE kp
 
 
 
-void TPZSandlerExtended::ProjectSigmaDep(const TPZVec<STATE> &sigtrial, STATE kprev, TPZVec<STATE> &sigproj,STATE &kproj, TPZFMatrix<STATE> &GradSigma) const
+void TPZSandlerExtended::ProjectSigmaDep(const TPZVec<STATE> &sigtrial,TPZTensor<REAL>sigtrtensor, STATE kprev, TPZVec<STATE> &sigproj,STATE &kproj, TPZFMatrix<STATE> &GradSigma) const
 {
     STATE I1;
     //Firstk(epspv,k0);
@@ -1942,7 +1942,8 @@ void TPZSandlerExtended::TaylorCheckProjectSigma(const TPZVec<STATE> &sigtrial, 
     TPZFNMatrix<3,STATE> res0(3,1),diff(3,1),resid(3,1),residguess(3,1);
     TPZFNMatrix<9,STATE> jac(3,3);
     STATE kproj;
-    ProjectSigmaDep(sigtrial, kprev, sigproj, kproj, jac);
+    TPZTensor<REAL> stresstrial2;
+    ProjectSigmaDep(sigtrial,stresstrial2, kprev, sigproj, kproj, jac);
     for(int j=0; j<3; j++) res0(j) = sigproj[j];
     xnorm.resize(10);
     errnorm.resize(10);

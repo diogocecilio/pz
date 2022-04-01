@@ -449,7 +449,11 @@ public:
 	 * The derivative of the  3rd invariant of deviatoric tensor
 	 */
 	void dJ3(TPZTensor<T> &deriv) const;
-	
+    
+    TPZTensor<T> dI1()const;
+    TPZTensor<T> dJ2()const;
+	TPZTensor<T> dJ3()const;
+    void  FromTensorToNRmatrix ( TPZFMatrix<T> & resp );
 	/**
 	 * @brief adjust the tensor to the given values of I1 and sqj2
 	 */
@@ -774,6 +778,63 @@ void TPZTensor<T>::dJ2(TPZTensor<T> & Tangent) const{
 	Tangent.fData[_XZ_] = fData[_XZ_] * T(2.);
 	Tangent.fData[_YZ_] = fData[_YZ_] * T(2.);
 	
+}
+
+
+template < class T >
+TPZTensor<T> TPZTensor<T>::dI1() const{
+	TPZTensor<T> di1;
+	di1.XX()=1.;di1.YY()=1.;di1.ZZ()=1.;
+	return di1;
+}
+
+template < class T >
+TPZTensor<T> TPZTensor<T>::dJ2() const{
+	TPZTensor<T> s;
+	T sxx = fData[_XX_],syy=fData[_YY_],szz=fData[_ZZ_],sxy=fData[_XY_],sxz=fData[_XZ_],syz=fData[_YZ_];
+    s.XX() = ( 2*sxx - syy - szz ) /3.;
+    s.YY() =  ( -sxx + 2*syy - szz ) /3.;
+    s.ZZ() = ( -sxx - syy + 2*szz ) /3.;
+    s.XZ() = 2*sxz;
+    s.YZ() = 2*syz;
+    s.XY() = 2*sxy;
+	return s;
+}
+template < class T >
+TPZTensor<T> TPZTensor<T>::dJ3() const
+{
+    TPZTensor<T> dj3,s;
+    T J2 = this->J2();
+    T sxx = fData[_XX_],syy=fData[_YY_],szz=fData[_ZZ_],sxy=fData[_XY_],sxz=fData[_XZ_],syz=fData[_YZ_];
+    s.XX() = ( 2*sxx - syy - szz ) /3.;
+    s.YY() = ( -sxx + 2*syy - szz ) /3.;
+    s.ZZ() = ( -sxx - syy + 2*szz ) /3.;
+    s.XZ() = sxz;
+    s.YZ() = syz;
+    s.XY() = sxy;
+    dj3.XX() = s[_YY_]*s[_ZZ_]-s[_YZ_]*s[_YZ_]+J2/3.;
+    dj3.YY() = s[_XX_]*s[_ZZ_]-s[_XZ_]*s[_XZ_]+J2/3.;
+    dj3.ZZ() = s[_XX_]*s[_YY_]-s[_XY_]*s[_XY_]+J2/3.;
+
+    dj3.XY() = 2* ( s[_YZ_]*s[_XZ_]-s[_ZZ_]*s[_XY_] );
+    dj3.YZ() = 2* ( s[_XZ_]*s[_XY_]-s[_XX_]*s[_YZ_] );
+    dj3.XZ() = 2* ( s[_XY_]*s[_YZ_]-s[_YY_]*s[_XZ_] );
+
+    return dj3;
+
+}
+
+template < class T >
+void TPZTensor< T >::FromTensorToNRmatrix ( TPZFMatrix< T >& resp )
+{
+    resp.Resize ( 6, 1);
+    resp(_XX_,0) = this->XX();
+    resp(_YY_,0) = this->YY();
+    resp(_ZZ_,0) = this->ZZ();
+    resp(_XZ_,0) = this->XZ();
+    resp(_YZ_,0) = this->YZ();
+    resp(_XY_,0) = this->XY();
+
 }
 
 template < class T >
@@ -1281,7 +1342,7 @@ void TPZTensor<T>::EigenSystem(TPZDecomposed &eigensystem)const
 				std::cout << "Nao sao Iguais!!!" << std::endl;
 				OrigTensor.Print("Tensor Original",std::cout);
 				DiagMat.Print("Tensor Reconstruido:",std::cout);
-				DebugStop();				
+				//DebugStop();				
 			} 
 		}
 #endif

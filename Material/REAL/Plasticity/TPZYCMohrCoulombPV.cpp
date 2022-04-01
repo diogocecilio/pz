@@ -536,26 +536,43 @@ void TPZYCMohrCoulombPV::ProjectSigma(const TPZVec<STATE> &sigma_trial, STATE ep
 	}
 }
 
-void TPZYCMohrCoulombPV::ProjectSigmaDep(const TPZVec<STATE> &sigma_trial, STATE eprev, TPZVec<STATE> &sigma, STATE &eproj, TPZFMatrix<STATE> &GradSigma)
+void TPZYCMohrCoulombPV::ProjectSigmaDep(const TPZVec<STATE> &sigma_trial,TPZTensor<REAL>sigtrtensor, STATE eprev, TPZVec<STATE> &sigma, STATE &eproj, TPZFMatrix<STATE> &GradSigma)
 {
 	this->SetEpsBar(eprev);
 	REAL epsbartemp = -6738.; // it will be defined by the correct returnmap
 	TComputeSequence memory;
 	REAL phi = PhiPlane<REAL>(sigma_trial);
+    
+//     cout << "trial tensor" << endl;
+//  	cout << sigtrtensor.XX()  << endl;
+//  	cout << sigtrtensor.YY()  << endl;
+//     cout << sigtrtensor.ZZ()  << endl;
+//     cout << sigtrtensor.XZ()  << endl;
+//     cout << sigtrtensor.YZ()  << endl;
+//     cout << sigtrtensor.XY()  << endl;
+
+    
 	if (phi <= 0.) {
 		memory.fWhichPlane = TComputeSequence::EElastic;
-		GradSigma.Identity();
+		//GradSigma.Identity();
 		memory.fGamma.Resize(0);
 		eproj = eprev;
 		sigma = sigma_trial;
+        GradSigma=GetElasticMatrix();
 		return;
 	}
+	TPZManVector<REAL, 3> strial = sigma_trial;
+         //   cout << "trial" << endl;
+//  	cout << sigma_trial[0]  << endl;
+//  	cout << sigma_trial[1]  << endl;
+//     cout << sigma_trial[2]  << endl;
 	TPZManVector<REAL,3> sigma_projected;
 	memory.fGamma.Resize(1);
 	memory.fGamma[0] = 0.;
 	if (this->ReturnMapPlane<REAL>(sigma_trial, sigma_projected, memory, epsbartemp)) {
 		eproj = epsbartemp;
-		this->ComputePlaneTangent(GradSigma, epsbartemp);
+		//this->ComputePlaneTangent(GradSigma, epsbartemp);
+        ComputeConsistentPlaneTangent (sigtrtensor,GradSigma );
 		sigma = sigma_projected;
 		memory.fWhichPlane = TComputeSequence::EMainPlane;
 	}
@@ -571,25 +588,228 @@ void TPZYCMohrCoulombPV::ProjectSigmaDep(const TPZVec<STATE> &sigma_trial, STATE
 			IsEdge = this->ReturnMapRightEdge<REAL>(sigma_trial, sigma_projected, memory,epsbartemp);
 			memory.fWhichPlane = TComputeSequence::ERightEdge;
 			IsRight = true;
+            int type=1;
+            ComputeConsistentEdgeTangent ( sigtrtensor,GradSigma, type);
 		}
 		else {
 			IsEdge = this->ReturnMapLeftEdge<REAL>(sigma_trial, sigma_projected, memory,epsbartemp);
 			memory.fWhichPlane = TComputeSequence::ELeftEdge;
 			IsRight = false;
+            int type=0;
+            ComputeConsistentEdgeTangent ( sigtrtensor,GradSigma, type);
 		}
 		if (!IsEdge) {
 			this->ReturnMapApex(sigma_trial, sigma_projected, memory,epsbartemp);
 			memory.fWhichPlane = TComputeSequence::EApex;
+            //this->ComputeApexTangent(GradSigma, epsbartemp);
+            GradSigma.Resize(6,6);
+            GradSigma.Zero();
+
+            
 		}
-		if (IsEdge && IsRight) this->ComputeRightEdgeTangent(GradSigma, epsbartemp);
-		else if (IsEdge && !IsRight) this->ComputeLeftEdgeTangent(GradSigma, epsbartemp);
-		else this->ComputeApexTangent(GradSigma, epsbartemp);
+// 		if (IsEdge && IsRight) this->ComputeRightEdgeTangent(GradSigma, epsbartemp);
+// 		else if (IsEdge && !IsRight) this->ComputeLeftEdgeTangent(GradSigma, epsbartemp);
+// 		else this->ComputeApexTangent(GradSigma, epsbartemp);
 		
 		eproj = epsbartemp;
 		this->SetEpsBar(eproj);
 		sigma = sigma_projected;
 	}
 }	
+
+
+
+void TPZYCMohrCoulombPV::ComputeConsistentPlaneTangent (TPZTensor<REAL> & trialstress,TPZFMatrix<REAL> & Dep )
+{
+
+
+    REAL J2=trialstress.J2();
+    REAL J3=trialstress.J3();
+    REAL val = -3*sqrt ( 3. ) *J3/ ( 2.*pow ( J2,1.5 ) );
+    if ( val>1. ) {
+        val=1.;
+    }
+    if ( val<-1. ) {
+        val=-1.;
+    }
+     ftheta= 1/3.*asin ( val );
+
+     fa = cos ( ftheta )-1./sqrt ( 3. ) *sin ( ftheta ) *sin ( fPhi );
+
+     fda=- ( ( cos ( ftheta ) *sin ( fPhi ) ) /sqrt ( 3 ) ) - sin ( ftheta );
+
+     fd2a = -cos ( ftheta ) + ( sin ( fPhi ) *sin ( ftheta ) ) /sqrt ( 3 );
+
+
+    //Compute Deltalambda
+    TPZFMatrix<REAL> E= GetElasticMatrix();
+    TPZFMatrix<REAL> atemp,denom;
+    REAL phiinvars=PhiInvars ( trialstress );
+    //Doub phiinvars=Yields(trialstress)[0];
+    TPZFMatrix<REAL> a,at;
+    a=avec ( trialstress );
+    //a =N(trialstress)[0];
+    a.Transpose ( &at );
+    at.Multiply ( E,atemp );
+    atemp.Multiply ( a,denom );
+    if(denom.Rows()>1)DebugStop();
+    REAL Deltalambda = phiinvars/denom(0,0);
+
+    //cout << "Deltalambda"<< Deltalambda << endl;
+    TPZFMatrix<REAL> dadsig = dAdsig ( trialstress ),Etmodular ( E ),InverseTemp,Q(6,6);
+    Q.Identity ( );
+
+    TPZFMatrix<REAL>  Ea,atEt,atEa,Et,atE,num;
+    E.Transpose ( &Et );
+    E.Multiply ( a,Ea );
+    at.Multiply ( Et,atEt );
+    at.Multiply ( E,atE );
+    atE.Multiply ( a,atEa );
+    Ea.Multiply ( atEt,num );
+    if(atEa.Rows()>1)DebugStop();
+    num*=1/atEa(0,0);
+    Etmodular-=num;
+
+    TPZFMatrix<REAL> temp;
+
+    dadsig.Multiply ( E,temp );
+    temp*=Deltalambda;
+
+    Q-=temp;
+
+    Etmodular.Multiply ( Q,Dep );
+    
+    
+}
+
+void TPZYCMohrCoulombPV::ComputeConsistentEdgeTangent ( TPZTensor<REAL> &trialstress,TPZFMatrix<REAL> & Dep, int &m_type )
+{
+
+    REAL J2=trialstress.J2();
+    REAL J3=trialstress.J3();
+    REAL val = -3*sqrt ( 3. ) *J3/ ( 2.*pow ( J2,1.5 ) );
+    if ( val>1. ) {
+        val=1.;
+    }
+    if ( val<-1. ) {
+        val=-1.;
+    }
+    ftheta= 1/3.*asin ( val );
+
+    fa = cos ( ftheta )-1./sqrt ( 3. ) *sin ( ftheta ) *sin ( fPhi );
+
+    fda=- ( ( cos ( ftheta ) *sin ( fPhi ) ) /sqrt ( 3 ) ) - sin ( ftheta );
+
+    fd2a = -cos ( ftheta ) + ( sin ( fPhi ) *sin ( ftheta ) ) /sqrt ( 3 );
+
+
+    //cout << "theta "<<endl;
+    //cout <<ftheta*180/M_PI<<endl;
+    // NRvector<NRmatrix<Doub>> nvecs = N ( trialstress );
+    // NRvector<Doub> phis = Yields ( trialstress );
+    TPZFMatrix<REAL>E = GetElasticMatrix();
+    TPZFMatrix<REAL> a,b,at,bt;
+
+    a=avec ( trialstress );
+
+    REAL ca,cb,cd,faa,f2a;
+    faa=PhiInvars ( trialstress );
+    //dadsig para thetax
+    //a=nvecs[0];
+    //faa=phis[0];
+
+    TPZFMatrix<REAL> dbdsig,dadsig;
+    TPZFMatrix<REAL> Ea,Eb,atE,btE,tempa,tempb,tempd;
+    dadsig = dAdsig ( trialstress );
+    if ( m_type==1 ) { //rigth f1 e f2
+        // b=nvecs[1];
+        //   f2a=phis[1];
+        //dbdsig para theta30
+        //ftheta = 30*M_PI/180.;
+        fa= ( cos ( ftheta ) * ( 1 + sin ( fPhi ) ) ) /2. + ( ( -3 + sin ( fPhi ) ) *sin ( ftheta ) ) / ( 2.*sqrt ( 3 ) );
+        fda= ( cos ( ftheta ) * ( -3 + sin ( fPhi ) ) ) / ( 2.*sqrt ( 3 ) ) - ( ( 1 + sin ( fPhi ) ) *sin ( ftheta ) ) /2.;
+        fd2a=- ( cos ( ftheta ) * ( 1 + sin ( fPhi ) ) ) /2. - ( ( -3 + sin ( fPhi ) ) *sin ( ftheta ) ) / ( 2.*sqrt ( 3 ) );
+
+    } else { //left f1 e f3
+        //b=nvecs[2];
+        //f2a=phis[2];
+        //ftheta = -29.99*M_PI/180.;
+        fa= ( cos ( ftheta ) * ( 1 - sin ( fPhi ) ) ) /2. + ( ( 3 + sin ( fPhi ) ) *sin ( ftheta ) ) / ( 2.*sqrt ( 3 ) );
+        fda= ( cos ( ftheta ) * ( 3 + sin ( fPhi ) ) ) / ( 2.*sqrt ( 3 ) ) - ( ( 1 - sin ( fPhi ) ) *sin ( ftheta ) ) /2.;
+        fd2a=- ( cos ( ftheta ) * ( 1 - sin ( fPhi ) ) ) /2. - ( ( 3 + sin ( fPhi ) ) *sin ( ftheta ) ) / ( 2.*sqrt ( 3 ) );
+    }
+
+    dbdsig = dAdsig ( trialstress );
+    TPZFMatrix<REAL> symcheck;
+
+    b=avec ( trialstress );
+    f2a=PhiInvars ( trialstress );
+
+    a.Transpose ( &at );
+    b.Transpose ( &bt );
+
+    at.Multiply ( E,atE );
+    bt.Multiply ( E,btE );
+
+    atE.Multiply ( a,tempa );
+    btE.Multiply ( b,tempb );
+    atE.Multiply ( b,tempd );
+    REAL q = ( tempa(0,0)*tempb(0,0)-pow ( tempd(0,0),2. ) );
+    REAL DeltalambdaA = ( tempb(0,0)*faa-tempd(0,0)*f2a ) / q;
+    REAL DeltalambdaB = ( tempa(0,0)*f2a-tempd(0,0)*faa ) / q;
+
+    E.Multiply ( a,Ea );
+    E.Multiply ( b,Eb );
+
+    TPZFMatrix<REAL>temp1,temp2,temp3,temp4,Et2 ( E );
+
+    Ea.Multiply ( atE,temp1 );
+    temp1*=tempb(0,0);
+
+    Ea.Multiply ( btE,temp2 );
+    temp2*=tempd(0,0);
+
+    Eb.Multiply ( atE,temp3 );
+    temp3*=tempd(0,0);
+
+    Eb.Multiply ( btE,temp4 );
+    temp4*=tempa(0,0);
+
+    temp1-=temp2;
+    temp1-=temp3;
+    temp1+=temp4;
+    temp1*=1./q;
+    Et2-=temp1;
+    //Dep=Et2;
+    //dadsig.Print();
+    //dbdsig.Print();
+    //DebugStop();
+
+    TPZFMatrix<REAL> T(6,6),dadsigE,dbdsigE;
+    T.Identity();
+
+
+    dadsig.Multiply ( E,dadsigE );
+    //dadsigE.Mult(a,symcheck);
+    //cout << "symcheck" << symcheck[0][0] <<endl;
+
+    dbdsig.Multiply ( E,dbdsigE );
+    //dbdsigE.Mult(b,symcheck);
+    //cout << "symcheck B" << symcheck[0][0] <<endl;
+
+
+    dadsigE*=DeltalambdaA;
+    dbdsigE*=DeltalambdaB;
+
+    T-=dadsigE;
+    T-=dbdsigE;
+    //dbdsig.Print();
+    Et2.Multiply ( T,Dep );
+
+ //   Dep.Print("DEP");
+}
+
+
 
 template void TPZYCMohrCoulombPV::PlasticityFunction<REAL>(const REAL epsp, REAL &sigmay, REAL &H) const;
 template void TPZYCMohrCoulombPV::PlasticityFunction<fadtype>(const fadtype epsp, fadtype &sigmay, fadtype &H) const;

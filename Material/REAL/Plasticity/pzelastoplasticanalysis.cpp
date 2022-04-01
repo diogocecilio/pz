@@ -588,6 +588,16 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 	}
 }
 
+ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv)
+ {
+     AssembleResidual();
+     //for the first assemble the internal stress is zero, and only left the body force.
+     TPZFMatrix<REAL> bodyforce = fRhs;
+     
+     
+
+ }
+
 //  void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv)
 // {
 // 

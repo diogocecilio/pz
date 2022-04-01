@@ -76,6 +76,13 @@ public:
     /** @brief Assemble the global right hand side */
     virtual void Assemble(TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface);
     
+    
+//     /** @brief Assemble the global right hand side body force only*/
+//     virtual void AssembleFbody(TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface);
+//     
+//         /** @brief Assemble the global right hand side internal force only */
+//     virtual void AssembleFint(TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface);
+    
 protected:
     
     /** @brief Assemble the global system of equations into the matrix which has already been created */

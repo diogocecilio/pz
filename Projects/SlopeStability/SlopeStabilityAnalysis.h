@@ -328,6 +328,9 @@ public:
     
     /// Computes an equilibrium state corresponding to the current boundary conditions
     void ExecuteSimulation();
+    
+    /// Computes an equilibrium state corresponding to the current boundary conditions
+    void ExecuteSimulationShearRed(TPZVec<TPZCompMesh *> vecmehs);
 
     /// verify the integrity of the elasto plastic material that is being used
     static void CheckDeformation(std::string filename = "deform.nb");
@@ -504,6 +507,9 @@ public:
     body->SetBodyForce ( force );
 
 }
+
+void  SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> vecmesh,int isol,REAL factor );
+
 
 private:
     /// The object with the current configuration

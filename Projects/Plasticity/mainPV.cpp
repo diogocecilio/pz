@@ -1530,7 +1530,7 @@ void UnaxialLoadingSD()
         }
         
         materialmodel.ApplyStrainComputeElasticStress(epssol, sigtrial);
-        materialmodel.ProjectSigmaDep(sigtrial,kprev,sigproj,kproj,GradSigma);
+        //materialmodel.ProjectSigmaDep(sigtrial,kprev,sigproj,kproj,GradSigma);
         //materialmodel.ProjectSigma(sigtrial,kprev,sigproj,kproj);
         outfile << -epsT[0]<< " " << -sigproj[0] << "\n";
         
@@ -1593,7 +1593,7 @@ void ProportionalLoading()
         }
         
         materialmodel.ApplyStrainComputeElasticStress(epsT, sigtrial);
-        materialmodel.ProjectSigmaDep(sigtrial,kprev,sigproj,kproj,GradSigma);
+        //materialmodel.ProjectSigmaDep(sigtrial,kprev,sigproj,kproj,GradSigma);
         materialmodel.ProjectSigma(sigtrial,kprev,sigproj,kproj);
         outfile << -epsT[0]<< " " << -sigproj[0] << "\n";
         

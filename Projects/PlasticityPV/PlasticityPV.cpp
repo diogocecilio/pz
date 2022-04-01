@@ -335,7 +335,7 @@ void CurvaFig12Diogo()
 		}
 		
 		materialmodel.ApplyStrainComputeElasticStress(epssol, sigtrial);
-		materialmodel.ProjectSigmaDep(sigtrial,kprev,sigproj,kproj,GradSigma);
+		//materialmodel.ProjectSigmaDep(sigtrial,kprev,sigproj,kproj,GradSigma);
 		
 		outfile <<"{" << -epsT[0]<< "," << -sigproj[0] << "}";
 		if (i!=64) {

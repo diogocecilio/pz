@@ -78,7 +78,7 @@ public:
 	virtual void IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
 	
 	//Implements the cylindrical arc length method ref- Souza Neto 2009
-	//virtual void IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
+	virtual void IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
 
     REAL LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter);
 	

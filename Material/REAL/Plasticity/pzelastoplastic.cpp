@@ -488,9 +488,6 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
       Solout[0] = 0.; //DUVIDA
       break;
     case EDisplacementTotal:
-          
-
-          
           Solout[0] = ux;
           Solout[1] = uy;
       break;

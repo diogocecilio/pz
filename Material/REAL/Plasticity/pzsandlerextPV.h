@@ -214,7 +214,7 @@ public:
     
     void ProjectSigma(const TPZVec<STATE> &sigmatrial, STATE kprev, TPZVec<STATE> &sigmaproj,STATE &kproj) const;
     
-    void ProjectSigmaDep(const TPZVec<STATE> &sigmatrial, STATE kprev, TPZVec<STATE> &sigmaproj,STATE &kproj, TPZFMatrix<STATE> &GradSigma) const;
+    void ProjectSigmaDep(const TPZVec<STATE> &sigmatrial, TPZTensor<REAL>sigtrtensor,STATE kprev, TPZVec<STATE> &sigmaproj,STATE &kproj, TPZFMatrix<STATE> &GradSigma) const;
     
     /**
      * Set of methods to verify if the tangent matrices are computed correctly
