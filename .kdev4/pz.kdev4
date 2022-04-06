@@ -1,6 +1,3 @@
-[Buildset]
-BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x04\x00p\x00z)
-
 [CMake]
 Build Directory Count=2
 Current Build Directory Index-Host System=0
@@ -17,7 +14,7 @@ Runtime=Host System
 
 [CMake][CMake Build Directory 1]
 Build Directory Path=/home/diogo/projects/pz-build-release
-Build Type=Release\n
+Build Type=Release
 CMake Binary=/usr/bin/cmake
 CMake Executable=/usr/bin/cmake
 Environment Profile=
@@ -43,7 +40,7 @@ Executable=file:///home/diogo/projects/pz-build-debug/Projects/SlopeStability/Sl
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Project Target=pz,Projects,AcoplamentoH1Hdiv,AcoplamentoH1Hdiv
 Use External Terminal=false
-Working Directory=file:///home/diogo/projects/pz-build-debug/Projects/SlopeStability
+Working Directory=
 isExecutable=true
 
 [Launch][Launch Configuration 1]

@@ -475,6 +475,7 @@ void TPZInterpolationSpace::InitializeElementMatrix(TPZElementMatrix &ek, TPZEle
         int cNShape = c.NShape();
         if(cNShape != nshape || nstate != numdof)
         {
+			std::cout << " Warning, ndof != nstate! "<<std::endl;
             DebugStop();
         }
 #endif
