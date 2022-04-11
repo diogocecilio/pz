@@ -23,7 +23,8 @@
 #include "pzelasticSest2D.h"
 #include "pzelastoplastic2D.h"
 #include "pzelastoplasticSest2D.h"
-
+#include "TPZParSkylineStructMatrix.h"
+#include "tpzsparseblockdiagonalstructmatrix.h"
 
 #include "pzelctemp.h" // TPZIntelGen<TSHAPE>
 #include "pzshapecube.h" // TPZShapeCube

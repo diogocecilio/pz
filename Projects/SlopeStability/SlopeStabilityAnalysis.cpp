@@ -40,7 +40,7 @@ static LoggerPtr logger(Logger::getLogger("pz.plasticity.wellboreanalysis"));
 static LoggerPtr loggerEllipse(Logger::getLogger("LogEllipse"));
 #endif
 
-int TPZSlopeStabilityAnalysis::TConfig::gNumThreads = 0;
+int TPZSlopeStabilityAnalysis::TConfig::gNumThreads = 9;
 
 
 
@@ -341,11 +341,15 @@ REAL TPZSlopeStabilityAnalysis::ExecuteSimulation2()
     TPZElastoPlasticAnalysis analysis(&LocalConfig.fCMesh,std::cout);
     
 	TPZSkylineStructMatrix full(&fCurrentConfig.fCMesh);
+    //TPZSparseBlockDiagonalStructMatrix full(&fCurrentConfig.fCMesh);
+    //TPZParSkylineStructMatrix full(&fCurrentConfig.fCMesh,TPZSlopeStabilityAnalysis::TConfig::gNumThreads);
+    //TPZFStructMatrix full(&fCurrentConfig.fCMesh);
     full.SetNumThreads(TPZSlopeStabilityAnalysis::TConfig::gNumThreads);
 
 
 	TPZStepSolver<REAL> step;
     step.SetDirect(ELDLt);
+    //step.SetDirect(ECholesky);
     
     long neq = LocalConfig.fCMesh.NEquations();
     TPZVec<long> activeEquations;
@@ -1856,6 +1860,8 @@ void TPZSlopeStabilityAnalysis::PostProcessedValues(TPZVec<REAL> &x, TPZVec<std:
 
 
 #include "pzgengrid.h"
+#include <tpzsparseblockdiagonalstructmatrix.h>
+#include <tpzsparseblockdiagonalstructmatrix.h>
 #include "TPZVTKGeoMesh.h"
 
 
