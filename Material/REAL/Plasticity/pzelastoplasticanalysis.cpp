@@ -571,21 +571,23 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		this->AssembleResidual();
 		double NormResLambda = Norm(fRhs);
 		double norm = NormResLambda;
-		out << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << endl;
+		if(iter%5==0)out << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << endl;
 		
 		if(norm < tol) {
 			out << "\nTolerancia atingida na iteracao : " << (iter+1) << endl;
 			out << "\n\nNorma da solucao |Delta(Un)|  : " << norm << endl << endl;
 			
 		} else
-			if( (norm - error) > 1.e-9 ) {
+			if( /*norm>3000 || */ normDeltaSol>10/* || (norm - error) > 1.e-9*/ ) {
 				out << "\nDivergent Method\n";
-				//return;
+				return;
 			}
+
 		error = norm;
 		iter++;
 		out.flush();
 	}
+	
 }
 
  void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv)

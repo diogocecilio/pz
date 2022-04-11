@@ -102,28 +102,50 @@ public:
     * @param[in] epsilon tensor de deformacao
     * @param[out] sigma tensor de tensao
     */
-    template <class T>
+//     template <class T>
+//     void Compute ( const TPZTensor<T> & epsilon, TPZTensor<T> & sigma ) const
+//     {
+//         epsilon.XY() *=1./2.;
+//         epsilon.XZ() *=1./2.;
+//         epsilon.YZ() *=1./2.;
+//         T trace = epsilon.I1();
+//         sigma.Identity();
+//         sigma.Multiply ( trace,fLambda );
+// 
+//         sigma.Add ( epsilon,2.*fMu );
+//     }
+
+        template <class T>
     void Compute ( const TPZTensor<T> & epsilon, TPZTensor<T> & sigma ) const
     {
-        epsilon.XY() *=1./2.;
-        epsilon.XZ() *=1./2.;
-        epsilon.YZ() *=1./2.;
+
         T trace = epsilon.I1();
         sigma.Identity();
         sigma.Multiply ( trace,fLambda );
 
         sigma.Add ( epsilon,2.*fMu );
     }
-
     /**
      * @brief Calcula o tensor de deformacao em funcao do tensor de tensao
      */
-    template <class T>
+//     template <class T>
+//     void ComputeDeformation ( const TPZTensor<T> & sigma, TPZTensor<T> & epsilon ) const
+//     {
+//         sigma.XY() *=2;
+//         sigma.XZ() *=2;
+//         sigma.YZ() *=2;
+//         const T Fac = T ( ( 1/3. ) * ( 1./ ( 3.*fLambda+2.*fMu ) -1./ ( 2.*fMu ) ) );
+//         T trace = sigma.I1();
+//         epsilon.Identity();
+//         epsilon.Multiply ( trace,Fac );
+//         epsilon.Add ( sigma,1./ ( 2.*fMu ) );
+// 
+//     }
+//     
+        template <class T>
     void ComputeDeformation ( const TPZTensor<T> & sigma, TPZTensor<T> & epsilon ) const
     {
-        sigma.XY() *=2;
-        sigma.XZ() *=2;
-        sigma.YZ() *=2;
+
         const T Fac = T ( ( 1/3. ) * ( 1./ ( 3.*fLambda+2.*fMu ) -1./ ( 2.*fMu ) ) );
         T trace = sigma.I1();
         epsilon.Identity();

@@ -122,6 +122,11 @@ class  TPZMatElastoPlastic : public TPZMatWithMem<TMEM>
 
 	  /** Sets the plasticity model already with proper parameters */
       void SetPlasticity(T & plasticity);
+	  
+	  T GetPlasticity()
+	  {
+		return fPlasticity;  
+	  }
 	
 	  /** Sets the material bulk density */
       void SetBulkDensity(REAL & RhoB);

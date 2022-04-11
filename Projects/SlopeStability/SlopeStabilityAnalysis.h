@@ -324,10 +324,21 @@ public:
      * @param nsteps number of loading steps (the actual number of loading steps is one higher)
      * @param numnewton number of allowed newton iterations
      */
+    REAL ExecuteInitialSimulation2(int nsteps);
+    
+    /// Computes an equilibrium state corresponding to the current boundary conditions
+    REAL ExecuteSimulation2();
+	
+	    /// Computes the tension state transferring the geological stress state to the hidrostatic stress state
+    /**
+     * @param nsteps number of loading steps (the actual number of loading steps is one higher)
+     * @param numnewton number of allowed newton iterations
+     */
     void ExecuteInitialSimulation(int nsteps);
     
     /// Computes an equilibrium state corresponding to the current boundary conditions
     void ExecuteSimulation();
+	
     
     /// Computes an equilibrium state corresponding to the current boundary conditions
     void ExecuteSimulationShearRed(TPZVec<TPZCompMesh *> vecmehs);

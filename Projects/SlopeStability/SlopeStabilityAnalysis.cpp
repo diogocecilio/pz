@@ -316,6 +316,76 @@ void TPZSlopeStabilityAnalysis::ExecuteInitialSimulation(int nsteps)
     }
 }
 
+REAL TPZSlopeStabilityAnalysis::ExecuteInitialSimulation2(int nsteps)
+{
+    std::stringstream strout;
+    strout << "Initial Simulation";
+    fCurrentConfig.fSolution.Redim(fCurrentConfig.fCMesh.NEquations(), 1);
+    SaveConfig(strout);
+    fSequence.push_back(fCurrentConfig);
+
+	REAL norm=10.;
+    for (int istep = 1; istep <= nsteps; istep++) {
+        REAL factor = istep*1./nsteps;
+        norm =  ExecuteSimulation2();
+    }
+    
+    return norm;
+}
+
+REAL TPZSlopeStabilityAnalysis::ExecuteSimulation2()
+{
+    
+    TConfig &LocalConfig = fCurrentConfig;
+    
+    TPZElastoPlasticAnalysis analysis(&LocalConfig.fCMesh,std::cout);
+    
+	TPZSkylineStructMatrix full(&fCurrentConfig.fCMesh);
+    full.SetNumThreads(TPZSlopeStabilityAnalysis::TConfig::gNumThreads);
+
+
+	TPZStepSolver<REAL> step;
+    step.SetDirect(ELDLt);
+    
+    long neq = LocalConfig.fCMesh.NEquations();
+    TPZVec<long> activeEquations;
+    analysis.GetActiveEquations(activeEquations);
+    TPZEquationFilter filter(neq);
+    filter.SetActiveEquations(activeEquations);
+    full.EquationFilter() = filter;
+    analysis.SetStructuralMatrix(full);
+
+    //step.SetDirect(ECholesky);
+	analysis.SetSolver(step);
+    
+    
+    LocalConfig.fSolution.Redim(neq, 1);
+    int NumIter = 50;
+    bool linesearch = true;
+    bool checkconv = false;
+    REAL tol =1.e-5;
+    bool conv;
+
+	well_init.start();
+	analysis.IterativeProcess(std::cout, tol, NumIter,linesearch,checkconv);
+	well_init.stop();
+        
+    TPZFMatrix<STATE> &sol = analysis.Mesh()->Solution();
+    for (int ieq=0; ieq<neq; ieq++) {
+        LocalConfig.fSolution(ieq,0) = sol(ieq,0);
+    }
+    
+    analysis.AcceptSolution();
+    
+    // dont forget the vertical deformation
+    LocalConfig.ComputeElementDeformation();
+    
+    fSequence.push_back(LocalConfig);
+	
+	return Norm(analysis.Rhs());
+}
+
+
 
 // void TPZSlopeStabilityAnalysis::ExecuteSimulationShearRed()
 // {
@@ -1977,6 +2047,87 @@ void TPZSlopeStabilityAnalysis::TConfig::CreateGeometricMeshSlope(int ref)
 
 }
 
+// void TPZSlopeStabilityAnalysis::TConfig::CreateGeometricMeshSlope2(int ref)
+// {
+// 	const std::string name ( "ElastoPlastic GEOMESH Footing Problem " );
+// 
+//     fGMesh.SetName ( name );
+//     fGMesh.SetDimension ( 2 );
+//    
+//    TPZVec<REAL> coord ( 2 );
+//  
+//     //vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+//   //40.}, {30., 30.}, {30., 40.}, {26., 26.}, {26., 40.}, {45., 26.}};
+//   
+//      // vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+//  // 40.}, {30., 30.}, {30., 40.}, {20., 20.}, {20., 40.}, {45., 20.}};
+//   
+//   
+// //         vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+// //   40.}, {30., 30.}, {30., 40.}, {26., 26.}, {26., 40.}, {45., 26.}};
+//   
+//   
+//           vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+//   40.}, {30., 30.}, {30., 40.}, {26., 26.}, {26., 40.}, {45., 26.},
+// 
+//   {22., 40.}, {22., 22.}, {50., 22.},{50.,30.}
+//   
+// 		};
+//   
+//   vector<vector<int>> topol = {{0, 1, 13, 12}, {1, 2, 14, 13}, {10, 3, 6, 8}, {3, 4, 7, 6}, {6, 7, 9, 
+//   8}, {0, 12, 11, 5},{12,8,9,11},{12,13,10,8},{13,14,3,10}};
+//   
+//   fGMesh.NodeVec().Resize ( co.size() );
+//   
+//   for(int inode=0;inode<co.size();inode++)
+//   {
+// 	coord[0] = co[inode][0];
+//     coord[1] = co[inode][1];
+//     fGMesh.NodeVec() [inode] = TPZGeoNode ( inode, coord, fGMesh );
+// }
+//   TPZVec <long> TopoQuad ( 4 );
+//     for(int iel=0;iel<topol.size();iel++)
+//   {
+//     TopoQuad[0] = topol[iel][0];
+//     TopoQuad[1] = topol[iel][1];
+//     TopoQuad[2] =	topol[iel][2];
+//     TopoQuad[3] = topol[iel][3];
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( iel, TopoQuad, 1,fGMesh );
+// }
+//     int id = topol.size();
+//     TPZVec <long> TopoLine ( 2 );
+//     TopoLine[0] = 0;
+//     TopoLine[1] = 1;
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, fGMesh );
+// 
+// 	id++;
+//     TopoLine[0] = 1;
+//     TopoLine[1] = 2;
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, fGMesh );
+// 
+// 	id++;
+//     TopoLine[0] = 0;
+//     TopoLine[1] = 5;
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, fGMesh );
+// 
+// 	id++;
+//     TopoLine[0] = 4;
+//     TopoLine[1] = 5;
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, fGMesh);
+// 	
+// 	fGMesh.BuildConnectivity();
+// 	    for ( int d = 0; d<ref; d++ ) {
+//         int nel = fGMesh.NElements();
+//         TPZManVector<TPZGeoEl *> subels;
+//         for ( int iel = 0; iel<nel; iel++ ) {
+//             TPZGeoEl *gel = fGMesh.ElementVec() [iel];
+//                 gel->Divide ( subels );
+//         }
+//     }
+// 
+// }
+
+
 void TPZSlopeStabilityAnalysis::TConfig::CreateGeometricMeshSlope2(int ref)
 {
 	const std::string name ( "ElastoPlastic GEOMESH Footing Problem " );
@@ -1989,11 +2140,23 @@ void TPZSlopeStabilityAnalysis::TConfig::CreateGeometricMeshSlope2(int ref)
     //vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
   //40.}, {30., 30.}, {30., 40.}, {26., 26.}, {26., 40.}, {45., 26.}};
   
-      vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
-  40.}, {30., 30.}, {30., 40.}, {20., 20.}, {20., 40.}, {45., 20.}};
+     // vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+ // 40.}, {30., 30.}, {30., 40.}, {20., 20.}, {20., 40.}, {45., 20.}};
   
-  vector<vector<int>> topol = {{0, 1, 10, 8}, {1, 2, 3, 10}, {10, 3, 6, 8}, {3, 4, 7, 6}, {6, 7, 9, 
-  8}, {0, 8, 9, 5}};
+  
+//         vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+//   40.}, {30., 30.}, {30., 40.}, {26., 26.}, {26., 40.}, {45., 26.}};
+  
+  
+          vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0., 
+  40.}, {30., 30.}, {30., 40.}, {26., 26.}, {26., 40.}, {45., 26.},
+
+  {22., 40.}, {22., 22.}, {50., 22.},{50.,30.}
+  
+		};
+  
+  vector<vector<int>> topol = {{0, 1, 13, 12}, {1, 2, 14, 13}, {10, 3, 6, 8}, {3, 4, 7, 6}, {6, 7, 9, 
+  8}, {0, 12, 11, 5},{12,8,9,11},{12,13,10,8},{13,14,3,10}};
   
   fGMesh.NodeVec().Resize ( co.size() );
   

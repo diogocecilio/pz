@@ -1,4 +1,3 @@
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -192,44 +191,49 @@ TPZGeoMesh * SimpleGMesh ( int ref );
 TPZCompMesh * SimpleCMesh ( TPZGeoMesh * gmesh, int porder );
 void SolveSimpleElasticProlem();
 void ComputeAdptiveMontecarlo();
-
-void ShearRed ( TPZSlopeStabilityAnalysis &slopeA , TPZVec<TPZCompMesh *> vecmesh );
-
-
+void   ConfigSlopeShearRed();
+void ShearRed ( TPZSlopeStabilityAnalysis &slopeA, TPZVec<TPZCompMesh *> vecmesh );
+void ShearRed ( TPZSlopeStabilityAnalysis &slopeB );
+void ShearRed ( );
+void Refinine ( TPZSlopeStabilityAnalysis &slope,REAL sqj2_refine,int ref,int order );
+TPZSlopeStabilityAnalysis CreateSlopeObj ( REAL porder,REAL bodyforcefac, int ref );
 typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
 
 int main ( int argc, char **argv )
 {
 
 
-    int porder=1;
-    int ref=0;
-    TPZSlopeStabilityAnalysis slopeA;
-	std::string output = "slopeA.vtk";
-    slopeA.SetVtkOutPutName ( output );
+//     int porder=1;
+//     int ref=4;
+//     TPZSlopeStabilityAnalysis slopeA;
+// 	std::string output = "slopeA.vtk";
+//     slopeA.SetVtkOutPutName ( output );
+//
+//
+//
+//
+//     TPZVec<TPZCompMesh *> vecmesh;
+//     vecmesh=CreateFields ( slopeA, porder, ref );
+//
+//
+//     slopeA.GetCurrentConfig()->CreatePostProcessingMesh();
+//
+//     slopeA.PostProcess ( 0 );
+//
+// 	slopeA.LoadingRamp(1);
+//
+//     slopeA.ExecuteSimulation();
 
 
+    //SetMaterialParamenters ( &slopeA.GetCurrentConfig()->fCMesh,vecmesh,0,1 );
 
-	
-    TPZVec<TPZCompMesh *> vecmesh;
-    vecmesh=CreateFields ( slopeA, porder, ref );
-
-
-    slopeA.GetCurrentConfig()->CreatePostProcessingMesh();
-
-    slopeA.PostProcess ( 0 );
-	
-	slopeA.LoadingRamp(1);
-	
-	SetMaterialParamenters ( &slopeA.GetCurrentConfig()->fCMesh,vecmesh,0,1 );
-
-    int nsamples = vecmesh[0]->Solution().Cols();
+    //int nsamples = vecmesh[0]->Solution().Cols();
 
     //vecmesh[0]->Solution().Print ( "SOLUTION PHI" );
 
-   // PrintSol ( vecmesh[0] );
-	
-	ShearRed ( slopeA,vecmesh );
+    // PrintSol ( vecmesh[0] );
+
+    //ShearRed ( slopeA,vecmesh );
 
 //   SolveSimpleElasticProlem();
 
@@ -278,54 +282,459 @@ int main ( int argc, char **argv )
 // 		cout << Dep(_YY_,_XX_) << "\t" << Dep(_YY_,_YY_) << "\t" << Dep(_YY_,_XY_) <<"\n";
 // 		cout << Dep(_XY_,_XX_) << "\t" << Dep(_XY_,_YY_) << "\t" << Dep(_XY_,_XY_) <<"\n";
 //
-   // ConfigSlope();
+//  ConfigSlope();
 //ComputeAdptiveMontecarlo();
+//   ConfigSlopeShearRed();
+
+    ShearRed();
     cout <<"SUCESS"<<endl;
     return 0;
 
 }
 
-TPZElastoPlasticAnalysis  CreateAnal(TPZCompMesh *fCMesh)
+TPZElastoPlasticAnalysis  CreateAnal ( TPZCompMesh *fCMesh )
 {
-    TPZElastoPlasticAnalysis  analysis(fCMesh,std::cout);
-    
-	TPZSkylineStructMatrix full(fCMesh);
+    TPZElastoPlasticAnalysis  analysis ( fCMesh,std::cout );
 
-	TPZStepSolver<REAL> step;
-	
-    step.SetDirect(ELDLt);
-    
-    analysis.SetStructuralMatrix(full);
-	
-	analysis.SetSolver(step);
-	
-	return analysis;
+    TPZSkylineStructMatrix full ( fCMesh );
+
+    TPZStepSolver<REAL> step;
+
+    step.SetDirect ( ELDLt );
+
+    analysis.SetStructuralMatrix ( full );
+
+    analysis.SetSolver ( step );
+
+    return analysis;
 }
 
-void ShearRed ( TPZSlopeStabilityAnalysis &slopeB, TPZVec<TPZCompMesh *> vecmesh )
+void Refinine ( TPZSlopeStabilityAnalysis &slope,REAL sqj2_refine,int ref,int order )
+{
+    cout <<" ----  Refining  ---- "<< endl;
+    for ( int i=1; i<=ref; i++ ) {
+        std::cout << "ref = " << i<< std::endl;
+        slope.PRefineElementAbove ( sqj2_refine, order );
+        slope.DivideElementsAbove ( sqj2_refine );
+        slope.ExecuteSimulation ( );
+        // slope.PostProcess ( 0 );
+    }
+}
+
+void   ConfigSlopeShearRed()
+{
+
+    gRefDBase.InitializeUniformRefPattern ( EOned );
+    gRefDBase.InitializeUniformRefPattern ( ETriangle );
+    gRefDBase.InitializeUniformRefPattern ( EQuadrilateral );
+    std::cout << std::setprecision ( 15 );
+
+    TPZSlopeStabilityAnalysis slope;
+
+    std::string output = "ConfigSlopeShearRed.vtk";
+
+    slope.SetVtkOutPutName ( output );
+
+    int ref=2;
+    int porder=2;
+
+    slope.GetCurrentConfig()->CreateGeometricMeshSlope2 ( ref );
+
+    slope.GetCurrentConfig()->CreateComputationalMeshSlope ( porder );
+
+    slope.GetCurrentConfig()->CreatePostProcessingMesh();
+
+    slope.PostProcess ( 0 );
+
+    slope.LoadingRamp ( 1 );
+
+    cout <<" ----  Initial Simulation  ---- "<< endl;
+
+    slope.ExecuteInitialSimulation ( 1 );
+
+    slope.PostProcess ( 0 );
+
+    cout <<" ----  Shear Red  ---- "<< endl;
+
+
+    ShearRed ( );
+
+    //slope.PostProcess ( 0 );
+
+}
+
+
+TPZSlopeStabilityAnalysis CreateSlopeObj ( REAL porder,REAL bodyforcefac, int ref )
+{
+    TPZSlopeStabilityAnalysis slope;
+
+    slope.GetCurrentConfig()->CreateGeometricMeshSlope2 ( ref );
+
+    slope.GetCurrentConfig()->CreateComputationalMeshSlope ( porder );
+
+    slope.GetCurrentConfig()->CreatePostProcessingMesh();
+
+    //slopeB.PostProcess ( 0 );
+
+    slope.LoadingRamp ( bodyforcefac );
+
+    return slope;
+}
+
+
+void ShearRed ( )
+{
+
+
+    REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+    REAL c;
+    REAL phi;
+    int ref=3;
+    int porder=2;
+
+    int refinit = 2;
+
+    REAL loadfac=1.;
+
+    int counterout=0;
+    do {
+
+        REAL norm = 1000.;
+        REAL tol2 = 1.e-5;
+        REAL sqj2_refine = 0.005;
+
+        TPZSlopeStabilityAnalysis slopeB;
+
+
+
+        slopeB = CreateSlopeObj ( porder,loadfac,refinit );
+
+        TPZCompMesh * cmesh =  &slopeB.GetCurrentConfig()->fCMesh;
+        plasticmat *material = dynamic_cast<plasticmat *> ( cmesh->MaterialVec() [1] );
+        TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+
+        TPZElasticResponse ER = LEMC.fER;
+        REAL phi0 = LEMC.fYC.Phi();
+        REAL cohesion0 = LEMC.fYC.Cohesion();
+
+
+        c=cohesion0/FS;
+        phi=atan ( tan ( phi0 ) /FS );
+
+        LEMC.fYC.SetUp ( phi, phi, c, ER );
+        material->SetPlasticity ( LEMC );
+
+
+        std::cout << " ------------------------------ | FS = " << FS  << "  | phi = " << phi*180/M_PI << " | c = " <<  c << std::endl;
+
+        norm = slopeB.ExecuteInitialSimulation2 ( 1 );
+
+
+        if ( norm<tol2 ) {
+
+
+            for ( int i=1; i<=ref; i++ ) {
+				
+                std::cout << "nref = " << i<< std::endl;
+				
+                slopeB.PRefineElementAbove ( sqj2_refine, porder+1 );
+				
+                slopeB.DivideElementsAbove ( sqj2_refine );
+				
+                norm = slopeB.ExecuteSimulation2();
+				
+                if ( norm>tol2 ) {
+                    break;
+                } else if(i==ref){
+					
+                    std::string output = "aConfigSlopeShearRed-FS-";
+					
+                    auto iters =to_string ( FS );
+					
+                    output+=iters;
+					
+                    string exts = "-.vtk";
+					
+                    output+=exts;
+					
+                    slopeB.SetVtkOutPutName ( output );
+
+                    slopeB.PostProcess ( 0 );
+                }
+            }
+
+        }
+
+        if ( norm>= tol2 ) {
+
+            FSmax = FS;
+
+            FS = ( FSmin + FSmax ) / 2.;
+
+        } else {
+
+            FSmin = FS;
+
+            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+
+		}
+
+        counterout++;
+
+    }  while ( ( FSmax - FSmin ) / FS > tol );
+
+    std::cout << " ------------------------------ | FS = " << FS  << "  | phi = " << phi*180/M_PI << " | c = " <<  c << std::endl;
+}
+
+/*
+void ShearRed ( TPZSlopeStabilityAnalysis &slopeBb )
+{
+    TPZSlopeStabilityAnalysis slopeA ( slopeBb );
+
+    REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+
+    TPZCompMesh * cmesh =  &slopeBb.GetCurrentConfig()->fCMesh;
+
+    int counterout = 0;
+
+    plasticmat *material = dynamic_cast<plasticmat *> ( cmesh->MaterialVec() [1] );
+    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+
+    TPZElasticResponse ER = LEMC.fER;
+    REAL phi0 = LEMC.fYC.Phi();
+    REAL cohesion0 = LEMC.fYC.Cohesion();
+    REAL phi=phi0;
+    REAL c=cohesion0;
+    int ref=4;
+    int porder=2;
+
+    do {
+
+
+        std::cout << " ------------------------------ | FS = " << FS  << "  | phi = " << phi*180/M_PI << " | c = " <<  c << std::endl;
+
+        REAL norm = 1000.;
+        REAL tol2 = 1.e-5;
+        REAL sqj2_refine = 0.001;
+
+
+        TPZSlopeStabilityAnalysis slopeB;
+
+
+        slopeB.GetCurrentConfig()->CreateGeometricMeshSlope2 ( 1 );
+
+        slopeB.GetCurrentConfig()->CreateComputationalMeshSlope ( porder );
+
+        slopeB.GetCurrentConfig()->CreatePostProcessingMesh();
+
+        //slopeB.PostProcess ( 0 );
+
+        slopeB.LoadingRamp ( 1 );
+
+        TPZCompMesh * cmesh =  &slopeB.GetCurrentConfig()->fCMesh;
+        plasticmat *material = dynamic_cast<plasticmat *> ( cmesh->MaterialVec() [1] );
+        TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+
+        c=cohesion0/FS;
+        phi=atan ( tan ( phi0 ) /FS );
+
+        LEMC.fYC.SetUp ( phi, phi, c, ER );
+        material->SetPlasticity ( LEMC );
+
+
+        norm = slopeB.ExecuteInitialSimulation2 ( 1 );
+
+        //norm = slopeB.ExecuteSimulation2();
+
+        // if(norm<tol2)
+        //  {
+
+
+
+
+        if ( norm<tol2 ) {
+            std::string output = "aConfigSlopeShearRed-FS-";
+            auto iters =to_string ( FS );
+            output+=iters;
+            string exts = "-.vtk";
+            output+=exts;
+            slopeB.SetVtkOutPutName ( output );
+            //slopeB.PostProcess ( 0 );
+            for ( int i=1; i<=ref; i++ ) {
+                std::cout << "nref = " << i<< std::endl;
+                slopeB.PRefineElementAbove ( sqj2_refine, porder+1 );
+                slopeB.DivideElementsAbove ( sqj2_refine );
+                norm = slopeB.ExecuteSimulation2();
+                if ( norm<tol2 ) {
+                    //slopeB.PostProcess ( 0 );
+                } else {
+                    break;
+                }
+
+            }
+
+        }
+
+
+        //displace=slopeB.GetCurrentConfig()->fSolution;
+
+        // deltau=displace;
+        //deltau-=displace0;
+        // unorm=Norm(deltau);
+
+        if ( norm>= tol2 ) {
+
+            // displace = displace0;
+
+            FSmax = FS;
+
+            FS = ( FSmin + FSmax ) / 2.;
+
+
+        } else {
+            //displace0 = displace;
+
+            FSmin = FS;
+
+            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+
+            //Refinine(slopeB,sqj2_refine, ref, porder);
+
+            //slopeB.PostProcess ( 0 );
+            slopeB.PostProcess ( 0 );
+
+        }
+
+//         TPZCompMesh * cmesh =  &slopeB.GetCurrentConfig()->fCMesh;
+//         plasticmat *material = dynamic_cast<plasticmat *> ( cmesh->MaterialVec() [1] );
+//         TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+//
+//         c=cohesion0/FS;
+//         phi=atan ( tan ( phi0 ) /FS );
+//
+//         LEMC.fYC.SetUp ( phi, phi, c, ER );
+//         material->SetPlasticity ( LEMC );
+        counterout++;
+
+    }  while ( ( FSmax - FSmin ) / FS > tol );
+
+    std::cout << " ------------------------------ | FS = " << FS  << "  | phi = " << phi*180/M_PI << " | c = " <<  c << std::endl;
+}*/
+// void ShearRed ( TPZSlopeStabilityAnalysis &slopeB )
+// {
+//     TPZSlopeStabilityAnalysis slopeA(slopeB);
+//     REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+// 	int neq = slopeB.GetCurrentConfig()->fCMesh.NEquations();
+//     TPZCompMesh * cmesh =  &slopeB.GetCurrentConfig()->fCMesh;
+//     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
+// 	//TPZFNMatrix<10000,REAL> mat(neq,1);
+// 	// mat(neq,1);
+// 	int counterout = 0, maxcountout = 20;
+// 	TPZFMatrix<REAL>  deltau;
+// 	REAL unorm =1000.;
+//
+//   // plasticmat pMatWithMem2 =  cmesh->MaterialVec() [1];
+//     plasticmat *material = dynamic_cast<plasticmat *> ( cmesh->MaterialVec() [1] );
+//     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+//
+//     TPZElasticResponse ER = LEMC.fER;
+//     REAL phi0 = LEMC.fYC.Phi();
+//     REAL psi0 = phi0;
+//     REAL cohesion0 = LEMC.fYC.Cohesion();
+//     REAL phi,psi,c;
+//     int ref=3;
+//     int order=3;
+//
+//     do {
+//
+//
+//
+//         REAL norm = 1000.;
+//         REAL tol2 = 1.e-3;
+//         REAL sqj2_refine = 0.001;
+//
+//         norm = slopeB.ExecuteSimulation2();
+//
+//
+//      //   slopeB.ExecuteSimulation();
+//         Refinine(slopeB,sqj2_refine, ref, order);
+//
+// 		displace=slopeB.GetCurrentConfig()->fSolution;
+//
+// 		deltau=displace;
+// 		deltau-=displace0;
+// 		unorm=Norm(deltau);
+// 		//std::cout << "| Load step = " << counterout << " | Rhs norm = " << norm << "| delta displacement norm = "<< unorm << std::endl;
+//
+//         if ( norm>= tol2) {
+//
+//             displace = displace0;
+//
+//             FSmax = FS;
+//
+//             FS = ( FSmin + FSmax ) / 2.;
+//
+//
+//         } else {
+//                 displace0 = displace;
+//
+//                 FSmin = FS;
+//
+//                 FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+//
+//                 slopeB.PostProcess ( 0 );
+//
+//         }
+//
+//         slopeB=slopeA;
+//
+//         std::cout << "FS = " << FS << std::endl;
+//         c=cohesion0/FS;
+//         phi=atan ( tan ( phi0 ) /FS );
+//         psi=phi;
+//         LEMC.fYC.SetUp ( phi, psi, c, ER );
+//         material->SetPlasticity ( LEMC );
+//         counterout++;
+//
+//     }  while ( ( FSmax - FSmin ) / FS > tol );
+// }
+
+/*
+void ShearRed ( TPZSlopeStabilityAnalysis &slopeB )
 {
     REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
 	int neq = slopeB.GetCurrentConfig()->fCMesh.NEquations();
+    TPZCompMesh * cmesh =  &slopeB.GetCurrentConfig()->fCMesh;
     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
 	//TPZFNMatrix<10000,REAL> mat(neq,1);
 	// mat(neq,1);
 	int counterout = 0, maxcountout = 20;
 	TPZFMatrix<REAL>  deltau;
 	REAL unorm =1000.;
+
+  // plasticmat pMatWithMem2 =  cmesh->MaterialVec() [1];
+    plasticmat *material = dynamic_cast<plasticmat *> ( cmesh->MaterialVec() [1] );
+    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+
+    TPZElasticResponse ER = LEMC.fER;
+    REAL phi0 = LEMC.fYC.Phi();
+    REAL psi0 = phi0;
+    REAL cohesion0 = LEMC.fYC.Cohesion();
+    REAL phi,psi,c;
     do {
 
 
 		//displace0 = slopeB.GetCurrentConfig()->fCMesh.Solution();
 		TPZElastoPlasticAnalysis  anal = CreateAnal(&slopeB.GetCurrentConfig()->fCMesh);
-		
+
 		REAL norm = 1000.;
         REAL tol2 = 1.e-3;
         int NumIter = 30;
         bool linesearch = true;
         bool checkconv = false;
-        
 
-		
+
+
         anal.IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
 		norm = Norm(anal.Rhs());
 		displace=anal.Solution();
@@ -333,30 +742,91 @@ void ShearRed ( TPZSlopeStabilityAnalysis &slopeB, TPZVec<TPZCompMesh *> vecmesh
 		deltau-=displace0;
 		unorm=Norm(deltau);
 		//std::cout << "| Load step = " << counterout << " | Rhs norm = " << norm << "| delta displacement norm = "<< unorm << std::endl;
-		
+
         if ( norm>= tol2) {
-			
+
             displace = displace0;
-			
+
             FSmax = FS;
-			
+
             FS = ( FSmin + FSmax ) / 2.;
-			
+
 
         } else {
                 displace0 = displace;
-				
+
                 FSmin = FS;
-				
+
                 FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
-				
+
         }
 
         std::cout << "FS = " << FS << std::endl;
-        SetMaterialParamenters ( &slopeB.GetCurrentConfig()->fCMesh,vecmesh,0,FS );
+        c=cohesion0/FS;
+        phi=atan ( tan ( phi0 ) /FS );
+        psi=phi;
+        LEMC.fYC.SetUp ( phi, psi, c, ER );
+        material->SetPlasticity ( LEMC );
         counterout++;
+
     }  while ( ( FSmax - FSmin ) / FS > tol );
-}
+}*/
+
+// void ShearRed ( TPZSlopeStabilityAnalysis &slopeB, TPZVec<TPZCompMesh *> vecmesh )
+// {
+//     REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+// 	int neq = slopeB.GetCurrentConfig()->fCMesh.NEquations();
+//     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
+// 	//TPZFNMatrix<10000,REAL> mat(neq,1);
+// 	// mat(neq,1);
+// 	int counterout = 0, maxcountout = 20;
+// 	TPZFMatrix<REAL>  deltau;
+// 	REAL unorm =1000.;
+//     do {
+//
+//
+// 		//displace0 = slopeB.GetCurrentConfig()->fCMesh.Solution();
+// 		TPZElastoPlasticAnalysis  anal = CreateAnal(&slopeB.GetCurrentConfig()->fCMesh);
+//
+// 		REAL norm = 1000.;
+//         REAL tol2 = 1.e-3;
+//         int NumIter = 30;
+//         bool linesearch = true;
+//         bool checkconv = false;
+//
+//
+//
+//         anal.IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+// 		norm = Norm(anal.Rhs());
+// 		displace=anal.Solution();
+// 		deltau=displace;
+// 		deltau-=displace0;
+// 		unorm=Norm(deltau);
+// 		//std::cout << "| Load step = " << counterout << " | Rhs norm = " << norm << "| delta displacement norm = "<< unorm << std::endl;
+//
+//         if ( norm>= tol2) {
+//
+//             displace = displace0;
+//
+//             FSmax = FS;
+//
+//             FS = ( FSmin + FSmax ) / 2.;
+//
+//
+//         } else {
+//                 displace0 = displace;
+//
+//                 FSmin = FS;
+//
+//                 FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+//
+//         }
+//
+//         std::cout << "FS = " << FS << std::endl;
+//         SetMaterialParamenters ( &slopeB.GetCurrentConfig()->fCMesh,vecmesh,0,FS );
+//         counterout++;
+//     }  while ( ( FSmax - FSmin ) / FS > tol );
+// }
 
 void PrintSol ( TPZCompMesh * plasticCmesh )
 {
@@ -483,14 +953,14 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> ve
     int nels1 = vecmesh[1]->NElements();
     //vecmesh[1]->Solution().Print ( "SOLUTION PHI" );
     if ( nels!=nels0 || nels!=nels1 || nels0!=nels1 ) {
-     //   cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
+        //   cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
         //DebugStop();
     }
 
     TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
     TPZAdmChunkVector<TPZElastoPlasticMem>  &mem = pMatWithMem2->GetMemory();
 
-   // cout << "mem.NElements() "<< mem.NElements()  <<endl;
+    // cout << "mem.NElements() "<< mem.NElements()  <<endl;
     if ( pMatWithMem2 ) {
         pMatWithMem2->SetUpdateMem ( true );
     }
@@ -540,8 +1010,8 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> ve
             int varid=0;
             celrandom1->Solution ( point1,varid,Sol1 );
             celrandom2->Solution ( point2,varid,Sol2 );
-           // cout << "Sol2 = " << datarandom2.sol[isol][0] <<endl;
-           // cout << "Sol2B = " << Sol2[0] <<endl;
+            // cout << "Sol2 = " << datarandom2.sol[isol][0] <<endl;
+            // cout << "Sol2B = " << Sol2[0] <<endl;
             //                    hhatcopy[irow][0] = hhat0[irow][0] / FS;
             //          hhatcopy[irow][1] = atan ( tan ( hhat0[irow][1] ) / FS );
             mem[globpt].fPlasticState.fmatprop[0]=Sol1[0]/factor;
@@ -597,7 +1067,7 @@ TPZCompMesh * CreteCompMesh ( TPZGeoMesh* gmesh,int porder )
 }
 
 
-void  InsertMat ( TPZCompMesh * cmesh ,int porder )
+void  InsertMat ( TPZCompMesh * cmesh,int porder )
 {
     int expansionorder=20;
     REAL Lx=20;
@@ -620,16 +1090,16 @@ TPZVec<TPZCompMesh *> CreateFields ( TPZSlopeStabilityAnalysis &slopeA,int porde
 {
 
     TPZGeoMesh  * gmesh =  CreteGeoMesh ( slopeA,porder,ref );
-   // TPZCompMesh * cmesh =  CreteCompMesh ( gmesh,porder );
-   // TPZCompMesh * cmesh2 =  CreteCompMesh ( gmesh,porder );
+    TPZCompMesh * cmesh =  CreteCompMesh ( gmesh,porder );
+    TPZCompMesh * cmesh2 =  CreteCompMesh ( gmesh,porder );
 
-	TPZCompMesh * cmesh (&slopeA.GetCurrentConfig()->fCMesh);
-    TPZCompMesh * cmesh2(&slopeA.GetCurrentConfig()->fCMesh);
-	cmesh->Print(std::cout);
-	InsertMat ( cmesh , porder );
-	cmesh->Print(std::cout);
-    InsertMat ( cmesh2 , porder );
-	int dim = cmesh->Reference()->Dimension();
+    //TPZCompMesh * cmesh (&slopeA.GetCurrentConfig()->fCMesh);
+    //TPZCompMesh * cmesh2(&slopeA.GetCurrentConfig()->fCMesh);
+    cmesh->Print ( std::cout );
+    InsertMat ( cmesh, porder );
+    cmesh->Print ( std::cout );
+    InsertMat ( cmesh2, porder );
+    int dim = cmesh->Reference()->Dimension();
     KLAnalysis * klanal = new KLAnalysis ( cmesh );
     KLMaterial * mat = dynamic_cast<KLMaterial*> ( cmesh->ElementVec() [0]->Material() );
     klanal->SetExpansionOrder ( mat->GetExpansioOrder() );
@@ -669,6 +1139,8 @@ TPZVec<TPZCompMesh *> CreateFields ( TPZSlopeStabilityAnalysis &slopeA,int porde
 }
 
 
+
+
 TPZGeoMesh   ConfigSlope()
 {
 
@@ -679,17 +1151,17 @@ TPZGeoMesh   ConfigSlope()
 
     TPZSlopeStabilityAnalysis well;
 
-    std::string output = "ConfigSlope.vtk";
+    std::string output = "ConfigSlope2.vtk";
     well.SetVtkOutPutName ( output );
 
 
     //well.LoadingRamp(factor);
-    REAL sqj2_refine=0.0025;
+    REAL sqj2_refine=0.005;
     int Startfrom=0;
     const int nsubsteps = 5;
-    int porder=2;
+    int porder=1;
     std::cout << "\n ------- 0 -------- "<<std::endl;
-    well.GetCurrentConfig()->CreateGeometricMeshSlope2 ( 1 );
+    well.GetCurrentConfig()->CreateGeometricMeshSlope2 ( 4 );
 
     well.GetCurrentConfig()->CreateComputationalMeshSlope ( porder );
 
@@ -697,20 +1169,20 @@ TPZGeoMesh   ConfigSlope()
 
     well.PostProcess ( 0 );
 
-    int steps =3;
+    int steps =6;
     REAL delta=1.73/steps;
     REAL factor=delta;
     for ( int i=1; i<=steps; i++ ) {
         std::cout << "fac = " << factor<< std::endl;
         well.LoadingRamp ( factor );
-        well.ExecuteInitialSimulation ( 5 );
+        well.ExecuteInitialSimulation ( 1 );
         factor+=delta;
     }
 
-    int nref=6;
+    int nref=3;
     for ( int i=1; i<=nref; i++ ) {
         std::cout << "nref = " << i<< std::endl;
-        well.PRefineElementAbove ( sqj2_refine, 2 );
+        well.PRefineElementAbove ( sqj2_refine, porder+i );
         well.DivideElementsAbove ( sqj2_refine );
         well.ExecuteSimulation ( );
         well.PostProcess ( 0 );

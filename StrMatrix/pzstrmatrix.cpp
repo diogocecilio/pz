@@ -321,7 +321,7 @@ void TPZStructMatrixST::Serial_Assemble(TPZMatrix<STATE> & stiffness, TPZFMatrix
         
         assemble.stop();
     }//fim for iel
-    if(count > 20) std::cout << std::endl;
+    //if(count > 20) std::cout << std::endl;
 
 #ifdef LOG4CXX
     if(loggerCheck->isDebugEnabled())
