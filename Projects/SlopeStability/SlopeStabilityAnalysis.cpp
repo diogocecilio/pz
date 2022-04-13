@@ -40,7 +40,7 @@ static LoggerPtr logger(Logger::getLogger("pz.plasticity.wellboreanalysis"));
 static LoggerPtr loggerEllipse(Logger::getLogger("LogEllipse"));
 #endif
 
-int TPZSlopeStabilityAnalysis::TConfig::gNumThreads = 9;
+int TPZSlopeStabilityAnalysis::TConfig::gNumThreads = 16;
 
 
 
