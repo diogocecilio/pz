@@ -61,7 +61,9 @@ protected:
         {
             
         }
-        
+		void SetForcingFunctionBC(TPZAutoPointer<TPZFunction<STATE> > f){
+        	fForcingFunction = f;
+    	}
     };
     
     TPZVec<TPZ_BCDefine> fBCs;
