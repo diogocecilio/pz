@@ -83,7 +83,7 @@ int main()
 	cout << "here "<<endl;
     //TPZGeoMesh *gmesh = CreateGMesh(nx, ny, hx, hy);
     //TPZGeoMesh *gmesh = CreateGeometricMeshSlope ( 3);
-	TPZGeoMesh *gmesh = CreateGeometricMeshSlopeGid ( 0 );
+	TPZGeoMesh *gmesh = CreateGeometricMeshSlopeGid ( 2 );
 
     std::ofstream meshfile ( "GeoMesh.txt" );
     gmesh->Print ( meshfile );
@@ -141,21 +141,32 @@ int main()
 TPZGeoMesh * CreateGeometricMeshSlopeGid ( int ref )
 {
 	
-	string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
+	//string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
+    string file ="/home/diogo/projects/pz/data/mesh-from-gid.msh";
+    
 
 	readgidmesh read = readgidmesh(file);
 	read.ReadMesh();
 	TPZFMatrix<int> meshtopology = read.GetTopology();
 	TPZFMatrix<REAL> meshcoords = read.GetCoords();
 	std::vector<std::vector< std::vector<double > > > allcoords = read.GetAllCoords();
+    
+    //search for pints in the mesh to impose bcs.
+    std::vector<std::vector<double>> pointstosearch={
+        {0.,0.,0.},
+        {75.,0.,0.},
+        {75.,30.,0.},
+        {45.,30.,0.},
+        {35.,40.,0.},
+        {0.,40.,0.}
+    };
 	
-	TPZFMatrix<REAL> poincoords(6,3);
-	poincoords(0,0)=0.; poincoords(0,1)=0.; poincoords(0,2)=0.;
-	poincoords(1,0)=75.;poincoords(1,1)=0.; poincoords(1,2)=0.;
-	poincoords(2,0)=75.;poincoords(2,1)=30.;poincoords(2,2)=0.;
-	poincoords(3,0)=45.;poincoords(3,1)=30.;poincoords(3,2)=0.;
-	poincoords(4,0)=30.;poincoords(4,1)=40.;poincoords(4,2)=0.;
-	poincoords(5,0)=0.; poincoords(5,1)=40.;poincoords(5,2)=0.;
+	TPZFMatrix<REAL> poincoords(pointstosearch.size(),3);
+    for(int ipt=0;ipt<pointstosearch.size();ipt++)
+    {
+        for(int idim=0;idim<3;idim++)poincoords(ipt,idim)=pointstosearch[ipt][idim];
+    }
+	
 	std::vector<int> idspoints;
 	for(int i =0;i<poincoords.Rows();i++)
  	{
