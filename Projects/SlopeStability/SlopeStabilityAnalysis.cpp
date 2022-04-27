@@ -2356,3 +2356,236 @@ void TPZSlopeStabilityAnalysis::SetMaterialParamenters ( TPZCompMesh * plasticCm
 
 
 }
+#include "readgidmesh.h"
+
+
+
+// //bc slope
+// int bottom_slope2 = -1;
+// int rigth_slope2 = -2;
+// int left_slope2 = -3;
+// int topleft_slope2 = -4;
+// int toprigth_slope2 = -5;
+// int ramp_slope2 = -6;
+// 
+// void TPZSlopeStabilityAnalysis::TConfig::CreateGeometricMeshSlopeGid ( std::string file,int ref)
+// {
+// 	
+// 
+//     
+// 
+// 	readgidmesh read = readgidmesh(file);
+// 	read.ReadMesh();
+// 	TPZFMatrix<int> meshtopology = read.GetTopology();
+// 	TPZFMatrix<REAL> meshcoords = read.GetCoords();
+// 	std::vector<std::vector< std::vector<double > > > allcoords = read.GetAllCoords();
+//     
+//     //search for pints in the mesh to impose bcs.
+//     std::vector<std::vector<double>> pointstosearch={
+//         {0.,0.,0.},
+//         {75.,0.,0.},
+//         {75.,30.,0.},
+//         {45.,30.,0.},
+//         {35.,40.,0.},
+//         {0.,40.,0.}
+//     };
+// 	
+// 	TPZFMatrix<REAL> poincoords(pointstosearch.size(),3);
+//     for(int ipt=0;ipt<pointstosearch.size();ipt++)
+//     {
+//         for(int idim=0;idim<3;idim++)poincoords(ipt,idim)=pointstosearch[ipt][idim];
+//     }
+// 	
+// 	std::vector<int> idspoints;
+// 	for(int i =0;i<poincoords.Rows();i++)
+//  	{
+// 	 
+// 		//busca ponto
+// 		TPZVec<double> constcoorddata ( 3,0. );
+//     	constcoorddata[0]=poincoords(i,0);
+//     	constcoorddata[1]=poincoords(i,1);
+//     	constcoorddata[2]=poincoords(i,2);
+//     	std::vector<int> idsline;
+// 		//Direcao a buscar. 0 significa que o algoritmo e livre para buscar naquela direcao e 1 que dizer que é fixo.
+//     	TPZVec<int>constcoord2 ( 3 );
+//     	constcoord2[0]=1;//fixo
+//    	 	constcoord2[1]=1;//fixo
+//     	constcoord2[2]=1;//fixo
+// 		read.FindIds(constcoorddata,constcoord2,idsline);
+// 
+// 		idspoints.push_back(idsline[0]);
+// 	
+// 	}
+// 	
+// 	cout << "idspoints[i] "<< endl;
+// 	for(int i=0;i<idspoints.size();i++)cout << idspoints[i] << endl;
+// 	
+// 	const std::string name ( "Slope Problem " );
+// 
+//    	fGMesh.SetName ( name );
+//     fGMesh.SetDimension ( 2 );
+// 
+//     TPZVec<REAL> coord ( 2 );
+// 
+//     vector<vector<double>> co;
+// 	
+// 	int ncoords = meshcoords.Rows(); 
+// 	co.resize(ncoords);
+// 	for(int i=0;i<ncoords;i++)
+//  	{
+// 		co[i].resize(2);
+// 		co[i][0]=meshcoords(i,0);
+// 		co[i][1]=meshcoords(i,1);
+// 	}
+//     vector<vector<int>> topol;
+// 	
+// 	int ntopol = meshtopology.Rows(); 
+// 	topol.resize(ntopol);
+// 	
+// 	for(int i=0;i<ntopol;i++)
+//  	{
+// 		topol[i].resize(meshtopology.Cols());
+// 		for(int j=0;j<meshtopology.Cols();j++)
+//   		{
+// 	  		topol[i][j]=meshtopology(i,j);
+// 		}
+// 	}
+// 
+//     fGMesh.NodeVec().Resize ( co.size() );
+// 
+//     for ( int inode=0; inode<co.size(); inode++ ) {
+//         coord[0] = co[inode][0];
+//         coord[1] = co[inode][1];
+//         fGMesh.NodeVec() [inode] = TPZGeoNode ( inode, coord, fGMesh );
+//     }
+//     if(meshtopology.Cols()==4)
+// 	{
+// 		TPZVec <long> TopoQuad ( 4 );
+//     	for ( int iel=0; iel<topol.size(); iel++ ) {
+//         	TopoQuad[0] = topol[iel][0];
+//         	TopoQuad[1] = topol[iel][1];
+//         	TopoQuad[2] =topol[iel][2];
+//         	TopoQuad[3] = topol[iel][3];
+//         	new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( iel, TopoQuad, 1,fGMesh );
+//     	}
+// 	}
+// 
+// 	if(meshtopology.Cols()==3)
+// 	{
+// 		TPZVec <long> TopoTri ( 3 );
+//     	for ( int iel=0; iel<topol.size(); iel++ ) {
+//         	TopoTri[0] =topol[iel][0];
+//         	TopoTri[1] =topol[iel][1];
+//         	TopoTri[2] =topol[iel][2];
+//         	new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( iel, TopoTri, 1,fGMesh );
+//     	}
+// 	}
+// 	
+// 	if(meshtopology.Cols()!=3 && meshtopology.Cols()!=4)
+//  	{
+// 		DebugStop(); 
+// 	}
+//     
+// 	int id = topol.size();
+//     TPZVec <long> TopoLine ( 2 );
+//     TopoLine[0] = idspoints[0];
+//     TopoLine[1] = idspoints[1];
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, bottom_slope2, fGMesh );//bottom
+// 
+//     id++;
+//     TopoLine[0] = idspoints[1];
+//     TopoLine[1] = idspoints[2];
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, rigth_slope2,fGMesh );//rigth
+// 
+//     id++;
+//     TopoLine[0] = idspoints[0];
+//     TopoLine[1] = idspoints[5];
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, left_slope2, fGMesh);//left
+// 
+//     id++;
+//     TopoLine[0] = idspoints[4];
+//     TopoLine[1] = idspoints[5];
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, topleft_slope2, fGMesh ); //top left
+// 
+//     id++;
+//     TopoLine[0] = idspoints[2];
+//     TopoLine[1] = idspoints[3];
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, toprigth_slope2, fGMesh ); // top rigth
+// 
+// 
+//     id++;
+//     TopoLine[0] = idspoints[3];
+//     TopoLine[1] = idspoints[4];
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, ramp_slope2, fGMesh );
+// 
+//     fGMesh.BuildConnectivity();
+//     for ( int d = 0; d<ref; d++ ) {
+//         int nel = fGMesh.NElements();
+//         TPZManVector<TPZGeoEl *> subels;
+//         for ( int iel = 0; iel<nel; iel++ ) {
+//             TPZGeoEl *gel = fGMesh.ElementVec() [iel];
+//             gel->Divide ( subels );
+//         }
+//     }
+// 
+// }
+/// Initialize the Sandler DiMaggio object and create the computational mesh
+// void TPZSlopeStabilityAnalysis::TConfig::CreateComputationalMeshSlopeGid(int porder)
+// {
+// 	unsigned int dim  = 2;
+//     const std::string name ( "ElastoPlastic COMP MESH Footing Problem " );
+// 
+//     // Setting up attributes
+// 	fCMesh =  TPZCompMesh ( &fGMesh );
+//     fCMesh.SetName ( name );
+//     fCMesh.SetDefaultOrder ( porder );
+//     fCMesh.SetDimModel ( dim );
+// 
+//     // Mohr Coulomb data
+//     REAL mc_cohesion    = 10.0;
+//     REAL mc_phi         = ( 30.0*M_PI/180 );
+//     REAL mc_psi         = mc_phi;
+// 
+//     /// ElastoPlastic Material using Mohr Coulomb
+//     // Elastic predictor
+//     TPZElasticResponse ER;
+//     REAL nu = 0.49;
+//     REAL E = 20000.;
+// 
+//     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
+//     ER.SetUp( E, nu );
+// 	LEMC.fER =ER;
+//    // LEMC.SetElasticResponse( ER );
+//     LEMC.fYC.SetUp ( mc_phi, mc_psi, mc_cohesion, ER );
+//     int PlaneStrain = 1;
+// 
+//     //TPZMatElastoPlasticSest2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > * material = new //TPZMatElastoPlasticSest2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > ( 1,PlaneStrain );
+// 	
+// 	TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > * material = new TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > ( 1,PlaneStrain );
+//     material->SetPlasticity ( LEMC );
+// 
+// 	material->SetId(1);
+//     fCMesh.InsertMaterialObject ( material );
+// 
+//     TPZFMatrix<STATE> val1 ( 2,2,0. );
+//     TPZFMatrix<STATE>  val2 ( 2,1,0. );
+//     val2 ( 0,0 ) = 1;
+//     val2 ( 1,0 ) = 1;
+//     auto * bc_bottom = material->CreateBC ( material, bottom_slope2,3, val1, val2 );
+//     val2 ( 0,0 ) = 1;
+//     val2 ( 1,0 ) = 0;
+//     auto * bc_rigth = material->CreateBC ( material, rigth_slope2, 3, val1, val2 );
+//     val2 ( 0,0 ) = 1;
+//     val2 ( 1,0 ) = 0;
+//     auto * bc_left = material->CreateBC ( material, left_slope2, 3, val1, val2 );
+// 
+//     fCMesh.InsertMaterialObject ( bc_bottom );
+//    	fCMesh.InsertMaterialObject ( bc_rigth );
+//     fCMesh.InsertMaterialObject ( bc_left );
+// 	
+//     //cmesh->InsertMaterialObject ( top );
+//     fCMesh.SetAllCreateFunctionsContinuousWithMem();
+// 
+//     fCMesh.AutoBuild();
+// 
+// }

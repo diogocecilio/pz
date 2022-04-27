@@ -185,7 +185,7 @@ void KLMaterial::Solution ( TPZMaterialData &data, int var, TPZVec<STATE> &Solou
         {
         case EVEC:
           
-          Sol =data.sol[0];
+          //Sol =data.sol[0];
           Solout[0] = Sol[0];
           break;
         case EVEC1:

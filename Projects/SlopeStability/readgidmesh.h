@@ -66,8 +66,10 @@ public:
     
     void  FindIds ( TPZVec<double> constcoorddata,TPZVec<int> constcoord, std::vector<int>& ids )
     {
+		REAL tol = 1.e-12;
 		//constcoorddata vector containig info about face to search id. It must contain any coodinate locate in the in the face
         TPZFMatrix<REAL> elcoords;
+		std::vector<double> elcoodsvec;
         int nels = fallcoords.size();
         GetElCoords (  0, elcoords );
         int nnodes = elcoords.Rows();
@@ -86,18 +88,19 @@ public:
         }
         for ( int iel = 0; iel < nels; iel++ ) {
             GetElCoords (  iel, elcoords );
+
             for ( int inode = 0; inode < nnodes; inode++ ) {
 
                 if ( sum==1 ) {
-                    if ( fabs ( elcoords(inode,dirs[0]) - constcoorddata[dirs[0]] ) <1.e-4 ) {
+                    if ( fabs ( elcoords(inode,dirs[0]) - constcoorddata[dirs[0]] ) <tol ) {
                         ids.push_back ( fmeshtopology(iel,inode) );
                     }
                 } else if ( sum==2 ) {
-                    if ( fabs ( elcoords(inode,dirs[0]) - constcoorddata[dirs[0]] ) <1.e-4 && abs ( elcoords(inode,dirs[1]) - constcoorddata[dirs[1]] ) <1.e-4 ) {
+                    if ( fabs ( elcoords(inode,dirs[0]) - constcoorddata[dirs[0]] ) <tol && abs ( elcoords(inode,dirs[1]) - constcoorddata[dirs[1]] ) <tol ) {
                         ids.push_back (  fmeshtopology(iel,inode)  );
                     }
                 } else if ( sum==3 ) {
-                    if ( fabs ( elcoords(inode,dirs[0]) - constcoorddata[dirs[0]] ) <1.e-4 && abs ( elcoords(inode,dirs[1]) - constcoorddata[dirs[1]] ) <1.e-4 && abs ( elcoords(inode,dirs[2]) - constcoorddata[dirs[2]] ) <1.e-4 ) {
+                    if ( fabs ( elcoords(inode,dirs[0]) - constcoorddata[dirs[0]] ) <tol && abs ( elcoords(inode,dirs[1]) - constcoorddata[dirs[1]] ) <tol && abs ( elcoords(inode,dirs[2]) - constcoorddata[dirs[2]] ) <tol ) {
                         ids.push_back (  fmeshtopology(iel,inode)  );
                     }
                 }
@@ -122,6 +125,20 @@ public:
             elcoords(j,0) = x;
             elcoords(j,1) = y;
             elcoords(j,2) = z;
+        }
+    }
+    
+	void  GetElCoords ( int el, vector<double>  & elcoords )
+    {
+        elcoords.resize ( 3 );
+		
+        for ( int j = 0; j < fallcoords[el].size(); j++ ) {
+            double x = fallcoords[el][j][0];
+            double y = fallcoords[el][j][1];
+            double z = fallcoords[el][j][2];
+            elcoords[0] = x;
+            elcoords[1] = y;
+            elcoords[2] = z;
         }
     }
 	

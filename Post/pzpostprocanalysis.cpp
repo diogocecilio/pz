@@ -24,7 +24,7 @@ static LoggerPtr PPAnalysisLogger(Logger::getLogger("pz.analysis.postproc"));
 
 using namespace std;
 
-TPZPostProcAnalysis::TPZPostProcAnalysis() : fpMainMesh(NULL)
+TPZPostProcAnalysis::TPZPostProcAnalysis() :TPZAnalysis(),fpMainMesh(NULL)
 {	
 }
 
@@ -63,7 +63,7 @@ void TPZPostProcAnalysis::SetCompMesh(TPZCompMesh *pRef)
     }
     
     if (fCompMesh) {
-//        std::cout << "PostProcAnalysis deleting the mesh " << (void *) fCompMesh << std::endl;
+        std::cout << "PostProcAnalysis deleting the mesh " << (void *) fCompMesh << std::endl;
         delete fCompMesh;
         fCompMesh = 0;
         TPZAnalysis::CleanUp();

@@ -77,6 +77,12 @@ static void SetAllCreateFunctionsContinuous();
 	
 	/** @brief Read the element data from a stream */
 	virtual void Read(TPZStream &buf, void *context);
+	
+// 	virtual void Print( const std::string &name, std::ostream &out)
+// 	{
+// 		Print(name,out);
+// 	}
+
     
 
 protected:

@@ -227,6 +227,9 @@ public:
         void CreateGeometricMeshSlope(int ref);
 		void CreateGeometricMeshSlope2(int ref);
 		void CreateComputationalMeshSlope(int porder);
+		
+		void CreateGeometricMeshSlopeGid (std::string file,int ref);
+		void CreateComputationalMeshSlopeGid(int porder);
 
          STATE ComputeFarFieldWork();
         
