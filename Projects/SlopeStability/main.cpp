@@ -53,7 +53,7 @@
 #include "TPZElasticResponse.h"
 #include "pzelastoplasticanalysis.h"
 #include "pzanalysis.h"
-#include "pzskylstrmatrix.h"
+// #include "pzskylstrmatrix.h"darcy
 #include "TPZTensor.h"
 #include "pzcompelpostproc.h"
 #include "pzpostprocmat.h"
@@ -253,25 +253,26 @@ void Post(TPZCompMesh * cmesh);
 int main()
 {
 	
-/*	
-	//ShearRed (  );
-	SolveShearRed();
-	//ShearRed (  );
-	return 0 ;*/
 	
-	int porder =2;
+	//ShearRed (  );
+	//SolveShearRed();
+	//ShearRed (  );
+	//return 0 ;
+	
+	int porder =1;
 	int samples =10;
 
-// 	TPZGeoMesh *gmesh1 = CreateGeometricMeshSlopeGid ( 0 );
+ 	TPZGeoMesh *gmesh = CreateGeometricMeshSlopeGid ( 0 );
 // 	
+    
 // 	TPZVec<TPZCompMesh *> vecmesh = CreateFields (gmesh1,porder,samples );
 // 	
 // 	
 	
 	cout << "here "<<endl;
     //TPZGeoMesh *gmesh = CreateGMesh(nx, ny, hx, hy);
-    TPZGeoMesh *gmesh = CreateGeometricMeshSlope ( 5);
-	//TPZGeoMesh *gmesh = CreateGeometricMeshSlopeGid ( 2 );
+   //TPZGeoMesh *gmesh = CreateGeometricMeshSlope ( 3);
+	//TPZGeoMesh *gmesh = CreateGeometricMeshSlopeGid ( 0 );
 
     std::ofstream meshfile ( "GeoMesh.txt" );
     gmesh->Print ( meshfile );
@@ -313,7 +314,7 @@ int main()
     TPZVec<std::string> scalarVars ( 1 ),vectorVars ( 1 );
     scalarVars[0] = "Pressure";
     vectorVars[0] = "Flux";
-    analysis.DefineGraphMesh ( 2,scalarVars,vectorVars,"Darcy.vtk" );
+    analysis.DefineGraphMesh ( 2,scalarVars,vectorVars,"Darcyx.vtk" );
     constexpr int resolution{0};
     analysis.PostProcess ( resolution );
 
@@ -512,12 +513,11 @@ TPZElastoPlasticAnalysis  CreateAnal ( TPZCompMesh *fCMesh )
 }
 
 
-
 TPZGeoMesh * CreateGeometricMeshSlopeGid ( int ref )
 {
 	
 	string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
-    //string file ="/home/diogo/projects/pz/data/mesh-from-gid.msh";
+    //string file ="/home/diogo/projects/pz/data/quad-gid2.msh";
 	//string file ="/home/diogo/projects/pz/data/quad-gid.msh";
 	
     
@@ -527,49 +527,58 @@ TPZGeoMesh * CreateGeometricMeshSlopeGid ( int ref )
 	TPZFMatrix<int> meshtopology = read.GetTopology();
 	TPZFMatrix<REAL> meshcoords = read.GetCoords();
 	std::vector<std::vector< std::vector<double > > > allcoords = read.GetAllCoords();
-    //p = Polygon[{{0, 0}, {75, 0}, {75, 30}, {45, 30}, {35, 40}, {0, 40}}]
-    //search for points in the mesh to impose bcs.
-    std::vector<std::vector<double>> pointstosearch={
-        {0.,0.,0.},
-        {75.,0.,0.},
-        {75.,30.,0.},
-        {45.,30.,0.},
-        {35.,40.,0.},
-        {0.,40.,0.}
-    };
-	
-	TPZFMatrix<REAL> poincoords(pointstosearch.size(),3);
-    for(int ipt=0;ipt<pointstosearch.size();ipt++)
-    {
-        for(int idim=0;idim<3;idim++)poincoords(ipt,idim)=pointstosearch[ipt][idim];
-    }
-		cout << "pointstosearch[i] "<< endl;
-	poincoords.Print(std::cout);
-	std::vector<int> idspoints;
-	for(int i =0;i<poincoords.Rows();i++)
- 	{
-	 
-		//busca ponto
-		TPZVec<double> constcoorddata ( 3,0. );
-    	constcoorddata[0]=poincoords(i,0);
-    	constcoorddata[1]=poincoords(i,1);
-    	constcoorddata[2]=poincoords(i,2);
-    	std::vector<int> idsline;
-		//Direcao a buscar. 0 significa que o algoritmo e livre para buscar naquela direcao e 1 que dizer que é fixo.
-    	TPZVec<int>constcoord2 ( 3 );
-    	constcoord2[0]=1;//fixo
-   	 	constcoord2[1]=1;//fixo
-    	constcoord2[2]=1;//fixo
-		read.FindIds(constcoorddata,constcoord2,idsline);
 
-		idspoints.push_back(idsline[0]);
-	
-	}
-	
-	cout << "idspoints[i] "<< endl;
-	for(int i=0;i<idspoints.size();i++)cout << idspoints[i] << endl;
-	for(int i=0;i<idspoints.size();i++)cout << meshcoords(idspoints[i],0) <<" " << meshcoords(idspoints[i],1) <<" " << meshcoords(idspoints[i],2) << endl;
-	const std::string name ( "Slope Problem " );
+    int ndivs = 10000;
+    TPZFMatrix<REAL> pathbottom, pathleft, pathright, pathdisplace;
+    std::vector<int>  idsbottom, idsleft, idsright, idstoprigth,idsramp,idstopleft;
+    
+    std::vector<std::vector<int>> idsvec;
+    
+    
+    TPZManVector<REAL,2> a ( 2 ), b ( 2 );
+    
+    
+    a[0] = 0.; a[1] = 0.;
+    b[0] = 75.; b[1] = 0.;
+    read.Line( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idsbottom );
+    idsvec.push_back(idsbottom);
+    
+    a = b;
+    b[0] = 75.; b[1] = 30.;
+    read.Line( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idsright );
+    idsvec.push_back(idsright);
+    
+    
+    a = b;
+    b[0] = 45.; b[1] = 30.;
+    read.Line( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idstoprigth );
+    idsvec.push_back(idstoprigth);
+    
+    a = b;
+    b[0] = 35.; b[1] = 40.;
+    read.Line( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idsramp );
+    idsvec.push_back(idsramp);
+    
+    a = b;
+    b[0] = 0.; b[1] = 40.;
+    read.Line( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idstopleft );
+    idsvec.push_back(idstopleft);
+    
+    a = b;
+    b[0] = 0.; b[1] = 0.;
+    read.Line( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idsleft );
+    idsvec.push_back(idsleft);
+    
+    
+   // for(int i=0;i<idsbottom.size();i++)cout << idsvec[3][i] << endl;
+
+    const std::string name ( "Slope Problem " );
 
     TPZGeoMesh *gmesh  =  new TPZGeoMesh();
 
@@ -636,55 +645,27 @@ TPZGeoMesh * CreateGeometricMeshSlopeGid ( int ref )
  	{
 		DebugStop(); 
 	}
-    
-	int id = topol.size();
     TPZVec <long> TopoLine ( 2 );
-    TopoLine[0] = idspoints[0];
-    TopoLine[1] = idspoints[1];
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, *gmesh );//bottom
-
+    int id = topol.size();
     id++;
-    TopoLine[0] = idspoints[1];
-    TopoLine[1] = idspoints[2];
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, *gmesh );//rigth
-
-    id++;
-    TopoLine[0] = idspoints[0];
-    TopoLine[1] = idspoints[5];
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh );//left
-
-    id++;
-    TopoLine[0] = idspoints[4];
-    TopoLine[1] = idspoints[5];
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
-
-    id++;
-    TopoLine[0] = idspoints[2];
-    TopoLine[1] = idspoints[3];
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
-
-
-    id++;
-    TopoLine[0] = idspoints[3];
-    TopoLine[1] = idspoints[4];
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );
-
-    gmesh->BuildConnectivity();
-    for ( int d = 0; d<ref; d++ ) {
-        int nel = gmesh->NElements();
-        TPZManVector<TPZGeoEl *> subels;
-        for ( int iel = 0; iel<nel; iel++ ) {
-            TPZGeoEl *gel = gmesh->ElementVec() [iel];
-            gel->Divide ( subels );
+    
+    for(int ivec=0;ivec<idsvec.size();ivec++)
+    {
+        int nodes = idsvec[ivec].size();
+        for(int inode=0;inode<nodes-1;inode++)
+        {
+            TopoLine[0] = idsvec[ivec][inode];
+            TopoLine[1] = idsvec[ivec][inode+1];
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -(ivec+1), *gmesh );
         }
-
     }
     
+    gmesh->BuildConnectivity();
+
     gmesh->Print(std::cout);
-	std::ofstream files ( "geomeshee.vtk" );
-	//PrintGMeshVTK(TPZGeoMesh * gmesh, std::ofstream &file, bool matColor)
-	TPZVTKGeoMesh::PrintGMeshVTK(gmesh,files,false);
-	
+ 	std::ofstream files ( "ge.vtk" );
+    TPZVTKGeoMesh::PrintGMeshVTK(gmesh,files,false);
+    
     return gmesh;
 }
 
@@ -754,21 +735,46 @@ TPZGeoMesh *  CreateGeometricMeshSlope ( int ref )
     TopoLine[1] = 5;
     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh );//left
 
-    id++;
-    TopoLine[0] = 5;
-    TopoLine[1] = 4;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+    {
+            id++;
+            TopoLine[0] = 5;
+            TopoLine[1] = 6;
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            
+            id++;
+            TopoLine[0] = 6;
+            TopoLine[1] = 7;
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            
+            id++;
+            TopoLine[0] = 7;
+            TopoLine[1] = 8;
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            
+            id++;
+            TopoLine[0] = 8;
+            TopoLine[1] = 4;
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+    }
 
-    id++;
-    TopoLine[0] = 2;
-    TopoLine[1] = 3;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
+
+    {
+        id++;
+        TopoLine[0] = 3;
+        TopoLine[1] = 10;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
+        
+        id++;
+        TopoLine[0] = 10;
+        TopoLine[1] = 2;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
+    }
 
 
     id++;
     TopoLine[0] = 3;
     TopoLine[1] = 4;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );//ramp
 
     gmesh->BuildConnectivity();
     for ( int d = 0; d<ref; d++ ) {
@@ -783,20 +789,20 @@ TPZGeoMesh *  CreateGeometricMeshSlope ( int ref )
     return gmesh;
 }
 void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
-    
 		const auto &x=pt[0];
         const auto &y=pt[1];
         const auto &z=pt[2];
-        REAL gamma  = 997.;//kg/m³
-        disp[0] = -( 40-y ) *gamma;
+        REAL atm  = 10.33;//10.33 mca = 1 atm
+        disp[0] = ( 40-y );
 }
-void ForcingBCZero(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
-    
+
+void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
 		const auto &x=pt[0];
         const auto &y=pt[1];
         const auto &z=pt[2];
-        disp[0] = 0;
+        disp[0] = -1;
 }
+
 
 TPZCompMesh * CreateComputationalMeshSlope ( TPZGeoMesh *gmesh, int pOrder )
 {
@@ -810,8 +816,9 @@ TPZCompMesh * CreateComputationalMeshSlope ( TPZGeoMesh *gmesh, int pOrder )
     // TPZDarcyFlow *material = new TPZDarcyFlow(m_matID,m_dim);
 	int matid=1,dim=2;
     auto *material = new TPZDarcyFlow ( matid,dim );
-    
-	STATE permeability = 1;
+    //Bet Degan loamy sand 
+	//STATE permeability = 6.3e-5;//m/s
+	STATE permeability = 1.;//m/s
 
     material->SetConstantPermeability ( permeability );
 	material->SetId(1);
@@ -820,79 +827,28 @@ TPZCompMesh * CreateComputationalMeshSlope ( TPZGeoMesh *gmesh, int pOrder )
 
     // Condition of contours
     TPZFMatrix<STATE>  val1 ( 2,2,0. );
-    TPZFMatrix<STATE>  val2 ( 1,1,0. );
-
-
-    REAL gamma  = 997.;//kg/m³
-    REAL slopeheigth1 = 40.;//metros
-
-//     auto pressure = [] ( const TPZVec<REAL> &loc,
-//                          TPZVec<STATE>&u,
-//     TPZFMatrix<STATE>&gradU ) {
-//         const auto &x=loc[0];
-//         const auto &y=loc[1];
-//         const auto &z=loc[2];
-//         REAL gamma  = 997.;//kg/m³
-//         u[0] = -( 40-y ) *gamma;
-// 
-//     };
-// 
-//     auto zero = [] ( const TPZVec<REAL> &loc,
-//                      TPZVec<STATE>&u,
-//     TPZFMatrix<STATE>&gradU ) {
-//         u[0] = 0.;
-//     };
-	
-	//TPZDummyFunction<STATE>(ForcingBCPressao);
+    TPZFMatrix<STATE>  val2 ( 2,1,0. );
 	
 	TPZAutoPointer<TPZFunction<STATE> > pressure = new TPZDummyFunction<STATE>(ForcingBCPressao);
-	TPZAutoPointer<TPZFunction<STATE> > zero = new TPZDummyFunction<STATE>(ForcingBCZero);
+    
+	TPZAutoPointer<TPZFunction<STATE> > rhs = new TPZDummyFunction<STATE>(Forcing);
+    
+    //material->SetForcingFunction(rhs);
+    
 
-//bc slope
-int bottom_slope = -1;
-int rigth_slope = -2;
-int left_slope = -3;
-int topleft_slope = -4;
-int toprigth_slope = -5;
-int ramp_slope = -6;
-int dirichlet = 0;
-    TPZMaterial * BCond0 = material->CreateBC ( material, bottom_slope, dirichlet, val1, val2 );
-	BCond0->SetForcingFunction(pressure);
-	//BCond0->SetForcingFunction(0,pressure);
-    //BCond0->SetForcingFunctionBC ( pressure );
+     TPZMaterial * BCond0 = material->CreateBC ( material, -3, 0, val1, val2 );//tr
+     BCond0->SetForcingFunction(pressure);
+
+     TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
+     BCond1->SetForcingFunction(pressure);
+     
+     TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
+     BCond2->SetForcingFunction(pressure);
 
 
-    TPZMaterial * BCond1 = material->CreateBC ( material, left_slope, dirichlet, val1, val2 );
-	BCond1->SetForcingFunction(pressure);
-	//BCond1->SetForcingFunction(0,zero);
-    //BCond1->SetForcingFunctionBC ( zero );
-
-    TPZMaterial * BCond2 = material->CreateBC ( material, topleft_slope, dirichlet, val1, val2 );
-	BCond2->SetForcingFunction(zero);
-	//BCond2->SetForcingFunction(0,pressure);
-    //BCond2->SetForcingFunctionBC ( pressure );
-
-    TPZMaterial * BCond3 = material->CreateBC ( material, toprigth_slope, dirichlet, val1, val2 );
-	BCond3->SetForcingFunction(pressure);
-	//BCond3->SetForcingFunction(0,pressure);
-    //BCond3->SetForcingFunctionBC ( pressure );
-
-    TPZMaterial * BCond4 = material->CreateBC ( material, ramp_slope, dirichlet, val1, val2 );
-	BCond4->SetForcingFunction(pressure);
-	//BCond4->SetForcingFunction(0,pressure);
-    //BCond4->SetForcingFunctionBC ( pressure );
-
-    TPZMaterial * BCond5 = material->CreateBC ( material, rigth_slope,dirichlet, val1, val2 );
-	BCond5->SetForcingFunction(pressure);
-	//BCond5->SetForcingFunction(0,zero);
-    //BCond5->SetForcingFunctionBC ( zero );
-
-    //cmesh->InsertMaterialObject(BCond0);
-    //cmesh->InsertMaterialObject(BCond1);
-    cmesh->InsertMaterialObject ( BCond2 );
-    cmesh->InsertMaterialObject ( BCond3 );
-    cmesh->InsertMaterialObject ( BCond4 );
-    //cmesh->InsertMaterialObject(BCond5);
+    cmesh->InsertMaterialObject(BCond0);
+    cmesh->InsertMaterialObject(BCond1);
+    cmesh->InsertMaterialObject(BCond2);
 
     //Creating computational elements that manage the space of the mesh:
     cmesh->AutoBuild();
