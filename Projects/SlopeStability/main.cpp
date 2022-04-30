@@ -253,11 +253,11 @@ void Post(TPZCompMesh * cmesh);
 int main()
 {
 	
-/*	
+	
 	//ShearRed (  );
 	SolveShearRed();
 	//ShearRed (  );
-	return 0 ;*/
+	return 0 ;
 	
 	int porder =2;
 	int samples =10;
@@ -516,9 +516,9 @@ TPZElastoPlasticAnalysis  CreateAnal ( TPZCompMesh *fCMesh )
 TPZGeoMesh * CreateGeometricMeshSlopeGid ( int ref )
 {
 	
-	string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
+	//string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
     //string file ="/home/diogo/projects/pz/data/mesh-from-gid.msh";
-	//string file ="/home/diogo/projects/pz/data/quad-gid.msh";
+	string file ="/home/diogo/projects/pz/data/quad-gid.msh";
 	
     
 
@@ -680,8 +680,8 @@ TPZGeoMesh * CreateGeometricMeshSlopeGid ( int ref )
 
     }
     
-    gmesh->Print(std::cout);
-	std::ofstream files ( "geomeshee.vtk" );
+    //gmesh->Print(std::cout);
+	std::ofstream files ( "geomeshee3.vtk" );
 	//PrintGMeshVTK(TPZGeoMesh * gmesh, std::ofstream &file, bool matColor)
 	TPZVTKGeoMesh::PrintGMeshVTK(gmesh,files,false);
 	
