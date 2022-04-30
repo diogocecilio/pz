@@ -1488,7 +1488,7 @@ void TPZTensor<T>::EigenSystem(TPZDecomposed &eigensystem)const
 				std::cout << "Nao sao Iguais!!!" << std::endl;
 				OrigTensor.Print("Tensor Original",std::cout);
 				DiagMat.Print("Tensor Reconstruido:",std::cout);
-				DebugStop();				
+				//DebugStop();				
 			} 
 		}
 		

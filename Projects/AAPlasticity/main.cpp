@@ -35,7 +35,7 @@ using namespace std;
 typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
 
 
-
+//TPZVec<REAL> fPlasticDeformSqJ2;
 
 #include "readgidmesh.h"
 
@@ -51,38 +51,251 @@ void PostProcessVariables(TPZStack<std::string> &scalNames, TPZStack<std::string
 
 void  CreatePostProcessingMesh(TPZPostProcAnalysis * PostProcess,TPZCompMesh * cmesh);
 
-void Post(TPZCompMesh * cmesh);
+void Post(TPZPostProcAnalysis * postproc,std::string vtkFile );
+
+TPZElastoPlasticAnalysis * CreateAnal(TPZCompMesh *cmesh);
+
+void ShearRed ( TPZCompMesh * cmesh);
+
+void DivideElementsAbove(TPZCompMesh* cmesh,TPZGeoMesh* gmesh,REAL sqj2, std::set<long> &elindices);
+
+void ComputeElementDeformation(TPZCompMesh* cmesh);
+
+struct plasticanalysis{
+	TPZCompMesh * fcmesh;
+	TPZGeoMesh * fgmesh;
+	TPZElastoPlasticAnalysis * fanalysis;
+	TPZPostProcAnalysis * fPostprocess;
+	TPZFMatrix<REAL> fSolution;
+	TPZVec<REAL> fPlasticDeformSqJ2;
+	
+	void DivideElementsAbove(REAL sqj2, std::set<long> &elindices)
+{
+    fgmesh->ResetReference();
+    fcmesh->LoadReferences();
+    TPZManVector<REAL,3> findel(3,0.),qsi(2,0.);
+    findel[0] = 0.108;
+    findel[1] = 0.0148;
+    long elindex = 0;
+    fcmesh->Reference()->FindElement(findel, qsi, elindex, 2);
+    TPZGeoEl *targetel = fcmesh->Reference()->ElementVec()[elindex];
+    TPZCompEl *targetcel = targetel->Reference();
+    long targetindex = targetcel->Index();
+    
+    long nelem = fcmesh->NElements();
+	cout << "elements antes " << nelem<<std::endl; 
+    for (long el=0; el<nelem; el++) {
+        TPZCompEl *cel = fcmesh->ElementVec()[el];
+        if (!cel) {
+            continue;
+        }
+        int investigate = false;
+        if (el == targetindex) {
+            std::cout << "I should investigate\n";
+            investigate = true;
+        }
+        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+        if (!intel) {
+            DebugStop();
+        }
+        TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (cel->Material());
+        if (!pMatWithMem2) {
+            continue;
+        }
+        if (fcmesh->ElementSolution()(el,0) < sqj2) {
+            continue;
+        }
+        int porder = intel->GetPreferredOrder();
+        TPZStack<long> subels;
+        long index = cel->Index();
+
+        intel->Divide(index, subels,0);
+        for (int is=0; is<subels.size(); is++) {
+            elindices.insert(subels[is]);
+            TPZCompEl *subcel = fcmesh->ElementVec()[subels[is]];
+            TPZInterpolationSpace *subintel = dynamic_cast<TPZInterpolationSpace *>(subcel);
+            if (!subintel) {
+                DebugStop();
+            }
+            subintel->SetPreferredOrder(porder);
+        }
+    }
+    // divide elements with more than one level difference
+    bool changed = true;
+    while (changed) {
+        changed = false;
+        std::set<long> eltodivide;
+        long nelem = fcmesh->NElements();
+        for (long el=0; el<nelem; el++) {
+            TPZCompEl *cel = fcmesh->ElementVec()[el];
+            if (!cel) {
+                continue;
+            }
+            TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+            if (!intel) {
+                DebugStop();
+            }
+            TPZGeoEl *gel = cel->Reference();
+            if (!gel) {
+                DebugStop();
+            }
+            int ns = gel->NSides();
+            for (int is=0; is<ns; is++) {
+                TPZGeoElSide gelside(gel, is);
+                if (gelside.Dimension() != 1) {
+                    continue;
+                }
+                TPZCompElSide big = gelside.LowerLevelCompElementList2(1);
+                if (!big) {
+                    continue;
+                }
+                TPZGeoElSide geobig(big.Reference());
+                // boundary elements will be refined by AdjustBoundaryElements
+                if (geobig.Element()->Dimension() != 2) {
+                    continue;
+                }
+                if (gel->Level()-geobig.Element()->Level() > 1) {
+                    eltodivide.insert(big.Element()->Index());
+                }
+            }
+        }
+        std::set<long>::iterator it;
+        for (it = eltodivide.begin(); it != eltodivide.end(); it++) {
+            changed = true;
+            long el = *it;
+            TPZCompEl *cel =fcmesh->ElementVec()[el];
+            if (!cel) {
+                continue;
+            }
+            TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *>(cel);
+            if (!intel) {
+                DebugStop();
+            }
+            TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (cel->Material());
+            if (!pMatWithMem2) {
+                continue;
+            }
+            int porder = intel->GetPreferredOrder();
+            TPZStack<long> subels;
+            long index = cel->Index();
+            intel->Divide(index, subels,0);
+            for (int is=0; is<subels.size(); is++) {
+                elindices.insert(subels[is]);
+                TPZCompEl *subcel = fcmesh->ElementVec()[subels[is]];
+                TPZInterpolationSpace *subintel = dynamic_cast<TPZInterpolationSpace *>(subcel);
+                if (!subintel) {
+                    DebugStop();
+                }
+                subintel->SetPreferredOrder(porder);
+            }
+        }
+    }
+    fcmesh->AdjustBoundaryElements();
+    fcmesh->InitializeBlock();
+   	fcmesh->Solution().Zero();
+     nelem = fcmesh->NElements();
+	cout << "elements depois " << nelem<<std::endl;
+	std::cout << "Number of elements prefined: " << elindices.size() << std::endl;
+}
+
+// Get the vector of element plastic deformations
+void ComputeElementDeformation()
+{
+    long nelem = fcmesh->NElements();
+    fPlasticDeformSqJ2.resize(nelem);
+    fPlasticDeformSqJ2.Fill(0.);
+    fcmesh->ElementSolution().Redim(nelem, 1);
+    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> (fcmesh->MaterialVec()[1]);
+    if (!pMatWithMem2) {
+        fPlasticDeformSqJ2.Fill(0.);
+    }
+    else 
+    {
+        for (long el = 0; el<nelem; el++) {
+            TPZCompEl *cel = fcmesh->ElementVec()[el];
+            fPlasticDeformSqJ2[el] = 0.;
+            if (!cel) {
+                continue;
+            }
+            TPZManVector<long> memindices;
+            cel->GetMemoryIndices(memindices);
+            int numind = memindices.size();
+            REAL sqj2el = 0.;
+            for (int ind=0; ind<numind; ind++) 
+            {
+                int memoryindex = memindices[ind];
+                if (memoryindex < 0) {
+                    continue;
+                }
+                TPZElastoPlasticMem &mem = pMatWithMem2->MemItem(memindices[ind]);
+                TPZTensor<REAL> &plastic = mem.fPlasticState.fEpsP;
+                REAL J2 = plastic.J2();
+                REAL sqj2 = sqrt(J2);
+                sqj2el = max(sqj2,sqj2el);
+            }
+            fPlasticDeformSqJ2[el] = sqj2el;
+        }
+    }
+
+    
+    fcmesh->SetElementSolution(0, fPlasticDeformSqJ2);
+}
+
+};
 
 int main()
 {
 	
-	int porder =1;
-	int samples =10;
+	int porder =2;
 
- 	TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
+ 	TPZGeoMesh *gmesh = CreateGMeshGid (0);
+	TPZGeoMesh *gmesh2 = CreateGMeshGid (0);
 
     TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
-
-    //Resolvendo o Sistema:
-    int numthreads = 0;
+	TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
 	
-    bool optimizeBandwidth = false; // Prevents of renumbering of the equations (As the same of Oden's result)
-    
-    TPZAnalysis analysis ( cmesh,optimizeBandwidth ); // Create analysis
-
-    TPZSkylineStructMatrix matskl ( cmesh );
-	
-    matskl.SetNumThreads ( numthreads );
-	
-    analysis.SetStructuralMatrix ( matskl );
-
-    ///Setting a direct solver
-    TPZStepSolver<STATE> step;
-    step.SetDirect ( ELDLt );
-    analysis.SetSolver ( step );
+	plasticanalysis slopeanalysis;
+	slopeanalysis.fcmesh=cmesh;
+	slopeanalysis.fgmesh=gmesh;
+	slopeanalysis.fPostprocess = postproc;
 
 	
+	int maxiter=30;
+	REAL tol=1.e-3;
+	bool linesearch=true;
+	bool checkconv=false;
+	int steps=10;
+	REAL finalload = 1.77;
+	std::string vtkFile ="file2.vtk";
 	
+	
+	
+	for(int iloadstep=1;iloadstep<=6;iloadstep++)
+ 	{
+
+		TPZElastoPlasticAnalysis * analysis =  CreateAnal(cmesh);
+		
+		REAL load = iloadstep*finalload/steps;
+		
+		LoadingRamp(cmesh,load);
+		analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
+		analysis->AcceptSolution();
+		std::set<long> elindices;
+		REAL sqrtj2=0.005;
+		
+
+		
+		slopeanalysis.ComputeElementDeformation();
+				
+		slopeanalysis.DivideElementsAbove(sqrtj2,elindices);
+		
+
+		CreatePostProcessingMesh( postproc, cmesh);
+		Post(postproc,vtkFile);
+
+		
+
+	}
 
     std::cout << "FINISHED!" << std::endl;
 
@@ -90,26 +303,14 @@ int main()
     return 0;
 }
 
-void Post(TPZCompMesh * cmesh)
+void Post(TPZPostProcAnalysis * postproc,std::string vtkFile )
 {
-	TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
-	
-	CreatePostProcessingMesh( postproc, cmesh);
-	
-	//postproc->SetCompMesh(cmesh);
-	
-	const std::string name = "out";
-	
-	//postproc->Print(name, std::cout);
-	
 	
 	TPZVec<int> PostProcMatIds(1,1);
 	
 	TPZStack<std::string> PostProcVars, scalNames, vecNames;
 	
 	PostProcessVariables(scalNames, vecNames);
-
-    std::string vtkFile = "outFile.vtk";
 
     postproc->DefineGraphMesh(2,scalNames,vecNames,vtkFile);
 
@@ -121,9 +322,9 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 	
 
-	string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
-    //string file ="/home/diogo/projects/pz/data/quad-gid2.msh";
-	//string file ="/home/diogo/projects/pz/data/quad-gid.msh";
+	//string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
+   // string file ="/home/diogo/projects/pz/data/quad-gid2.msh";
+	string file ="/home/diogo/projects/pz/data/gid-tri.msh";
 
     
 
@@ -267,7 +468,14 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     
 
     gmesh->BuildConnectivity();
-
+    for ( int d = 0; d<ref; d++ ) {
+        int nel = gmesh->NElements();
+        TPZManVector<TPZGeoEl *> subels;
+        for ( int iel = 0; iel<nel; iel++ ) {
+            TPZGeoEl *gel = gmesh->ElementVec() [iel];
+            gel->Divide ( subels );
+        }
+    }
     gmesh->Print(std::cout);
  	std::ofstream files ( "ge.vtk" );
     TPZVTKGeoMesh::PrintGMeshVTK(gmesh,files,false);
@@ -335,52 +543,56 @@ TPZGeoMesh *  CreateGMesh ( int ref )
     TopoLine[0] = 1;
     TopoLine[1] = 2;
     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, *gmesh );//rigth
+	
+	{
+        id++;
+        TopoLine[0] = 3;
+        TopoLine[1] = 10;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh ); // top rigth
+        
+        id++;
+        TopoLine[0] = 10;
+        TopoLine[1] = 2;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh ); // top rigth
+    }
 
-    id++;
-    TopoLine[0] = 0;
-    TopoLine[1] = 5;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh );//left
+	id++;
+    TopoLine[0] = 3;
+    TopoLine[1] = 4;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh );//ramp
+	
+
 
     {
             id++;
             TopoLine[0] = 5;
             TopoLine[1] = 6;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
             
             id++;
             TopoLine[0] = 6;
             TopoLine[1] = 7;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
             
             id++;
             TopoLine[0] = 7;
             TopoLine[1] = 8;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
             
             id++;
             TopoLine[0] = 8;
             TopoLine[1] = 4;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
     }
 
 
-    {
-        id++;
-        TopoLine[0] = 3;
-        TopoLine[1] = 10;
-        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
-        
-        id++;
-        TopoLine[0] = 10;
-        TopoLine[1] = 2;
-        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
-    }
 
 
     id++;
-    TopoLine[0] = 3;
-    TopoLine[1] = 4;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );//ramp
+    TopoLine[0] = 0;
+    TopoLine[1] = 5;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );//left
+
 
     gmesh->BuildConnectivity();
     for ( int d = 0; d<ref; d++ ) {
@@ -436,13 +648,13 @@ TPZCompMesh * CreateCMesh(TPZGeoMesh * gmesh,int porder)
 	int directionadirichlet =3;
     val2 ( 0,0 ) = 1;
     val2 ( 1,0 ) = 1;
-    auto * bc_bottom = material->CreateBC ( material, -1,directionadirichlet, val1, val2 );
+    auto * bc_bottom = material->CreateBC ( material, -1,directionadirichlet, val1, val2 );//bottom
     val2 ( 0,0 ) = 1;
     val2 ( 1,0 ) = 0;
-    auto * bc_rigth = material->CreateBC ( material, -2, directionadirichlet, val1, val2 );
+    auto * bc_rigth = material->CreateBC ( material, -2, directionadirichlet, val1, val2 );//rigth
     val2 ( 0,0 ) = 1;
     val2 ( 1,0 ) = 0;
-    auto * bc_left = material->CreateBC ( material, -3, directionadirichlet, val1, val2 );
+    auto * bc_left = material->CreateBC ( material, -6, directionadirichlet, val1, val2 );//left
 
     cmesh->InsertMaterialObject ( bc_bottom );
    	cmesh->InsertMaterialObject ( bc_rigth );
@@ -544,3 +756,72 @@ void PostProcessVariables(TPZStack<std::string> &scalNames, TPZStack<std::string
 
   
 }
+
+void ShearRed ( TPZCompMesh * cmesh)
+{
+	LoadingRamp(cmesh,1.);
+	
+    REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+	int neq = cmesh->NEquations();
+
+    TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
+
+	int counterout = 0;
+
+    plasticmat *material = dynamic_cast<plasticmat *> ( cmesh->MaterialVec() [1] );
+    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+    TPZElasticResponse ER = LEMC.fER;
+    REAL phi0 = LEMC.fYC.Phi();
+    REAL cohesion0 = LEMC.fYC.Cohesion();
+    REAL phi,psi,c;
+    do {
+
+		TPZElastoPlasticAnalysis  * anal = CreateAnal(cmesh);
+		REAL norm = 1000.;
+        REAL tol2 = 1.e-3;
+        int NumIter = 30;
+        bool linesearch = true;
+        bool checkconv = false;
+        anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+		norm = Norm(anal->Rhs());
+
+		//std::cout << "| Load step = " << counterout << " | Rhs norm = " << norm << "| delta displacement norm = "<< unorm << std::endl;
+        if ( norm>= tol2) {
+            displace = displace0;
+            FSmax = FS;
+            FS = ( FSmin + FSmax ) / 2.;
+        } else {
+                displace0 = displace;
+                FSmin = FS;
+                FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+        }
+        std::cout << "FS = " << FS << std::endl;
+        c=cohesion0/FS;
+        phi=atan ( tan ( phi0 ) /FS );
+        psi=phi;
+        LEMC.fYC.SetUp ( phi, psi, c, ER );
+        material->SetPlasticity ( LEMC );
+        counterout++;
+    }  while ( ( FSmax - FSmin ) / FS > tol );
+}
+
+TPZElastoPlasticAnalysis * CreateAnal(TPZCompMesh *cmesh)
+{
+	int numthreads=16;
+	
+	TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis( cmesh); // Create analysis
+
+    TPZSkylineStructMatrix matskl ( cmesh );
+	
+    matskl.SetNumThreads ( numthreads );
+	
+    analysis->SetStructuralMatrix ( matskl );
+
+    ///Setting a direct solver
+    TPZStepSolver<STATE> step;
+    step.SetDirect ( ELDLt );
+    analysis->SetSolver ( step );
+	
+	return analysis;
+}
+
