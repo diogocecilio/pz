@@ -179,6 +179,7 @@ add_subdirectory(proDG)
 			add_subdirectory(KarhunenLoeveRandomFields)
 			add_subdirectory(AAPlasticity)
 			add_subdirectory(AADarcy)
+			add_subdirectory(AAPlasticityKL)
 			#Projeto Denise
 			#add_subdirectory(HdivPressureTeste)
 			add_subdirectory(HpAdaptivity)
