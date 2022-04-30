@@ -180,6 +180,57 @@ void  ToMatInt ( std::vector<std::vector<int>> in, TPZFMatrix<int> & out )
     for ( int i = 0; i < rows; i++ ) for ( int j = 0; j < cols; j++ ) out(i,j)= in[i][j];
 }
 	
+	
+void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath )
+{
+    TPZFMatrix<REAL> elcoords;
+    int nels = fallcoords.size();
+    GetElCoords (  0, elcoords );
+    int nnodes = elcoords.Rows();
+    for ( int iel = 0; iel < nels; iel++ ) {
+        GetElCoords ( iel, elcoords );
+        for ( int inode = 0; inode < nnodes; inode++ ) {
+            REAL x = elcoords(inode,0);
+            REAL y = elcoords(inode,1);
+
+            for ( int ipath = 0; ipath < path.Rows(); ipath++ ) {
+                REAL copathx = path.Get(ipath,0);
+                REAL copathy = path.Get(ipath,1);
+
+                if ( fabs ( x - copathx ) < 10.e-2 && fabs ( y - copathy ) < 10.e-2 ) {
+                    idpath.push_back ( fmeshtopology(iel,inode) );
+                    ipath = path.Rows();
+                }
+            }
+        }
+
+    }
+
+    sort ( idpath.begin(), idpath.end() );
+    idpath.erase ( unique ( idpath.begin(), idpath.end() ), idpath.end() );
+
+}
+
+void Line ( TPZManVector<REAL,2> a, TPZManVector<REAL,2> b, int ndivs, TPZFMatrix<REAL>& path )
+{
+    double x0 = a[0];
+    double xf = b[0];
+
+    double y0 = a[1];
+    double yf = b[1];
+
+    double dx = ( xf - x0 ) / ndivs;
+    double dy = ( yf - y0 ) / ndivs;
+
+    path.Resize( ndivs, 2 );
+
+    for ( int idiv = 0; idiv < ndivs; idiv++ ) {
+        path(idiv,0) = x0 + idiv * dx;
+        path(idiv,1) = y0 + idiv * dy;
+    }
+
+}
+
 
 private:
 
