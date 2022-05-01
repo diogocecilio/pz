@@ -67,63 +67,72 @@ TPZElastoPlasticAnalysis * CreateAnal(TPZCompMesh *cmesh);
 
 void ShearRed ( TPZCompMesh * cmesh);
 
+void ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh);
+
 void  InsertMat ( TPZCompMesh * cmesh,int porder );
 
 void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol );
 
-TPZVec<TPZCompMesh *> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples );
+TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples );
 
 TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder );
 
 void  InsertMat ( TPZCompMesh * cmesh,int porder );
 
-void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> vecmesh,int isol,REAL FS );
+void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMesh*,2> vecmesh,int isol,REAL FS );
+
+void  ReadFile ( std::string file ,TPZFMatrix<REAL> &out);
+
+void PrintMat(std::string out,TPZFMatrix<REAL> mat);
+
+
+template <class T>
+std::vector<T> str_vec( std::vector<std::string> &vs );
 
 int main()
 {
 	
 	
 	
-	int porder =2;
+	int porder =1;
 	int samples =10;
 
- 	TPZGeoMesh *gmesh = CreateGMeshGid (2);
+ 	TPZGeoMesh *gmesh = CreateGMeshGid (0);
 	
-	TPZCompMesh *cmesh = CreateCMesh (gmesh,porder);
+	TPZManVector<TPZCompMesh *,2> vecmesh;
 
-	TPZVec<TPZCompMesh *> vecmesh = CreateFields (gmesh,porder,samples );
+
+		vecmesh = CreateFields (gmesh,porder,samples );
+		string outco="cohesion.txt";
+		PrintMat(outco,vecmesh[0]->Solution());
+		string outphi="friction.txt";
+		PrintMat(outphi,vecmesh[1]->Solution());
+		 
 	
-	SetMaterialParamenters (cmesh,vecmesh,0,1);
 	
+
+	TPZFMatrix<REAL> readco,readphi;
+	ReadFile ( outco ,readco);
+	ReadFile ( outphi ,readphi);
+	//read.Print(std::cout);
 	
-	TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
+	return 0;
 	
-	int maxiter=30;
-	REAL tol=1.e-3;
-	bool linesearch=true;
-	bool checkconv=false;
-	int steps=10;
-	REAL finalload = 1.0;
-	std::string vtkFile ="file.vtk";
+	TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
 	
-	for(int iloadstep=1;iloadstep<=6;iloadstep++)
+	std::string vtkFile ="out-srm-mc.vtk";
+	
+	for(int isample=0;isample<samples;isample++)
  	{
-
-		TPZElastoPlasticAnalysis * analysis =  CreateAnal(cmesh);
+		TPZCompMesh *cmesh = CreateCMesh (gmesh,porder);
 		
-		REAL load = iloadstep*finalload/steps;
-		
-		LoadingRamp(cmesh,load);
-		analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
-		analysis->AcceptSolution();
-		std::set<long> elindices;
-
-
+	 	ShearRed (cmesh,isample, vecmesh);
+	
 		CreatePostProcessingMesh( postproc, cmesh);
-		Post(postproc,vtkFile);
 
+		Post(postproc,vtkFile);
 	}
-    
+
     std::cout << "FINISHED!" << std::endl;
 
 
@@ -161,7 +170,7 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
     }
 
 }//metho
-TPZVec<TPZCompMesh *> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples )
+TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples )
 {
 
     TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh,porder );
@@ -169,9 +178,9 @@ TPZVec<TPZCompMesh *> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples )
 
     //TPZCompMesh * cmesh (&slopeA.GetCurrentConfig()->fCMesh);
     //TPZCompMesh * cmesh2(&slopeA.GetCurrentConfig()->fCMesh);
-    cmesh->Print ( std::cout );
+    //cmesh->Print ( std::cout );
     InsertMat ( cmesh, porder );
-    cmesh->Print ( std::cout );
+    //cmesh->Print ( std::cout );
     InsertMat ( cmesh2, porder );
     int dim = cmesh->Reference()->Dimension();
     KLAnalysis * klanal = new KLAnalysis ( cmesh );
@@ -182,7 +191,7 @@ TPZVec<TPZCompMesh *> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples )
     string file ="out-eigenfunctions.vtk";
     klanal->Post ( file,dim,0 );
 
-    TPZVec<TPZCompMesh *> vecmesh ( 2 );
+    TPZManVector<TPZCompMesh *,2> vecmesh ( 2 );
 
     TPZVec<REAL> mean ( 2 );
     TPZVec<REAL> cov ( 2 );
@@ -196,7 +205,7 @@ TPZVec<TPZCompMesh *> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples )
     cout << "Creating Log-Normal Random Fields "<<endl;
     hhat = klf->CreateLogNormalRandomField();
 
-    hhat[0].Print ( "coes" );
+    //hhat[0].Print ( "coes" );
     cmesh->LoadSolution ( hhat[0] );
     //TPZCompMesh * cmesh2(cmesh);
     cmesh2->LoadSolution ( hhat[1] );
@@ -425,7 +434,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
             gel->Divide ( subels );
         }
     }
-    gmesh->Print(std::cout);
+   // gmesh->Print(std::cout);
  	std::ofstream files ( "ge.vtk" );
     TPZVTKGeoMesh::PrintGMeshVTK(gmesh,files,false);
     
@@ -707,6 +716,64 @@ scalNames.Push("FrictionAngle");
   
 }
 
+void ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh)
+{
+	LoadingRamp(cmesh,1.);
+	
+    REAL FS=1,FSmax=10000.;
+	REAL FSmin=0.;
+	REAL tol=1.e-3;
+	REAL norm = 1000.;
+	REAL tol2 = 1.e-3;
+	int NumIter = 30;
+	bool linesearch = true;
+	bool checkconv = false;
+
+	int counterout = 0;
+
+	std::ofstream files ( "saidanewton.txt" );
+	
+	int neq = cmesh->NEquations();
+	
+	TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
+	
+    do {
+
+
+		TPZElastoPlasticAnalysis  * anal = CreateAnal(cmesh);
+		
+        anal->IterativeProcess ( files, tol2, NumIter,linesearch,checkconv );
+		norm = Norm(anal->Rhs());
+
+		files << "FS "<< FS <<  "| step = " << counterout << " | Rhs norm = " << norm << std::endl;
+		
+		std::cout << "FS "<< FS <<  "| step = " << counterout << " | Rhs norm = " << norm << std::endl;
+		
+        if ( norm>= tol2) 
+		{
+			displace = displace0;
+            FSmax = FS;
+            FS = ( FSmin + FSmax ) / 2.;
+        } 
+        else 
+		{
+				displace0 = displace;
+                FSmin = FS;
+                FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+        }
+
+        SetMaterialParamenters(cmesh,vecmesh,isample,FS);
+        counterout++;
+    }  while ( ( FSmax - FSmin ) / FS > tol );
+	
+		TPZElastoPlasticAnalysis  * anal = CreateAnal(cmesh);
+        anal->IterativeProcess ( files, tol2, NumIter,linesearch,checkconv );
+		anal->AcceptSolution();
+	//cmesh->LoadSolution(displace);
+
+}
+
+
 void ShearRed ( TPZCompMesh * cmesh)
 {
 	LoadingRamp(cmesh,1.);
@@ -774,7 +841,7 @@ TPZElastoPlasticAnalysis * CreateAnal(TPZCompMesh *cmesh)
 	
 	return analysis;
 }
-void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> vecmesh,int isol,REAL FS )
+void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMesh*,2> vecmesh,int isol,REAL FS )
 {
 
     int nels = plasticCmesh->NElements();
@@ -869,4 +936,85 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZVec<TPZCompMesh*> ve
     plasticCmesh->Solution().Zero();
 
 
+}
+
+template <class T>
+std::vector<T> str_vec( std::vector<std::string> &vs )
+{
+    std::vector<T> ret;
+    for ( std::vector<string>::iterator it = vs.begin(); it != vs.end(); ++it ) {
+        istringstream iss ( *it );
+        T temp;
+        iss >> temp;
+        ret.push_back ( temp );
+    }
+    return ret;
+}
+
+void  ReadFile ( std::string file ,TPZFMatrix<REAL> &out)
+{
+    string line,line2, temp;
+	
+    ifstream myfile ( file );
+	
+	std::vector<std::vector<double>> coords;
+	int counter=0;
+	while ( getline ( myfile, line ) ) {
+            std::vector<string> tokens;
+            istringstream iss ( line );
+            while ( iss >> temp )tokens.push_back ( temp );
+			std::vector<double> input_doub_temp= str_vec<double> ( tokens );
+            coords.push_back ( input_doub_temp );
+			counter++;
+	}
+	
+
+	cout << "coords.size() = "<< coords.size();
+	cout << "coords.size() = "<< coords[1].size();
+	cout<< endl;
+	for(int iel=0;iel<coords.size();iel++){
+		for(int elnode=0;elnode<coords[iel].size();elnode++)
+		{
+			cout<< coords[iel][elnode] << " ";
+		}
+		cout<< endl;
+	}
+// 	
+// 	
+		out.Resize(coords.size()-1,coords[6].size());
+		for(int iel=1;iel<coords.size();iel++){
+		for(int elnode=0;elnode<coords[iel].size();elnode++)
+		{
+			out(iel,elnode)= coords[iel][elnode];
+		}
+	}
+	
+	
+// 	int els = coords.size();
+// 	int elnodes = coords[0].size();
+// 	out.Resize(els,elnodes);
+// 	for(int iel=0;iel<els;iel++){
+// 		for(int elnode=0;elnode<elnodes;elnode++)
+// 		{
+// 			out(iel,elnode)=coords[iel][elnode];
+// 		}
+// 	}
+}
+
+void PrintMat(std::string out,TPZFMatrix<REAL> mat)
+{
+	std::ofstream print(out);
+	int row=mat.Rows();
+	int cols = mat.Cols();
+	
+	for(int i=0;i<row;i++)
+	{
+		for(int j=0;j<cols;j++)
+  		{
+	  		print << mat(i,j) << " ";
+		}
+		print<< std::endl;
+	}
+
+	
 }
