@@ -126,6 +126,7 @@ add_subdirectory(proDG)
 			add_subdirectory(MHM)
 
 
+			
 			add_subdirectory(MultipleLoad)
 
 			# add_subdirectory(adaptivity_refactor)
@@ -174,8 +175,11 @@ add_subdirectory(proDG)
 
 			#teste nathan
 			add_subdirectory(PlasticityPV)
-add_subdirectory(SlopeStability)
-add_subdirectory(KarhunenLoeveRandomFields)
+			add_subdirectory(SlopeStability)
+			add_subdirectory(KarhunenLoeveRandomFields)
+			add_subdirectory(AAPlasticity)
+			add_subdirectory(AADarcy)
+			add_subdirectory(AAPlasticityKL)
 			#Projeto Denise
 			#add_subdirectory(HdivPressureTeste)
 			add_subdirectory(HpAdaptivity)

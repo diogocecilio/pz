@@ -19,7 +19,7 @@ class TPZElastoPlasticAnalysis : public TPZNonLinearAnalysis {
 
 public:
 	/** @brief Constructor */
-	TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out);
+	TPZElastoPlasticAnalysis(TPZCompMesh *mesh,std::ostream &out=std::cout);
 	/** @brief Default constructor */
 	TPZElastoPlasticAnalysis();
 	/** @brief Default destructor */

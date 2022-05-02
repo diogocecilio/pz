@@ -97,12 +97,12 @@ protected:
     void (*fExact)(const TPZVec<REAL> &loc, TPZVec<STATE> &result, TPZFMatrix<STATE> &deriv);
 	
 	/** @brief Create an TPZAnalysis object from one mesh pointer */
-	TPZAnalysis(TPZCompMesh *mesh, bool mustOptimizeBandwidth = true, std::ostream &out = std::cout);
+	TPZAnalysis(TPZCompMesh *mesh, bool mustOptimizeBandwidth = false, std::ostream &out = std::cout);
     
     //TPZAnalysis(TPZCompMesh *mesh, std::ostream &out = std::cout);
 	
 	/** @brief Create an TPZAnalysis object from one mesh auto pointer object */
-	TPZAnalysis(TPZAutoPointer<TPZCompMesh> mesh, bool mustOptimizeBandwidth = true, std::ostream &out = std::cout);
+	TPZAnalysis(TPZAutoPointer<TPZCompMesh> mesh, bool mustOptimizeBandwidth = false, std::ostream &out = std::cout);
 	
 	/** @brief Defines gui interface object */
 	void SetGuiInterface(TPZAutoPointer<TPZGuiInterface> gui){

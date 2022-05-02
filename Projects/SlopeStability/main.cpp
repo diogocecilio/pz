@@ -257,7 +257,7 @@ int main()
 	//ShearRed (  );
 	//SolveShearRed();
 	//ShearRed (  );
-	//return 0 ;
+
 	
 	int porder =1;
 	int samples =10;
@@ -516,10 +516,11 @@ TPZElastoPlasticAnalysis  CreateAnal ( TPZCompMesh *fCMesh )
 TPZGeoMesh * CreateGeometricMeshSlopeGid ( int ref )
 {
 	
+
 	string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid2.msh";
 	//string file ="/home/diogo/projects/pz/data/quad-gid.msh";
-	
+
     
 
 	readgidmesh read = readgidmesh(file);
@@ -660,6 +661,7 @@ TPZGeoMesh * CreateGeometricMeshSlopeGid ( int ref )
         }
     }
     
+
     gmesh->BuildConnectivity();
 
     gmesh->Print(std::cout);
