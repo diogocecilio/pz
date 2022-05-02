@@ -83,8 +83,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 	
 	//string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
-    string file ="/home/diogo/projects/pz/data/gid-tri.msh";
-	//string file ="/home/diogo/projects/pz/data/quad-gid.msh";
+    //string file ="/home/diogo/projects/pz/data/gid-tri.msh";
+	string file ="/home/diogo/projects/pz/data/quad-gid.msh";
 	readgidmesh read = readgidmesh(file);
 	read.ReadMesh();
 	TPZFMatrix<int> meshtopology = read.GetTopology();

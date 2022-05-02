@@ -67,7 +67,7 @@ TPZElastoPlasticAnalysis * CreateAnal(TPZCompMesh *cmesh);
 
 void ShearRed ( TPZCompMesh * cmesh);
 
-void ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh);
+REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh);
 
 void  InsertMat ( TPZCompMesh * cmesh,int porder );
 
@@ -85,6 +85,7 @@ void  ReadFile ( std::string file ,TPZFMatrix<REAL> &out);
 
 void PrintMat(std::string out,TPZFMatrix<REAL> mat);
 
+TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder);
 
 template <class T>
 std::vector<T> str_vec( std::vector<std::string> &vs );
@@ -92,47 +93,78 @@ std::vector<T> str_vec( std::vector<std::string> &vs );
 int main()
 {
 	
+	int porder =2;
 	
-	
-	int porder =1;
-	int samples =10;
+	int samples =1000;
 
  	TPZGeoMesh *gmesh = CreateGMeshGid (0);
 	
 	TPZManVector<TPZCompMesh *,2> vecmesh;
 
-
+	string outco="cohesion.txt";
+	
+	string outphi="friction.txt";
+	
+	if(false)
+ 	{
 		vecmesh = CreateFields (gmesh,porder,samples );
-		string outco="cohesion.txt";
 		PrintMat(outco,vecmesh[0]->Solution());
-		string outphi="friction.txt";
 		PrintMat(outphi,vecmesh[1]->Solution());
+		
+		return 0;
+	}
+	else
+	{
+		vecmesh = CreateFieldsDummy (gmesh,porder );
+		TPZFMatrix<REAL> readco,readphi;
+		ReadFile ( outco ,readco);
+		ReadFile ( outphi ,readphi);
+		vecmesh[0]->LoadSolution(readco);
+		vecmesh[1]->LoadSolution(readphi);
+	}
+
 		 
-	
+	//vecmesh[1]->Solution().Print("SAIDA");
 	
 
-	TPZFMatrix<REAL> readco,readphi;
-	ReadFile ( outco ,readco);
-	ReadFile ( outphi ,readphi);
+
 	//read.Print(std::cout);
 	
-	return 0;
+	//return 0;
 	
 	TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
 	
 	std::string vtkFile ="out-srm-mc.vtk";
 	
+	ofstream outfs("outfs.nb");
+	outfs << "FS = {";
 	for(int isample=0;isample<samples;isample++)
  	{
+		
+		
+		
 		TPZCompMesh *cmesh = CreateCMesh (gmesh,porder);
 		
-	 	ShearRed (cmesh,isample, vecmesh);
+	 	REAL FS = ShearRed (cmesh,isample, vecmesh);
 	
+		outfs << "{ " <<isample << ", "<< FS << "},"<< endl;
+		
+		cout << "isample  = " << isample  << "FS = "<< FS << std::endl;
+		
 		CreatePostProcessingMesh( postproc, cmesh);
 
+// 		auto iters =to_string ( FS );
+// 
+// 		vtkFile+=iters;
+// 
+// 		string exts = ".vtk";
+// 
+// 		vtkFile+=exts;
+		
 		Post(postproc,vtkFile);
 	}
 
+	outfs << "};";
     std::cout << "FINISHED!" << std::endl;
 
 
@@ -143,6 +175,7 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
  
     const int numdof = cel->Material()->NStateVariables();
     //const int ncon = cel->NConnects();
+	//cout << "WARNING!! WHAT ELEMENT TYPE ARE YOU USING?"<<std::endl;
     const int ncon = 3;
     TPZFMatrix<STATE> &MeshSol = cel->Mesh()->Solution();
 
@@ -220,6 +253,24 @@ TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int s
     klanal2->Post ( file,dim,0 );
     return vecmesh;
 }
+
+TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder)
+{
+
+    TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh,porder );
+    TPZCompMesh * cmesh2 =  CreateCMeshRF ( gmesh,porder );
+
+    InsertMat ( cmesh, porder );
+    InsertMat ( cmesh2, porder );
+    
+    TPZManVector<TPZCompMesh *,2> vecmesh ( 2 );
+	
+	vecmesh[0]=cmesh;
+	vecmesh[1]=cmesh2;
+    
+    return vecmesh;
+}
+
 TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
 {
     int expansionorder=20;
@@ -281,8 +332,9 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 	
 
 	//string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
-   // string file ="/home/diogo/projects/pz/data/quad-gid2.msh";
+    //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
 	string file ="/home/diogo/projects/pz/data/gid-tri.msh";
+	
 
     
 
@@ -716,13 +768,13 @@ scalNames.Push("FrictionAngle");
   
 }
 
-void ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh)
+REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh)
 {
 	LoadingRamp(cmesh,1.);
 	
     REAL FS=1,FSmax=10000.;
 	REAL FSmin=0.;
-	REAL tol=1.e-3;
+	REAL tol=1.e-2;
 	REAL norm = 1000.;
 	REAL tol2 = 1.e-3;
 	int NumIter = 30;
@@ -770,6 +822,8 @@ void ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> ve
         anal->IterativeProcess ( files, tol2, NumIter,linesearch,checkconv );
 		anal->AcceptSolution();
 	//cmesh->LoadSolution(displace);
+		
+		return FS;
 
 }
 
@@ -849,7 +903,7 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMes
     int nels1 = vecmesh[1]->NElements();
     //vecmesh[1]->Solution().Print ( "SOLUTION PHI" );
     if ( nels!=nels0 || nels!=nels1 || nels0!=nels1 ) {
-        cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
+        //cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
         //DebugStop();
     }
 
@@ -969,20 +1023,20 @@ void  ReadFile ( std::string file ,TPZFMatrix<REAL> &out)
 	}
 	
 
-	cout << "coords.size() = "<< coords.size();
-	cout << "coords.size() = "<< coords[1].size();
-	cout<< endl;
-	for(int iel=0;iel<coords.size();iel++){
-		for(int elnode=0;elnode<coords[iel].size();elnode++)
-		{
-			cout<< coords[iel][elnode] << " ";
-		}
-		cout<< endl;
-	}
+// 	cout << "coords.size() = "<< coords.size();
+// 	cout << "coords.size() = "<< coords[1].size();
+// 	cout<< endl;
+// 	for(int iel=0;iel<coords.size();iel++){
+// 		for(int elnode=0;elnode<coords[iel].size();elnode++)
+// 		{
+// 			cout<< coords[iel][elnode] << " ";
+// 		}
+// 		cout<< endl;
+// 	}
 // 	
 // 	
-		out.Resize(coords.size()-1,coords[6].size());
-		for(int iel=1;iel<coords.size();iel++){
+		out.Resize(coords.size(),coords[1].size());
+		for(int iel=0;iel<coords.size();iel++){
 		for(int elnode=0;elnode<coords[iel].size();elnode++)
 		{
 			out(iel,elnode)= coords[iel][elnode];
