@@ -335,7 +335,9 @@ void TPZStructMatrixST::Serial_Assemble(TPZMatrix<STATE> & stiffness, TPZFMatrix
     }
     
 #endif
-    
+	std::ofstream sout ("out.nb");
+    stiffness.Print("st= ",sout,EMathematicaInput);
+	rhs.Print("rhs = ", sout,EMathematicaInput);
 }
 
 void TPZStructMatrixST::Serial_Assemble(TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface){

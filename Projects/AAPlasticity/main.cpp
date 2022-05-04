@@ -67,7 +67,7 @@ int main()
 	
 	int porder =2;
 
- 	TPZGeoMesh *gmesh = CreateGMeshGid (1);
+ 	TPZGeoMesh *gmesh = CreateGMeshGid (0);
 	//TPZGeoMesh *gmesh2 = CreateGMeshGid (0);
 
     TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
@@ -94,17 +94,19 @@ int main()
 		analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
 		analysis->AcceptSolution();
 		
-		//std::set<long> elindices;
-		//REAL sqrtj2=0.005;
+		std::set<long> elindices;
+		REAL sqrtj2=0.005;
 		
-		//ComputeElementDeformation(cmesh);
 		
-		//DivideElementsAbove(cmesh,gmesh,sqrtj2,elindices);
+/*		
+		gmesh->ResetReference();
+        cmesh->LoadReferences();
+		ComputeElementDeformation(cmesh);
+		DivideElementsAbove(cmesh,gmesh,sqrtj2,elindices);
+		cmesh->AdjustBoundaryElements();
+        cmesh->CleanUpUnconnectedNodes();*/
 		
-// 		analysis->AssembleResidual();
-// 		
-// 		cmesh->LoadSolution(analysis->Solution());
-// 		
+
 		CreatePostProcessingMesh( postproc, cmesh);
 		Post(postproc,vtkFile);
 

@@ -155,7 +155,7 @@ void KLAnalysis::Solve()
         int varid=6;
         REAL integral = IntegrateSolution(varid);
         intphisqr(icol)=integral;
-        fEigenVectors[icol]*=1./sqrt(integral);
+        fEigenVectors[icol]*=1./sqrt(integral)*sqrt(fEigenValues[icol]);
         vec.col(icol)*=1./sqrt(integral);
     }
     end = sc.now();

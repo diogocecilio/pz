@@ -60,7 +60,7 @@ void KLConfig()
 
     int porder=2;
     int expansionorder=100;
-    int ref=4;
+    int ref=2;
 
     TPZGeoMesh * gmesh =  Simple3DGMesh (ref);
 
@@ -80,8 +80,8 @@ void KLConfig()
 
 
     int dim = gmesh->Dimension();
-    ref=0;
-    string file ="outexp2h4.vtk";
+    ref=3;
+    string file ="outexp2h2.vtk";
     klanal->Post(file,dim,ref);
 
 }
@@ -279,7 +279,7 @@ TPZCompMesh* CreateKLCMesh ( TPZGeoMesh * gmesh,int porder,REAL Lx, REAL Ly,REAL
     cmesh->AdjustBoundaryElements();
     cmesh->CleanUpUnconnectedNodes();
 
-    cmesh->Print(std::cout);
+    //cmesh->Print(std::cout);
 
 
     return cmesh;

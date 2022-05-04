@@ -1922,11 +1922,11 @@ void TPZInterpolatedElement::ComputeSolution(TPZVec<REAL> &qsi, TPZFMatrix<REAL>
     
 // 	 	 cout << "------ start -----  " << endl;
 // 		 cout << "------ meshsol -----  " << endl;
- 	//	 MeshSol.Print(std::cout); 
- 	//	 cout << "------ phi -----  " << endl;
- 	//	 phi.Print(std::cout);
- 	//	 cout << "------ qsi -----  " << endl;
- 	//	 qsi.Print(std::cout); 
+//  		 MeshSol.Print(std::cout); 
+//  		 cout << "------ phi -----  " << endl;
+//  		 phi.Print(std::cout);
+//  		 cout << "------ qsi -----  " << endl;
+//  		 qsi.Print(std::cout); 
     TPZBlock<STATE> &block = Mesh()->Block();
     long iv = 0, d;
     for(int in=0; in<ncon; in++) {
@@ -1939,8 +1939,7 @@ void TPZInterpolatedElement::ComputeSolution(TPZVec<REAL> &qsi, TPZFMatrix<REAL>
 
                 sol[is][iv%numdof] += (STATE)phi(iv/numdof,0)*MeshSol(pos+jn,is);   
 				
-if( MeshSol(0,0)>0.00001)
-{
+
 // 	cout << "  iv/numdof  " << iv/numdof << endl;
 // 	 cout << " is  = "<<is  << " ivnumdof "<< iv%numdof<< endl;
 // 	 cout << "  pos+jn " << pos+jn << endl;
@@ -1948,7 +1947,7 @@ if( MeshSol(0,0)>0.00001)
 //  	cout << " MeshSol "<<MeshSol(pos+jn,is) << endl; 
 //  	cout << " sol "<<sol[is][iv%numdof] << endl;
 // 			sol.Print(std::cout); 
-}
+
                 for(d=0; d<dim; d++){
                     dsol[is](d,iv%numdof) += (STATE)dphix(d,iv/numdof)*MeshSol(pos+jn,is);
                 }

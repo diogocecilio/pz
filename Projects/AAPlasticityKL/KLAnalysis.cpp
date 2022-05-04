@@ -42,6 +42,7 @@ using namespace std;
 KLAnalysis::KLAnalysis ( TPZCompMesh *mesh ) : TPZAnalysis ( mesh )
 {
 
+	//OptimizeBandwidth();
     KLStrMatrix *mat = new KLStrMatrix ( mesh );
     mat->SetMesh ( mesh );
     fStrMatrix = mat;

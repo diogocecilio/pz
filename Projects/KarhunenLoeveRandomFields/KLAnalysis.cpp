@@ -162,12 +162,13 @@ void KLAnalysis::Solve()
     time_span = static_cast<chrono::duration<double>> ( end - start );
     out << "| total time taken to integrate the solution over the domain =  " << time_span.count()<< std::endl;
 
+	FromEigen(val,fEigenValues);
 	out << intphisqr << endl;
     for ( int icol=0; icol< M; icol++ )
     {
         for(int irow=0; irow<nrows; irow++)
         {
-            vecpz(irow,icol)=fEigenVectors[icol](irow,0);
+            vecpz(irow,icol)=fEigenVectors[icol](irow,0)*sqrt(fEigenValues[icol]);
         }
     }
     LoadSolution(vecpz);
@@ -186,7 +187,7 @@ void KLAnalysis::Solve()
     out << "mean error 1 = " <<1. - 1./totalarea *   err2 << std::endl;
     out << "mean error 2 = " <<1. - 1./totalarea *   err << std::endl;
 
-    FromEigen(val,fEigenValues);
+    
 
 
 }

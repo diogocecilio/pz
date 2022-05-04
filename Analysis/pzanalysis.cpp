@@ -337,13 +337,23 @@ void TPZAnalysis::Solve() {
         }
 #endif
     
-    //    {
-    //        std::ofstream out("Matrix.nb");
-    //        fSolver->Matrix()->Print("Stiffness = ",out,EMathematicaInput);
-    //
-    //    }
+
+        //ToEigen ( C,eigenC );
+
+   		 //eigenInvB = eigenB.inverse();
+    
         fSolver->Solve(residual, delu);
         fSolution = delu;
+		
+// 		{
+//             std::ofstream out("Matrix.nb");
+//             fSolver->Matrix()->Print("Stiffness = ",out,EMathematicaInput);
+//     		residual.Print("rhs = ",out,EMathematicaInput);
+// 			fSolution.Print("u = ",out,EMathematicaInput);
+//         } 
+       //residual.Print(std::cout);
+       //fSolver->Matrix()->Print(std::cout);
+       //fSolution.Print(std::cout);
 #ifdef LOG4CXX
         if (logger->isDebugEnabled())
         {

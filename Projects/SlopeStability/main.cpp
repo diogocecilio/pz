@@ -250,8 +250,21 @@ void PostProcessF(TPZCompMesh * cmesh,int resolution);
 
 void Post(TPZCompMesh * cmesh);
 
+TPZCompMesh * SimpleCMesh ( TPZGeoMesh * gmesh, int porder );
+
+TPZGeoMesh * SimpleGMesh ( int ref );
+
+void SolveSimpleElasticProlem( );
+
+void PrintSol ( TPZCompMesh * cmesh );
+
+void ComputeSolution2 ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol );
+
 int main()
 {
+	
+	SolveSimpleElasticProlem();
+	return 0 ;
 	
 	
 	//ShearRed (  );
@@ -260,7 +273,6 @@ int main()
 
 	
 	int porder =1;
-	int samples =10;
 
  	TPZGeoMesh *gmesh = CreateGeometricMeshSlopeGid ( 0 );
 // 	
@@ -325,8 +337,318 @@ int main()
 
     return 0;
 }
+TPZGeoMesh * SimpleGMesh ( int ref )
+{
+    TPZGeoMesh *gmesh = new TPZGeoMesh;
+
+    gmesh->SetDimension ( 2 );
+
+    gmesh->NodeVec().Resize ( 4 );
+
+    TPZVec<REAL> coord ( 2 );
+    coord[0] = 0.;
+    coord[1] = 0.;
+    gmesh->NodeVec() [0] = TPZGeoNode ( 0, coord, *gmesh );
 
 
+    coord[0] = 1.;
+    coord[1] = 0.;
+    gmesh->NodeVec() [1] = TPZGeoNode ( 1, coord, *gmesh );
+
+    coord[0] = 1.;
+    coord[1] = 1.;
+    gmesh->NodeVec() [2] = TPZGeoNode ( 2, coord, *gmesh );
+
+    coord[0] = 0.;
+    coord[1] = 1.;
+    gmesh->NodeVec() [3] = TPZGeoNode ( 3, coord, *gmesh );
+
+
+    TPZVec <long> TopoQuad ( 4 );
+    TopoQuad[0] = 0;
+    TopoQuad[1] = 1;
+    TopoQuad[2] = 2;
+    TopoQuad[3] = 3;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( 0, TopoQuad, 1,*gmesh );
+
+    TPZVec <long> TopoLine ( 2 );
+    TopoLine[0] = 0;
+    TopoLine[1] = 1;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 1, TopoLine, -1,*gmesh );//Bottom
+
+    TopoLine[0] = 1;
+    TopoLine[1] = 2;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 2, TopoLine, -2,*gmesh );//Rigth
+
+    TopoLine[0] = 2;
+    TopoLine[1] = 3;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 3, TopoLine, -3,*gmesh );//Top
+
+    TopoLine[0] = 3;
+    TopoLine[1] = 0;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( 4, TopoLine, -4,*gmesh );//Left
+
+    TPZVec <long> TopoNode ( 1 );
+    TopoLine[0] = 0;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoPoint> ( 5, TopoLine, -5,*gmesh );//Bottom
+
+    gmesh->BuildConnectivity();
+    for ( int d = 0; d<ref; d++ ) {
+        int nel = gmesh->NElements();
+        TPZManVector<TPZGeoEl *> subels;
+        for ( int iel = 0; iel<nel; iel++ ) {
+            TPZGeoEl *gel = gmesh->ElementVec() [iel];
+            gel->Divide ( subels );
+        }
+    }
+    return gmesh;
+}
+
+TPZCompMesh * SimpleCMesh ( TPZGeoMesh * gmesh, int porder )
+{
+    TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
+    int id=1;
+    REAL E=20000;
+    REAL nu=0.3;
+    REAL fx=0.;
+    REAL fy=0.;
+    int plainstress=0.;
+    TPZElasticityMaterial *elastmat = new TPZElasticityMaterial ( id,  E,  nu,  fx,  fy,  plainstress );
+    elastmat->SetId ( 1 );
+
+    REAL Sigmaxx = 0.0, Sigmayx = 0.0, Sigmayy = 0.0, Sigmazz = 0.0;
+    elastmat->SetPreStress ( Sigmaxx,Sigmayx,Sigmayy,Sigmazz );
+
+    //BCS
+    TPZFMatrix<STATE> val1 ( 2,2,0. );
+    TPZFMatrix<STATE>  val2 ( 2,1,0. );
+
+    int dirichet =0;
+    int directionaldirichet =3;
+    int newman =1;
+    val2 ( 0,0 ) = 1.;
+    val2 ( 1,0 ) = 0.;
+    auto * bc_left = elastmat->CreateBC ( elastmat,-4,directionaldirichet, val1, val2 );
+
+
+    val2 ( 0,0 ) = 0.;
+    val2 ( 1,0 ) = 1.;
+    auto * bc_node = elastmat->CreateBC ( elastmat,-5,directionaldirichet, val1, val2 );
+
+    val2 ( 0,0 ) = 1000.;
+    val2 ( 1,0 ) = 0.;
+    auto * loadc_top = elastmat->CreateBC ( elastmat,-2,newman, val1, val2 );
+
+    cmesh->InsertMaterialObject ( elastmat );
+    cmesh->InsertMaterialObject ( bc_left );
+    cmesh->InsertMaterialObject ( bc_node );
+    cmesh->InsertMaterialObject ( loadc_top );
+
+
+    cmesh->SetDefaultOrder ( porder );
+    cmesh->SetDimModel ( 2 );
+    cmesh->SetAllCreateFunctionsContinuous();
+    cmesh->AutoBuild();
+
+    return cmesh;
+}
+
+void SolveSimpleElasticProlem( )
+{
+    int uniformref=0;
+    int porder=3;
+
+    //Create Geometry
+    TPZGeoMesh * gmesh =  SimpleGMesh ( uniformref );
+
+    //Create Approx Space
+    TPZCompMesh * cmesh = SimpleCMesh ( gmesh,porder );
+
+    //Create Analysis
+    bool optimizeband =false;
+    TPZAnalysis * anal = new TPZAnalysis ( cmesh,optimizeband );
+
+    //Set Matrix Type
+    TPZFStructMatrix full ( cmesh );
+    full.SetNumThreads ( 0 );
+    anal->SetStructuralMatrix ( full );
+
+    //Set Solver Type
+    TPZStepSolver<REAL> step;
+    step.SetDirect ( ECholesky );
+    anal->SetSolver ( step );
+
+    anal->Run();
+	
+    auto exactSol = [] ( const TPZVec<REAL> &loc,
+                         TPZVec<STATE>&u,
+    TPZFMatrix<STATE>&gradU ) {
+        const auto &x=loc[0];
+        const auto &y=loc[1];
+        u[0]=x*4.55e-5;
+        u[1]=-y*1.95e-5;
+        gradU ( 0,0 ) = 4.55e-5;
+        gradU ( 1,0 ) = -1.95e-5;
+        gradU ( 2,0 ) = 0; //optional
+    };
+
+    // Post processing
+    TPZManVector<std::string> scalarnames ( 3 ), vecnames ( 2 );
+    scalarnames[0] = "SigmaX";
+    scalarnames[1] = "SigmaY";
+    scalarnames[1] = "SigmaZ";
+    scalarnames[2] = "Pressure";
+    vecnames[0] = "displacement";
+    vecnames[1] = "Strain";
+    anal->DefineGraphMesh ( 2,scalarnames,vecnames,"SimpleElasticProlem.vtk" );
+
+    anal->PostProcess ( 0 );
+
+    //let us set the exact solution and suggest an integration rule
+    //for calculating the error
+    anal->SetExact ( exactSol );
+
+    /*
+	 * ///Calculating approximation error
+    TPZManVector<REAL,3> error;
+    std::ofstream anPostProcessFile ( "postprocess.txt" );
+    anal->PostProcess ( error,anPostProcessFile );
+    std::cout << "\nApproximation error:\n";
+    std::cout << "H1 Norm = " << error[0]<<'\n';
+    std::cout << "L1 Norm = " << error[1]<<'\n';
+    std::cout << "H1 Seminorm = " << error[2] << "\n\n";
+	*/
+
+    //cmesh->LoadSolution ( anal->Solution() );
+
+    cmesh->Solution().Print ( std::cout );
+
+
+    PrintSol ( cmesh );
+
+}
+
+void PrintSol ( TPZCompMesh * cmesh )
+{
+    int count=1;
+	
+    int nels = cmesh->NElements();
+	
+    for ( int iel=0; iel<nels; iel++ ) {
+		
+        TPZCompEl *cel = cmesh->Element ( iel );
+		
+        if ( cel->Material()->Id() !=1 ) continue;
+		
+        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+		
+        const TPZIntPoints &intpoints = intel->GetIntegrationRule();
+		
+        TPZManVector<REAL,3> point ( 3,0. );
+		
+        TPZMaterialData data;
+		
+        data.fNeedsSol = true;
+		
+        intel->InitMaterialData ( data );
+		
+        REAL weight=0.;
+
+        int nint = intpoints.NPoints();
+		
+        for ( long ip =0; ip<nint; ip++ ) {
+			
+            intpoints.Point ( ip, point, weight );
+            //cout << " point = " << point << endl;
+
+            intel->ComputeRequiredData ( data, point );
+			
+			TPZSolVec sol1;
+            ComputeSolution2 ( cel,data.phi,sol1 );
+			cout << sol1[0] << endl;
+	
+			TPZFMatrix<STATE> &MeshSol = cel->Mesh()->Solution();
+            cout << "point = " << point <<endl;
+            cout << "data.x = " << data.x <<endl;
+            cout << "data.phi " << data.phi  <<endl;
+			cout << "data.sol " << data.sol  <<endl;
+            cout << "data.detjac " << data.detjac <<endl;
+            REAL sum=0.;
+			 set<long>::iterator itr;
+			std::set<long> cornerconnectlist;
+    		cel->BuildCornerConnectList(cornerconnectlist);
+			    // print all elements of the set s2
+    		for (itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++) {
+        		cout << *itr << " ";
+    		}
+    		int counter=0;
+			for (itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++) {
+        		sum+=data.phi[counter];
+				counter++;
+    		}
+    		cout << endl;
+			
+//             for ( int iphi=0; iphi<data.phi.Rows(); iphi++ ) {
+//                 sum+=data.phi[iphi];
+//             }
+            cout << "sum = "<< sum << endl ;
+            //mean+=dataplastic.sol[0][0];
+            count++;
+        }
+
+    }
+
+    // mean = mean/count;
+    //cout << "MEAN = "<< mean << endl ;
+}
+void ComputeSolution2 ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
+{
+	const int numdof = cel->Material()->NStateVariables();
+
+	
+	set<long>::iterator itr;
+	std::set<long> cornerconnectlist;
+	cel->BuildCornerConnectList(cornerconnectlist);
+	int ncon = cornerconnectlist.size();
+	TPZVec<int> ids(ncon);
+	
+	int counter=0;
+	for (itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++)
+	{
+		int ans = *itr;
+		ids[counter]=ans;
+		counter++;
+	 }
+
+	 vector<int> iids = vector<int>(cornerconnectlist.begin(), cornerconnectlist.end());
+	
+	//cel->BuildCornerConnectList();
+    TPZFMatrix<STATE> &MeshSol = cel->Mesh()->Solution();
+
+    long numbersol = MeshSol.Cols();
+    sol.Resize ( numbersol );
+    for ( long is=0 ; is<numbersol; is++ ) {
+        sol[is].Resize ( numdof );
+        sol[is].Fill ( 0. );
+
+    }
+
+    TPZBlock<STATE> &block = cel->Mesh()->Block();
+    long iv = 0;
+    for ( int in=0; in<ncon; in++ ) {
+        TPZConnect *df = &cel->Connect ( in );
+        long dfseq = df->SequenceNumber();
+		
+        int dfvar = block.Size ( dfseq );
+        long pos = block.Position ( dfseq );
+        for ( int jn=0; jn<dfvar; jn++ ) {
+            for ( int is=0; is<numbersol; is++ ) {
+                sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( pos+jn,is );
+            }
+            iv++;
+        }
+    }
+}
 void SolveShearRed()
 {
 	int ref = 0;
