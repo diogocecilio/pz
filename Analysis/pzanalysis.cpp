@@ -416,7 +416,23 @@ void TPZAnalysis::LoadSolution() {
 		fCompMesh->LoadSolution(fSolution);
 	}
 }
-
+// void TPZAnalysis::Solve() {
+// 	long numeq = fCompMesh->NEquations();
+// 
+// 	TPZFMatrix<STATE> residual(fRhs);
+// 	TPZFMatrix<STATE> delu(numeq,1,0.);
+// 
+// 	//ToEigen ( C,eigenC );
+// 	//eigenInvB = eigenB.inverse();
+//     
+// 	fSolver->Solve(residual, delu);
+// 	fSolution = delu;
+//     
+// 
+// 	fCompMesh->LoadSolution(fSolution);
+//     fCompMesh->TransferMultiphysicsSolution();
+// 
+// }
 void TPZAnalysis::Print( const std::string &name, std::ostream &out) {
 	out<<endl<<name<<endl;
 	long i,nelements = fCompMesh->ConnectVec().NElements();

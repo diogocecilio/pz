@@ -64,7 +64,7 @@ void  CreatePostProcessingMesh ( TPZPostProcAnalysis * PostProcess,TPZCompMesh *
 
 void Post ( TPZPostProcAnalysis * postproc,std::string vtkFile );
 
-TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh );
+TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh ,bool optimize);
 
 void ShearRed ( TPZCompMesh * cmesh );
 
@@ -96,9 +96,9 @@ std::vector<T> str_vec ( std::vector<std::string> &vs );
 int main()
 {
 
-    int porder =2;
+    int porder= 2;
 
-    int samples =1000;
+    int samples =10;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
 
@@ -107,8 +107,8 @@ int main()
     string outco="cohesion-gid.txt";
 
     string outphi="friction-gid.txt";
-
-    if ( false ) {
+	TPZFMatrix<REAL> readco,readphi;
+    if ( true ) {
         vecmesh = CreateFields ( gmesh,porder,samples );
         PrintMat ( outco,vecmesh[0]->Solution() );
         PrintMat ( outphi,vecmesh[1]->Solution() );
@@ -116,13 +116,20 @@ int main()
         return 0;
     } else {
         vecmesh = CreateFieldsDummy ( gmesh,porder );
-        TPZFMatrix<REAL> readco,readphi;
+        
         ReadFile ( outco,readco );
         ReadFile ( outphi,readphi );
-        vecmesh[0]->LoadSolution ( readco );
-        vecmesh[1]->LoadSolution ( readphi );
-    }
 
+
+		//vecmesh[0]->Solution().Print(std::cout);
+
+		//anal->LoadSolution();
+		//anal->Solution().Print(std::cout);
+    }
+		TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis(vecmesh[0]);
+		TPZElastoPlasticAnalysis * anal1 = new TPZElastoPlasticAnalysis(vecmesh[1]);
+		vecmesh[0]->LoadSolution ( readco );
+        vecmesh[1]->LoadSolution ( readphi );
     //vecmesh[0]->ConnectSolution(std::cout);
 
     //vecmesh[1]->Solution().Print("SAIDA");
@@ -190,15 +197,17 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 	cel->BuildCornerConnectList(cornerconnectlist);
 	int ncon = cornerconnectlist.size();
 	TPZVec<int> ids(ncon);
+	std::vector<int> idss;
 	set<long>::iterator itr;
 	//cout << "corner conect list" << endl;
 	for (itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++)
 	{
 		//cout << *itr << endl;
-		ids[counter]=*itr;
-		counter++;
+		//ids[counter]=*itr;
+		idss.push_back(*itr);
+		//counter++;
 	 }
-	
+
     //const int ncon = cel->NConnects();
 	//cel->BuildCornerConnectList();
     TPZFMatrix<STATE> &MeshSol = cel->Mesh()->Solution();
@@ -212,11 +221,12 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
     }
     TPZBlock<STATE> &block = cel->Mesh()->Block();
     long iv = 0, d;
-    for ( int in=0; in<ncon; in++ ) {
+    for ( int in=0; in<idss.size(); in++ ) {
         TPZConnect *df = &cel->Connect ( in );
 	/** @brief Returns the Sequence number of the connect object */
 	/** If the \f$ sequence number == -1 \f$ this means that the node is unused */
         long dfseq = df->SequenceNumber();
+		
 			/**
      * @brief Returns block dimension
      * @param block_diagonal Inquired block_diagonal
@@ -230,8 +240,9 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
         for ( int jn=0; jn<dfvar; jn++ ) {
             for ( int is=0; is<numbersol; is++ ) {
 				//cout << "pos+jn" << pos+jn << endl;
-                sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( pos+jn,is );
-				//sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( ids[in],is );
+                //sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( pos+jn,is );
+				//sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( idss[in],is );
+				sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( pos+jn,is );
             }
             iv++;
         }
@@ -342,8 +353,8 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder 
     TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh,porder );
     TPZCompMesh * cmesh2 =  CreateCMeshRF ( gmesh,porder );
 
-    InsertMat ( cmesh, porder );
-    InsertMat ( cmesh2, porder );
+   // InsertMat ( cmesh, porder );
+   // InsertMat ( cmesh2, porder );
 
     TPZManVector<TPZCompMesh *,2> vecmesh ( 2 );
 
@@ -366,13 +377,14 @@ TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
     //gmesh->ResetReference();
     TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
     KLMaterial * klmat = new KLMaterial ( id,Lx,Ly,Lz,dim,type,expansionorder );
+
     cmesh->SetDefaultOrder ( porder );
     cmesh->SetDimModel ( dim );
     cmesh->InsertMaterialObject ( klmat );
     cmesh->SetAllCreateFunctionsContinuous();
     cmesh->AutoBuild();
-    // cmesh->AdjustBoundaryElements();
-    //  cmesh->CleanUpUnconnectedNodes();
+	cmesh->AdjustBoundaryElements();
+	cmesh->CleanUpUnconnectedNodes();
     return cmesh;
 }
 
@@ -413,7 +425,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
 
-    //string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
+   // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
 	string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
@@ -852,7 +864,7 @@ REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> ve
 {
     LoadingRamp ( cmesh,1. );
 
-    REAL FS=1,FSmax=10000.;
+    REAL FS=0.1,FSmax=10000.;
     REAL FSmin=0.;
     REAL tol=1.e-2;
     REAL norm = 1000.;
@@ -871,14 +883,18 @@ REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> ve
 
     do {
 
-
-        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
+		bool optimize =true;
+        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
 		
 		chrono::steady_clock sc;
         auto start = sc.now();
 
         anal->IterativeProcess ( files, tol2, NumIter,linesearch,checkconv );
         norm = Norm ( anal->Rhs() );
+		
+		
+		anal->AcceptSolution();
+
 		
 		auto end = sc.now();
         auto time_span = static_cast<chrono::duration<double>> ( end - start );
@@ -898,12 +914,14 @@ REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> ve
         }
 
         SetMaterialParamenters ( cmesh,vecmesh,isample,FS );
+		//if(( FSmax - FSmin ) / FS > tol)anal->AcceptSolution();
         counterout++;
     }  while ( ( FSmax - FSmin ) / FS > tol );
 
-    TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
-    anal->IterativeProcess ( files, tol2, NumIter,linesearch,checkconv );
-    anal->AcceptSolution();
+	 bool optimize =false;
+     TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+     anal->IterativeProcess ( files, tol2, NumIter,linesearch,checkconv );
+     anal->AcceptSolution();
     //cmesh->LoadSolution(displace);
 
     return FS;
@@ -915,7 +933,7 @@ void ShearRed ( TPZCompMesh * cmesh )
 {
     LoadingRamp ( cmesh,1. );
 
-    REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+    REAL FS=0.1,FSmax=10000.,FSmin=0.,tol=1.e-3;
     int neq = cmesh->NEquations();
 
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
@@ -930,7 +948,8 @@ void ShearRed ( TPZCompMesh * cmesh )
     REAL phi,psi,c;
     do {
 
-        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
+		bool optimize =true;
+        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
         REAL norm = 1000.;
         REAL tol2 = 1.e-3;
         int NumIter = 30;
@@ -964,7 +983,7 @@ void ShearRed ( TPZCompMesh * cmesh )
 #include "tpzsparseblockdiagonalstructmatrix.h"
 #include "TPBSpStructMatrix.h"
 #include "TPZSpStructMatrix.h"
-TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh )
+TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh ,bool optimize)
 {
     int numthreads=10;
 
@@ -1061,7 +1080,11 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMes
             mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
 
 
-			
+			//datarandom1.fCornerNodeIds
+			//celrandom1->Print();
+			//TPZGeoEl *gel = celrandom1->Reference();
+			//gel->NCornerNodes();
+			//gel->Print();
 			
             TPZSolVec sol1,sol2;
             ComputeSolution ( celrandom1,datarandom1.phi,sol1 );
