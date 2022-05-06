@@ -123,6 +123,7 @@ public :
         fExpansionOrder = ExpansionOrder;
     }
 
+    void Assemble();
 // 	virtual void DefineGraphMesh(int dimension, const TPZVec<std::string> &scalnames, const TPZVec<std::string> &vecnames, const std::string &plotfile)=0;
 //
 // 	virtual void PostProcess(int resolution)=0;

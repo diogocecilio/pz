@@ -39,10 +39,10 @@
 using namespace std;
 
 
-KLAnalysis::KLAnalysis ( TPZCompMesh *mesh ) : TPZAnalysis ( mesh )
+KLAnalysis::KLAnalysis ( TPZCompMesh *mesh ) : TPZAnalysis ( mesh,true )
 {
 
-	//OptimizeBandwidth();
+	OptimizeBandwidth();
     KLStrMatrix *mat = new KLStrMatrix ( mesh );
     mat->SetMesh ( mesh );
     fStrMatrix = mat;
@@ -60,6 +60,11 @@ KLAnalysis::~KLAnalysis ( void )
 
 }
 
+
+void KLAnalysis::Assemble()
+{
+    
+}
 
 void KLAnalysis::Solve()
 {

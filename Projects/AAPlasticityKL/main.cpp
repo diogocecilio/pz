@@ -108,7 +108,11 @@ int main()
 
     string outphi="friction-gid.txt";
 
-    if ( false ) {
+    //string outco="cohesion-gid-opt-false.txt";
+
+    //string outphi="friction-gid-opt-false.txt";
+
+    if (false ) {
         vecmesh = CreateFields ( gmesh,porder,samples );
         PrintMat ( outco,vecmesh[0]->Solution() );
         PrintMat ( outphi,vecmesh[1]->Solution() );
@@ -123,6 +127,7 @@ int main()
         vecmesh[1]->LoadSolution ( readphi );
     }
 
+    //vecmesh[0]->
     //vecmesh[0]->ConnectSolution(std::cout);
 
     //vecmesh[1]->Solution().Print("SAIDA");
@@ -189,15 +194,15 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 	std::set<long> cornerconnectlist;
 	cel->BuildCornerConnectList(cornerconnectlist);
 	int ncon = cornerconnectlist.size();
-	TPZVec<int> ids(ncon);
-	set<long>::iterator itr;
-	//cout << "corner conect list" << endl;
-	for (itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++)
-	{
-		//cout << *itr << endl;
-		ids[counter]=*itr;
-		counter++;
-	 }
+// 	TPZVec<int> ids(ncon);
+// 	set<long>::iterator itr;
+// 	//cout << "corner conect list" << endl;
+// 	for (itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++)
+// 	{
+// 		cout << *itr << " ";
+// 		ids[counter]=*itr;
+// 		counter++;
+// 	 }
 	
     //const int ncon = cel->NConnects();
 	//cel->BuildCornerConnectList();
@@ -228,8 +233,12 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 	 */
         long pos = block.Position ( dfseq );
         for ( int jn=0; jn<dfvar; jn++ ) {
+            //cout << "\n pos+jn = " << pos+jn << endl;
+            //cout << " ids[in] = " << ids[in] << endl;
+                
             for ( int is=0; is<numbersol; is++ ) {
 				//cout << "pos+jn" << pos+jn << endl;
+                //cout << " ids[in]" << ids[in] << endl;
                 sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( pos+jn,is );
 				//sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( ids[in],is );
             }
@@ -413,10 +422,10 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
 
-    //string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
+    string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-	string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+	//string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
 
 
 
