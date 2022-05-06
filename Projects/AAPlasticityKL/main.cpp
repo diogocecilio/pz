@@ -112,10 +112,11 @@ int main()
     //string outco="cohesion-gid-opt-false.txt";
 
     //string outphi="friction-gid-opt-false.txt";
+    TPZFMatrix<REAL> readco,readphi;
 
     if (false ) {
 
-    TPZFMatrix<REAL> readco,readphi;
+    
 
         vecmesh = CreateFields ( gmesh,porder,samples );
         PrintMat ( outco,vecmesh[0]->Solution() );
@@ -233,7 +234,7 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
     }
     TPZBlock<STATE> &block = cel->Mesh()->Block();
     long iv = 0, d;
-    for ( int in=0; in<idss.size(); in++ ) {
+    for ( int in=0; in<ncon; in++ ) {
         TPZConnect *df = &cel->Connect ( in );
         /** @brief Returns the Sequence number of the connect object */
         /** If the \f$ sequence number == -1 \f$ this means that the node is unused */

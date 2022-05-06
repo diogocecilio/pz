@@ -3,7 +3,7 @@ BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x
 
 [CMake]
 Build Directory Count=2
-Current Build Directory Index-Host System=0
+Current Build Directory Index-Host System=1
 
 [CMake][CMake Build Directory 0]
 Build Directory Path=/home/diogo/projects/pz-build-debug
@@ -26,7 +26,7 @@ Install Directory=/usr/local
 Runtime=Host System
 
 [Launch]
-Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4
 
 [Launch][Launch Configuration 1]
 Configured Launch Modes=execute
@@ -46,6 +46,42 @@ Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
 Executable=file:///home/diogo/projects/pz-build-debug/Projects/AAPlasticityKL/AAPlasticityKL
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=pz,Projects,AADarcy,AADarcy
+Use External Terminal=false
+Working Directory=
+isExecutable=true
+
+[Launch][Launch Configuration 3]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=debug-plasticity-darcy
+Type=Native Application
+
+[Launch][Launch Configuration 3][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/pz-build-debug/Projects/AAPlasticityDarcy/AAPlasticityDarcy
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Project Target=pz,Projects,AADarcy,AADarcy
+Use External Terminal=false
+Working Directory=file:///home/diogo/projects/pz-build-debug/Projects/AAPlasticityDarcy
+isExecutable=true
+
+[Launch][Launch Configuration 4]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=release-plastic-darcy
+Type=Native Application
+
+[Launch][Launch Configuration 4][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/pz-build-release/Projects/AAPlasticityDarcy/AAPlasticityDarcy
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Project Target=pz,Projects,AADarcy,AADarcy
 Use External Terminal=false

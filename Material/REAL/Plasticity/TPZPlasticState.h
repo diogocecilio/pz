@@ -25,24 +25,28 @@ public:
 	
 	TPZVec<T> fmatprop;
     
+    TPZVec<T> fflux;
+    
+    T fpressure;
+    
 
 public:
 	
 	/**
 	 * Default constructor - all values set to zero
 	 */
-    TPZPlasticState(): fEpsT(), fEpsP(), fAlpha(T(0.) ),fmatprop(){ }
+    TPZPlasticState(): fEpsT(), fEpsP(), fAlpha(T(0.) ),fpressure(T(0.) ),fmatprop(),fflux(){ }
 		
 	/**
 	 * Constructor enabling predefinition of Alpha
 	 */
-	TPZPlasticState(const T & alpha):fEpsT(T(0.)), fEpsP(T(0.)), fAlpha(alpha),fmatprop(T(0.)){ }
+	TPZPlasticState(const T & alpha):fEpsT(T(0.)), fEpsP(T(0.)),fpressure(T(0.)) ,fAlpha(alpha),fmatprop(T(0.)),fflux(T(0.)){ }
 	
 	/**
 	 * Copy constructor
 	 */
 	TPZPlasticState(const TPZPlasticState<T> & source):
-		fEpsT(source.fEpsT), fEpsP(source.fEpsP), fAlpha(source.fAlpha),fmatprop(source.fmatprop){ }
+		fEpsT(source.fEpsT), fEpsP(source.fEpsP), fAlpha(source.fAlpha),fmatprop(source.fmatprop),fflux(source.fflux), fpressure(source.fpressure){ }
 	
 	/**
 	 * Default destructor
@@ -101,6 +105,10 @@ public:
 		{ return fAlpha; }
 	const TPZVec<T> & MatProp() const 
 		{ return fmatprop; }
+	const TPZVec<T> & Flux() const 
+		{ return fflux; }
+    const T & Pressure() const 
+		{ return fpressure; }
 
 
     
@@ -119,6 +127,8 @@ inline const TPZPlasticState<T> & TPZPlasticState<T>::operator=(const TPZPlastic
 	fEpsP = source.EpsP();
 	fAlpha = source.Alpha();
 	fmatprop=source.MatProp();
+    fflux = source.Flux();
+    fpressure =source.Pressure();
 		
 	return *this;
 }
@@ -181,9 +191,14 @@ void TPZPlasticState<T>::CopyTo(TPZPlasticState<T1> & target) const
 	EpsT().CopyTo(target.fEpsT);
 	EpsP().CopyTo(target.fEpsP);
 	target.fAlpha = shapeFAD::val( Alpha() );
+    target.fpressure = shapeFAD::val( Pressure() );
 	target.fmatprop.Resize(2);
+    target.fflux.Resize(2);
 	target.fmatprop[0]= shapeFAD::val(fmatprop[0]);
 	target.fmatprop[1]= shapeFAD::val(fmatprop[1]);
+    target.fflux[0]= shapeFAD::val(fflux[0]);
+    target.fflux[1]= shapeFAD::val(fflux[1]);
+    
 }
 
 template<class T>
