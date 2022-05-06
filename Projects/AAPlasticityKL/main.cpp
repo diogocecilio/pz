@@ -64,7 +64,7 @@ void  CreatePostProcessingMesh ( TPZPostProcAnalysis * PostProcess,TPZCompMesh *
 
 void Post ( TPZPostProcAnalysis * postproc,std::string vtkFile );
 
-TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh );
+TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize );
 
 void ShearRed ( TPZCompMesh * cmesh );
 
@@ -96,7 +96,7 @@ std::vector<T> str_vec ( std::vector<std::string> &vs );
 int main()
 {
 
-    int porder =2;
+    int porder= 2;
 
     int samples =1000;
 
@@ -108,11 +108,15 @@ int main()
 
     string outphi="friction-gid.txt";
 
+
     //string outco="cohesion-gid-opt-false.txt";
 
     //string outphi="friction-gid-opt-false.txt";
 
     if (false ) {
+
+    TPZFMatrix<REAL> readco,readphi;
+
         vecmesh = CreateFields ( gmesh,porder,samples );
         PrintMat ( outco,vecmesh[0]->Solution() );
         PrintMat ( outphi,vecmesh[1]->Solution() );
@@ -120,15 +124,23 @@ int main()
         return 0;
     } else {
         vecmesh = CreateFieldsDummy ( gmesh,porder );
-        TPZFMatrix<REAL> readco,readphi;
+
         ReadFile ( outco,readco );
         ReadFile ( outphi,readphi );
-        vecmesh[0]->LoadSolution ( readco );
-        vecmesh[1]->LoadSolution ( readphi );
-    }
 
-    //vecmesh[0]->
-    //vecmesh[0]->ConnectSolution(std::cout);
+
+
+        //vecmesh[0]->Solution().Print(std::cout);
+
+        //anal->LoadSolution();
+        //anal->Solution().Print(std::cout);
+    }
+    
+    TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( vecmesh[0] );
+    TPZElastoPlasticAnalysis * anal1 = new TPZElastoPlasticAnalysis ( vecmesh[1] );
+    vecmesh[0]->LoadSolution ( readco );
+    vecmesh[1]->LoadSolution ( readphi );
+
 
     //vecmesh[1]->Solution().Print("SAIDA");
 
@@ -137,10 +149,24 @@ int main()
     //read.Print(std::cout);
 
     //return 0;
+    //Deterministic
+	if(false)
+ 	{
+	    TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
+    	std::string vtkFiled ="vtkfolder/deterministic.vtk";
+    	TPZCompMesh *cmeshdeter = CreateCMesh ( gmesh,porder );
 
+    	ShearRed ( cmeshdeter );
+    	CreatePostProcessingMesh ( postprocdeter, cmeshdeter );
+    	Post ( postprocdeter,vtkFiled ); 
+	}
+
+
+
+	//return 0;
     TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
 
-    std::string vtkFile ="out-srm-mc.vtk";
+    std::string vtkFile ="vtkfolder/out-srm-mc.vtk";
 
     ofstream outfs ( "outfs.nb" );
     outfs << "FS = {";
@@ -189,23 +215,13 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 
     const int numdof = cel->Material()->NStateVariables();
 
+
 	int counter=0;
 
 	std::set<long> cornerconnectlist;
 	cel->BuildCornerConnectList(cornerconnectlist);
 	int ncon = cornerconnectlist.size();
-// 	TPZVec<int> ids(ncon);
-// 	set<long>::iterator itr;
-// 	//cout << "corner conect list" << endl;
-// 	for (itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++)
-// 	{
-// 		cout << *itr << " ";
-// 		ids[counter]=*itr;
-// 		counter++;
-// 	 }
-	
-    //const int ncon = cel->NConnects();
-	//cel->BuildCornerConnectList();
+
     TPZFMatrix<STATE> &MeshSol = cel->Mesh()->Solution();
 
     long numbersol = MeshSol.Cols();
@@ -217,30 +233,29 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
     }
     TPZBlock<STATE> &block = cel->Mesh()->Block();
     long iv = 0, d;
-    for ( int in=0; in<ncon; in++ ) {
+    for ( int in=0; in<idss.size(); in++ ) {
         TPZConnect *df = &cel->Connect ( in );
-	/** @brief Returns the Sequence number of the connect object */
-	/** If the \f$ sequence number == -1 \f$ this means that the node is unused */
+        /** @brief Returns the Sequence number of the connect object */
+        /** If the \f$ sequence number == -1 \f$ this means that the node is unused */
         long dfseq = df->SequenceNumber();
-			/**
-     * @brief Returns block dimension
-     * @param block_diagonal Inquired block_diagonal
-	 */
+
+        /**
+        * @brief Returns block dimension
+        * @param block_diagonal Inquired block_diagonal
+        */
         int dfvar = block.Size ( dfseq );
-			/**
-     * @brief Returns the position of first element block dependent on matrix diagonal
-     * @param block_diagonal Inquired block_diagonal
-	 */
+        /**
+        * @brief Returns the position of first element block dependent on matrix diagonal
+        * @param block_diagonal Inquired block_diagonal
+        */
         long pos = block.Position ( dfseq );
         for ( int jn=0; jn<dfvar; jn++ ) {
             //cout << "\n pos+jn = " << pos+jn << endl;
             //cout << " ids[in] = " << ids[in] << endl;
                 
             for ( int is=0; is<numbersol; is++ ) {
-				//cout << "pos+jn" << pos+jn << endl;
-                //cout << " ids[in]" << ids[in] << endl;
+
                 sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( pos+jn,is );
-				//sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( ids[in],is );
             }
             iv++;
         }
@@ -250,24 +265,23 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 
 void ComputeSolution2 ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 {
-	const int numdof = cel->Material()->NStateVariables();
+    const int numdof = cel->Material()->NStateVariables();
 
-	
-	set<long>::iterator itr;
-	std::set<long> cornerconnectlist;
-	cel->BuildCornerConnectList(cornerconnectlist);
-	int ncon = cornerconnectlist.size();
-	TPZVec<int> ids(ncon);
-	
-	int counter=0;
-	for (itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++)
-	{
-		ids[counter]=*itr;
-		counter++;
-	 }
 
-	
-	//cel->BuildCornerConnectList();
+    set<long>::iterator itr;
+    std::set<long> cornerconnectlist;
+    cel->BuildCornerConnectList ( cornerconnectlist );
+    int ncon = cornerconnectlist.size();
+    TPZVec<int> ids ( ncon );
+
+    int counter=0;
+    for ( itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++ ) {
+        ids[counter]=*itr;
+        counter++;
+    }
+
+
+    //cel->BuildCornerConnectList();
     TPZFMatrix<STATE> &MeshSol = cel->Mesh()->Solution();
 
     long numbersol = MeshSol.Cols();
@@ -283,7 +297,7 @@ void ComputeSolution2 ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
     for ( int in=0; in<ncon; in++ ) {
         TPZConnect *df = &cel->Connect ( in );
         long dfseq = df->SequenceNumber();
-		
+
         int dfvar = block.Size ( dfseq );
         long pos = block.Position ( dfseq );
         for ( int jn=0; jn<dfvar; jn++ ) {
@@ -351,8 +365,8 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder 
     TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh,porder );
     TPZCompMesh * cmesh2 =  CreateCMeshRF ( gmesh,porder );
 
-    InsertMat ( cmesh, porder );
-    InsertMat ( cmesh2, porder );
+    // InsertMat ( cmesh, porder );
+    // InsertMat ( cmesh2, porder );
 
     TPZManVector<TPZCompMesh *,2> vecmesh ( 2 );
 
@@ -375,13 +389,14 @@ TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
     //gmesh->ResetReference();
     TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
     KLMaterial * klmat = new KLMaterial ( id,Lx,Ly,Lz,dim,type,expansionorder );
+
     cmesh->SetDefaultOrder ( porder );
     cmesh->SetDimModel ( dim );
     cmesh->InsertMaterialObject ( klmat );
     cmesh->SetAllCreateFunctionsContinuous();
     cmesh->AutoBuild();
-    // cmesh->AdjustBoundaryElements();
-    //  cmesh->CleanUpUnconnectedNodes();
+    cmesh->AdjustBoundaryElements();
+    cmesh->CleanUpUnconnectedNodes();
     return cmesh;
 }
 
@@ -414,7 +429,7 @@ void Post ( TPZPostProcAnalysis * postproc,std::string vtkFile )
 
     postproc->DefineGraphMesh ( 2,scalNames,vecNames,vtkFile );
 
-    postproc->PostProcess ( 0 );
+    postproc->PostProcess ( 1 );
 }
 
 
@@ -422,10 +437,12 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
 
-    string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica.msh";
+
+    // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-	//string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+    string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+
 
 
 
@@ -861,7 +878,7 @@ REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> ve
 {
     LoadingRamp ( cmesh,1. );
 
-    REAL FS=1,FSmax=10000.;
+    REAL FS=0.1,FSmax=10000.;
     REAL FSmin=0.;
     REAL tol=1.e-2;
     REAL norm = 1000.;
@@ -880,21 +897,25 @@ REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> ve
 
     do {
 
+        bool optimize =true;
+        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
 
-        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
-		
-		chrono::steady_clock sc;
+        chrono::steady_clock sc;
         auto start = sc.now();
 
         anal->IterativeProcess ( files, tol2, NumIter,linesearch,checkconv );
         norm = Norm ( anal->Rhs() );
-		
-		auto end = sc.now();
+
+
+        anal->AcceptSolution();
+
+
+        auto end = sc.now();
         auto time_span = static_cast<chrono::duration<double>> ( end - start );
 
-		files<< " FS "<< FS <<  "| step = " << counterout << " | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
+        files<< " FS "<< FS <<  "| step = " << counterout << " | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
 
-		std::cout << "FS "<< FS <<  "| step = " << counterout << " | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
+        std::cout << "FS "<< FS <<  "| step = " << counterout << " | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
 
         if ( norm>= tol2 ) {
             displace = displace0;
@@ -907,10 +928,12 @@ REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> ve
         }
 
         SetMaterialParamenters ( cmesh,vecmesh,isample,FS );
+        //if(( FSmax - FSmin ) / FS > tol)anal->AcceptSolution();
         counterout++;
     }  while ( ( FSmax - FSmin ) / FS > tol );
 
-    TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
+    bool optimize =false;
+    TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
     anal->IterativeProcess ( files, tol2, NumIter,linesearch,checkconv );
     anal->AcceptSolution();
     //cmesh->LoadSolution(displace);
@@ -924,7 +947,7 @@ void ShearRed ( TPZCompMesh * cmesh )
 {
     LoadingRamp ( cmesh,1. );
 
-    REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+    REAL FS=0.1,FSmax=10000.,FSmin=0.,tol=1.e-3;
     int neq = cmesh->NEquations();
 
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
@@ -937,14 +960,16 @@ void ShearRed ( TPZCompMesh * cmesh )
     REAL phi0 = LEMC.fYC.Phi();
     REAL cohesion0 = LEMC.fYC.Cohesion();
     REAL phi,psi,c;
-    do {
-
-        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
-        REAL norm = 1000.;
+	        REAL norm = 1000.;
         REAL tol2 = 1.e-3;
         int NumIter = 30;
         bool linesearch = true;
         bool checkconv = false;
+    do {
+
+        bool optimize =true;
+        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+
         anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
         norm = Norm ( anal->Rhs() );
 
@@ -966,6 +991,10 @@ void ShearRed ( TPZCompMesh * cmesh )
         material->SetPlasticity ( LEMC );
         counterout++;
     }  while ( ( FSmax - FSmin ) / FS > tol );
+	bool optimize =false;
+	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+    anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+    anal->AcceptSolution();
 }
 #include "TPZFrontMatrix.h"
 #include "TPZParFrontStructMatrix.h"
@@ -973,14 +1002,14 @@ void ShearRed ( TPZCompMesh * cmesh )
 #include "tpzsparseblockdiagonalstructmatrix.h"
 #include "TPBSpStructMatrix.h"
 #include "TPZSpStructMatrix.h"
-TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh )
+TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
     int numthreads=10;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
     TPZSkylineStructMatrix matskl ( cmesh );
-	//TPZFStructMatrix matskl ( cmesh );
+    //TPZFStructMatrix matskl ( cmesh );
 
     matskl.SetNumThreads ( numthreads );
 
@@ -989,20 +1018,20 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh )
     ///Setting a direct solver
     TPZStepSolver<STATE> step;
     step.SetDirect ( ELDLt );
-	//step.SetDirect ( ECholesky );
+    //step.SetDirect ( ECholesky );
     analysis->SetSolver ( step );
-	
-	long neq = cmesh->NEquations();
+
+    long neq = cmesh->NEquations();
     TPZVec<long> activeEquations;
-    analysis->GetActiveEquations(activeEquations);
-    TPZEquationFilter filter(neq);
-    filter.SetActiveEquations(activeEquations);
+    analysis->GetActiveEquations ( activeEquations );
+    TPZEquationFilter filter ( neq );
+    filter.SetActiveEquations ( activeEquations );
     matskl.EquationFilter() = filter;
-    analysis->SetStructuralMatrix(matskl);
+    analysis->SetStructuralMatrix ( matskl );
 
     //step.SetDirect(ECholesky);
-	analysis->SetSolver(step);
-	
+    analysis->SetSolver ( step );
+
 
     return analysis;
 }
@@ -1070,8 +1099,12 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMes
             mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
 
 
-			
-			
+            //datarandom1.fCornerNodeIds
+            //celrandom1->Print();
+            //TPZGeoEl *gel = celrandom1->Reference();
+            //gel->NCornerNodes();
+            //gel->Print();
+
             TPZSolVec sol1,sol2;
             ComputeSolution ( celrandom1,datarandom1.phi,sol1 );
             ComputeSolution ( celrandom2,datarandom2.phi,sol2 );
