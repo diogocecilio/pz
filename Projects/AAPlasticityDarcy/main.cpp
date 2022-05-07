@@ -189,7 +189,7 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     //Bet Degan loamy sand 
 	//STATE permeability = 6.3e-5;//m/s
 	STATE permeability = 0.063;//m/s
-
+	//STATE permeability = 10.;//m/s
     material->SetConstantPermeability ( permeability );
 	material->SetId(1);
 
@@ -212,8 +212,11 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
      TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
      BCond1->SetForcingFunction(pressure);
      
-     TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
-     BCond2->SetForcingFunction(pressure);
+    // TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
+    // BCond2->SetForcingFunction(pressure);
+	 val2(0,0)=-1;
+	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 1, val1, val2 );//tl
+     //BCond2->SetForcingFunction(pressure);
 
 
     cmesh->InsertMaterialObject(BCond0);
@@ -724,7 +727,7 @@ void ShearRed ( TPZCompMesh * cmesh)
 #include "TPZSpStructMatrix.h"
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
-    int numthreads=10;
+    int numthreads=16;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
