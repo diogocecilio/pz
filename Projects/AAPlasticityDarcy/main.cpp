@@ -108,7 +108,7 @@ int main()
 
     string outphi="friction-gid.txt";
     TPZFMatrix<REAL> readco,readphi;
-    if ( false ) {
+    if ( true ) {
         vecmesh = CreateFields ( gmesh,porder,samples );
         PrintMat ( outco,vecmesh[0]->Solution() );
         PrintMat ( outphi,vecmesh[1]->Solution() );
@@ -160,7 +160,7 @@ int main()
 
     ofstream outfs ( "outfs.nb" );
     outfs << "FS = {";
-    for ( int isample=522; isample<samples; isample++ ) {
+    for ( int isample=0; isample<samples; isample++ ) {
 
 
 
