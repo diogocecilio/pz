@@ -228,6 +228,10 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name)
   if(!strcmp("NSteps",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::ENSteps;
   if(!strcmp("Cohesion",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::ECohes;
   if(!strcmp("FrictionAngle",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFric;
+   if(!strcmp("Flux",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFlux;
+  if(!strcmp("FluxX",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFluxX;
+  if(!strcmp("FluxY",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFluxY;
+  if(!strcmp("Pressure",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EPressure;
   //return TPZMatWithMem<TMEM>::VariableIndex(name);
   PZError << "TPZMatElastoPlastic::VariableIndex Error\n";
   DebugStop();
@@ -332,6 +336,10 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var)
   if(var == TPZMatElastoPlastic<T,TMEM>::EMatPoisson)		 return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::ECohes)			 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EFric)		 return 1;
+  if(var == TPZMatElastoPlastic<T,TMEM>::EFlux)		 return 2;
+  if(var == TPZMatElastoPlastic<T,TMEM>::EFluxX)		 return 1;
+  if(var == TPZMatElastoPlastic<T,TMEM>::EFluxY)		 return 1;
+  if(var == TPZMatElastoPlastic<T,TMEM>::EPressure)		 return 1;
   if(var == 100) return 1;
   return TPZMatWithMem<TMEM>::NSolutionVariables(var);
 }
@@ -394,11 +402,18 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
     STATE uy = Memory.fDisplacement[1];
 	
   
-	int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop.size();
-	if(sz==0)
- {
-	 TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop.Resize(2);
-}
+    int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop.size();
+    if ( sz==0 ) {
+        TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop.Resize ( 2 );
+        TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop[0]=0.;
+        TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop[1]=0.;
+    }
+    int sz2= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.size();
+    if ( sz2==0 ) {
+        TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.Resize ( 2 );
+        TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0]=0.;
+        TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1]=0.;
+    }
 	
   switch (var) {
     // Total Strain
@@ -521,6 +536,19 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
 		break;
 	case EFric:
 		Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop[1];
+	break;
+    	case EFlux:
+		Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
+        Solout[1] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+	break;
+        case EFluxX:
+		Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
+	break;
+        case EFluxY:
+        Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+	break;
+        case EPressure:
+        Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fpressure;
 	break;
     default:
       DebugStop();

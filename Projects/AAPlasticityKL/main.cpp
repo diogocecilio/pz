@@ -107,8 +107,17 @@ int main()
     string outco="cohesion-gid.txt";
 
     string outphi="friction-gid.txt";
+
+
+    //string outco="cohesion-gid-opt-false.txt";
+
+    //string outphi="friction-gid-opt-false.txt";
     TPZFMatrix<REAL> readco,readphi;
-    if ( false ) {
+
+    if (false ) {
+
+    
+
         vecmesh = CreateFields ( gmesh,porder,samples );
         PrintMat ( outco,vecmesh[0]->Solution() );
         PrintMat ( outphi,vecmesh[1]->Solution() );
@@ -121,16 +130,18 @@ int main()
         ReadFile ( outphi,readphi );
 
 
+
         //vecmesh[0]->Solution().Print(std::cout);
 
         //anal->LoadSolution();
         //anal->Solution().Print(std::cout);
     }
+    
     TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( vecmesh[0] );
     TPZElastoPlasticAnalysis * anal1 = new TPZElastoPlasticAnalysis ( vecmesh[1] );
     vecmesh[0]->LoadSolution ( readco );
     vecmesh[1]->LoadSolution ( readphi );
-    //vecmesh[0]->ConnectSolution(std::cout);
+
 
     //vecmesh[1]->Solution().Print("SAIDA");
 
@@ -205,24 +216,13 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 
     const int numdof = cel->Material()->NStateVariables();
 
-    int counter=0;
 
-    std::set<long> cornerconnectlist;
-    cel->BuildCornerConnectList ( cornerconnectlist );
-    int ncon = cornerconnectlist.size();
-    TPZVec<int> ids ( ncon );
-    std::vector<int> idss;
-    set<long>::iterator itr;
-    //cout << "corner conect list" << endl;
-    for ( itr = cornerconnectlist.begin(); itr != cornerconnectlist.end(); itr++ ) {
-        //cout << *itr << endl;
-        //ids[counter]=*itr;
-        idss.push_back ( *itr );
-        //counter++;
-    }
+	int counter=0;
 
-    //const int ncon = cel->NConnects();
-    //cel->BuildCornerConnectList();
+	std::set<long> cornerconnectlist;
+	cel->BuildCornerConnectList(cornerconnectlist);
+	int ncon = cornerconnectlist.size();
+
     TPZFMatrix<STATE> &MeshSol = cel->Mesh()->Solution();
 
     long numbersol = MeshSol.Cols();
@@ -234,7 +234,7 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
     }
     TPZBlock<STATE> &block = cel->Mesh()->Block();
     long iv = 0, d;
-    for ( int in=0; in<idss.size(); in++ ) {
+    for ( int in=0; in<ncon; in++ ) {
         TPZConnect *df = &cel->Connect ( in );
         /** @brief Returns the Sequence number of the connect object */
         /** If the \f$ sequence number == -1 \f$ this means that the node is unused */
@@ -251,10 +251,11 @@ void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
         */
         long pos = block.Position ( dfseq );
         for ( int jn=0; jn<dfvar; jn++ ) {
+            //cout << "\n pos+jn = " << pos+jn << endl;
+            //cout << " ids[in] = " << ids[in] << endl;
+                
             for ( int is=0; is<numbersol; is++ ) {
-                //cout << "pos+jn" << pos+jn << endl;
-                //sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( pos+jn,is );
-                //sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( idss[in],is );
+
                 sol[is][iv%numdof] += ( STATE ) phi ( iv/numdof,0 ) *MeshSol ( pos+jn,is );
             }
             iv++;
@@ -437,10 +438,12 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
 
+
     // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
     string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+
 
 
 

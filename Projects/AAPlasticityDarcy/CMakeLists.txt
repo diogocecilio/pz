@@ -14,8 +14,10 @@ if ( STATE_TYPE STREQUAL "double" AND
      USING_FAD AND 
      BUILD_PLASTICITY_MATERIALS )
 
-	  add_executable(AAPlasticityKL ${main1_SRCS})
-	  target_link_libraries(AAPlasticityKL pz)
+
+	  add_executable(AAPlasticityDarcy ${main1_SRCS})
+	  target_link_libraries(AAPlasticityDarcy pz)
+
 
 
 endif()

@@ -151,6 +151,7 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
 
     switch (var) {
         case 1: {
+            solOut.resize(1);
             // Solution/Pressure
             solOut[0] = data.sol[0][0];
             return;
@@ -211,8 +212,9 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
             //const STATE perm = GetPermeability(data.x);
 			REAL perm = fConstPermeability;
+            solOut.resize(fDim);
             for (int id = 0; id < fDim; id++) {
-                solOut[id] = - perm * dsoldx(id, 0);
+                solOut[id] =  perm * dsoldx(id, 0);
             }
             return;
         }

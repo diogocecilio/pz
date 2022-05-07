@@ -206,6 +206,17 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 	REAL val;/*,val1,val2,val3,val4*/;
 	
   
+    int intPt = data.intGlobPtIndex;
+    int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.size();
+    REAL fluxx,fluxy;
+    if(sz==0)
+    {
+           fluxx = 0;
+           fluxy = 0;
+    }else{
+           fluxx = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
+           fluxy = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+    }
   TPZManVector<STATE,5> ForceLoc(this->fForce);
   if(this->fForcingFunction)
   {
@@ -216,12 +227,12 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 	for(in = 0; in < phr; in++)
 	{
 		
-		val  = ForceLoc[0] * phi(in,0);
+		val  = (ForceLoc[0]) * phi(in,0)+ fluxx*phi(in,0);
 		val -= Stress(_XX_,0) * dphiXY(0,in);
 		val -= Stress(_XY_,0) * dphiXY(1,in);
 		ef(in*nstate+0,0) += weight * val;
     
-		val  = ForceLoc[1] * phi(in,0);
+		val  = (ForceLoc[1]) * phi(in,0)+ fluxy*phi(in,0);
 		val -= Stress(_XY_,0) * dphiXY(0,in);
 		val -= Stress(_YY_,0) * dphiXY(1,in);
 		ef(in*nstate+1,0) += weight * val;
@@ -286,6 +297,19 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 template <class T, class TMEM>
 void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weight, TPZFMatrix<REAL> &ef)
 {
+    int intPt = data.intGlobPtIndex;
+    int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.size();
+    REAL fluxx,fluxy;
+    if(sz==0)
+    {
+           fluxx = 0;
+           fluxy = 0;
+    }else{
+           fluxx = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
+           fluxy = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+    }
+  
+
 	
 	TPZFMatrix<REAL> &dphi = data.dphix, dphiXY;
 	TPZFMatrix<REAL> &phi  = data.phi;
@@ -382,12 +406,12 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 	for(in = 0; in < phr; in++)
 	{
 		
-		val  =ForceLoc[0] * phi(in,0);
+		val  =(ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0);
 		val -= Stress(_XX_,0) * dphiXY(0,in);
 		val -= Stress(_XY_,0) * dphiXY(1,in);
 		ef(in*nstate+0,0) += weight * val;
     
-		val  = ForceLoc[1] * phi(in,0);
+		val  = (ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0);
 		val -= Stress(_XY_,0) * dphiXY(0,in);
 		val -= Stress(_YY_,0) * dphiXY(1,in);
 		ef(in*nstate+1,0) += weight * val;
