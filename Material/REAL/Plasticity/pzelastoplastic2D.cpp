@@ -208,14 +208,16 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
   
     int intPt = data.intGlobPtIndex;
     int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.size();
-    REAL fluxx,fluxy;
+    REAL fluxx,fluxy,pressure;
     if(sz==0)
     {
-           fluxx = 0;
-           fluxy = 0;
+           fluxx = 0.;
+           fluxy = 0.;
+		   pressure=0.;
     }else{
            fluxx = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
            fluxy = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+		   pressure = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fpressure;
     }
   TPZManVector<STATE,5> ForceLoc(this->fForce);
   if(this->fForcingFunction)
@@ -228,13 +230,13 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 	{
 		
 		val  = (ForceLoc[0]) * phi(in,0)+ fluxx*phi(in,0);
-		val -= Stress(_XX_,0) * dphiXY(0,in);
+		val -= Stress(_XX_,0) * dphiXY(0,in)- pressure*dphiXY(0,in);
 		val -= Stress(_XY_,0) * dphiXY(1,in);
 		ef(in*nstate+0,0) += weight * val;
     
 		val  = (ForceLoc[1]) * phi(in,0)+ fluxy*phi(in,0);
 		val -= Stress(_XY_,0) * dphiXY(0,in);
-		val -= Stress(_YY_,0) * dphiXY(1,in);
+		val -= Stress(_YY_,0) * dphiXY(1,in)-pressure*dphiXY(1,in);
 		ef(in*nstate+1,0) += weight * val;
 		
 		for( int jn = 0; jn < phr; jn++)
@@ -299,14 +301,16 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 {
     int intPt = data.intGlobPtIndex;
     int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.size();
-    REAL fluxx,fluxy;
+    REAL fluxx,fluxy,pressure;
     if(sz==0)
     {
-           fluxx = 0;
-           fluxy = 0;
+           fluxx = 0.;
+           fluxy = 0.;
+		   pressure=0.;
     }else{
            fluxx = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
            fluxy = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+		   pressure = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fpressure;
     }
   
 
@@ -407,13 +411,13 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 	{
 		
 		val  =(ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0);
-		val -= Stress(_XX_,0) * dphiXY(0,in);
+		val -= Stress(_XX_,0) * dphiXY(0,in)-pressure*dphiXY(0,in);
 		val -= Stress(_XY_,0) * dphiXY(1,in);
 		ef(in*nstate+0,0) += weight * val;
     
 		val  = (ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0);
 		val -= Stress(_XY_,0) * dphiXY(0,in);
-		val -= Stress(_YY_,0) * dphiXY(1,in);
+		val -= Stress(_YY_,0) * dphiXY(1,in)- pressure*dphiXY(1,in);
 		ef(in*nstate+1,0) += weight * val;
 		
 	}

@@ -73,6 +73,9 @@ void PrintMat ( std::string out,TPZFMatrix<REAL> mat );
 
 TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder );
 
+
+void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor );
+
 template <class T>
 std::vector<T> str_vec ( std::vector<std::string> &vs );
 
@@ -163,7 +166,7 @@ void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
         const auto &y=pt[1];
         const auto &z=pt[2];
         REAL atm  = 10.33;//10.33 mca = 1 atm
-        disp[0] = ( 40-y );
+        disp[0] = -9.8/*kn/m^3*/ * ( 40-y )/* m */ ;/* = kn/m^2 */
 }
 
 void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
@@ -188,7 +191,7 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     auto *material = new TPZDarcyFlow ( matid,dim );
     //Bet Degan loamy sand 
 	//STATE permeability = 6.3e-5;//m/s
-	STATE permeability = 0.063;//m/s
+	STATE permeability = 0.63;//m/s
 	//STATE permeability = 10.;//m/s
     material->SetConstantPermeability ( permeability );
 	material->SetId(1);
@@ -211,17 +214,19 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
 
      TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
      BCond1->SetForcingFunction(pressure);
-     
-    // TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
-    // BCond2->SetForcingFunction(pressure);
-	 val2(0,0)=-1;
+	 
+	val2(0,0)=-1;
 	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 1, val1, val2 );//tl
-     //BCond2->SetForcingFunction(pressure);
+	BCond2->SetForcingFunction(pressure);
+
+     
+	 
+	//LoadingRampRainFall ( cmesh,  1. );
 
 
     cmesh->InsertMaterialObject(BCond0);
     cmesh->InsertMaterialObject(BCond1);
-    cmesh->InsertMaterialObject(BCond2);
+	cmesh->InsertMaterialObject(BCond2);
 
     //Creating computational elements that manage the space of the mesh:
     cmesh->AutoBuild();
@@ -229,6 +234,22 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     cmesh->CleanUpUnconnectedNodes();
 
     return cmesh;
+}
+
+void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor )
+{
+	TPZAutoPointer<TPZFunction<STATE> > pressure = new TPZDummyFunction<STATE>(ForcingBCPressao);
+	TPZMaterial * material = dynamic_cast<TPZDarcyFlow *> ( cmesh->FindMaterial ( 1 ) );
+	
+    // Condition of contours
+    TPZFMatrix<STATE>  val1 ( 2,2,0. );
+    TPZFMatrix<STATE>  val2 ( 2,1,0. );
+	
+	val2(0,0)=-10;
+	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 1, val1, val2 );//tl
+	BCond2->SetForcingFunction(pressure);
+	cmesh->InsertMaterialObject(BCond2);
+
 }
 
 // TPZCompMesh * CreateCMeshDarcyDummy( TPZGeoMesh *gmesh, int pOrder )
@@ -576,6 +597,8 @@ void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor )
 
 }
 
+
+
 void  CreatePostProcessingMesh ( TPZPostProcAnalysis * PostProcess,TPZCompMesh * cmesh )
 {
 
@@ -684,6 +707,7 @@ void ShearRed ( TPZCompMesh * cmesh)
     int NumIter = 20;
     bool linesearch = true;
     bool checkconv = false;
+	std::ofstream outnewton("saida-newton.txt");
     do {
 
         bool optimize =true;

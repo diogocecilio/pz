@@ -547,6 +547,8 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		CheckConvergence(*this,fSolution,range,coefs);
 	}
 	
+	double NormResLambda0 = Norm(fRhs);
+	
 	while(error > tol && iter < numiter) {
 		
 //        fSolution.Redim(0,0);

@@ -27,13 +27,14 @@ TPZGeoMesh * CreateGMeshGid ( int ref );
 
 TPZCompMesh * CreateCMesh( TPZGeoMesh *gmesh, int pOrder );
 
+void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor );
+
 int main()
 {
 	
 	int porder =2;
-	int samples =10;
 
- 	TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
+ 	TPZGeoMesh *gmesh = CreateGMesh ( 4 );
 
     TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
 
@@ -53,30 +54,92 @@ int main()
     TPZStepSolver<STATE> step;
     step.SetDirect ( ELDLt );
     analysis.SetSolver ( step );
+	
+	string vtkfile = "Darcyx.vtk";
+	
+	int steps=10;
+	REAL rainloadload =-10.;
+	REAL factor = rainloadload/steps;
+	REAL load=factor;
+    for(int i=1;i<=steps;i++){
+		
+	LoadingRampRainFall(cmesh,load);
 
-    //for(int i=0;i<2;i++){
+	load+=factor;
 
-    analysis.Assemble(); // Assembla the global matrix
-
-    std::cout << "Solving Matrix " << std::endl;
-    analysis.Solve();
-
-	analysis.Solution().Print(std::cout);
+    analysis.Run(); // Assembla the global matrix
 	
     ///vtk export
     TPZVec<std::string> scalarVars ( 1 ),vectorVars ( 1 );
     scalarVars[0] = "Pressure";
     vectorVars[0] = "Flux";
-    analysis.DefineGraphMesh ( 2,scalarVars,vectorVars,"Darcyx.vtk" );
+    analysis.DefineGraphMesh ( 2,scalarVars,vectorVars, vtkfile);
     constexpr int resolution{0};
     analysis.PostProcess ( resolution );
 
-    //}
+    }
 
     std::cout << "FINISHED!" << std::endl;
 
 
     return 0;
+}
+
+TPZCompMesh * CreateCMesh( TPZGeoMesh *gmesh, int pOrder )
+{
+    // Creating computational mesh:
+    TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
+    cmesh->SetDefaultOrder ( pOrder );
+    cmesh->SetDimModel ( 2 );
+    cmesh->SetAllCreateFunctionsContinuous();
+
+    // Create the material:
+    // TPZDarcyFlow *material = new TPZDarcyFlow(m_matID,m_dim);
+	int matid=1,dim=2;
+    auto *material = new TPZDarcyFlow ( matid,dim );
+    //Bet Degan loamy sand 
+	//STATE permeability = 6.3e-5;//m/s
+	STATE permeability = 1.;//m/s
+
+    material->SetConstantPermeability ( permeability );
+	material->SetId(1);
+
+    cmesh->InsertMaterialObject ( material );
+
+    // Condition of contours
+    TPZFMatrix<STATE>  val1 ( 2,2,0. );
+    TPZFMatrix<STATE>  val2 ( 2,1,0. );
+	
+	TPZAutoPointer<TPZFunction<STATE> > pressure = new TPZDummyFunction<STATE>(ForcingBCPressao);
+    
+    
+    //material->SetForcingFunction(rhs);
+    
+
+	TPZMaterial * BCond0 = material->CreateBC ( material, -3, 0, val1, val2 );//tr
+	BCond0->SetForcingFunction(pressure);
+
+	TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
+	BCond1->SetForcingFunction(pressure);
+     
+	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 1, val1, val2 );//tl
+
+    cmesh->InsertMaterialObject(BCond0);
+    cmesh->InsertMaterialObject(BCond1);
+	cmesh->InsertMaterialObject(BCond2);
+
+    //Creating computational elements that manage the space of the mesh:
+    cmesh->AutoBuild();
+    cmesh->AdjustBoundaryElements();
+    cmesh->CleanUpUnconnectedNodes();
+
+    return cmesh;
+}
+void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor )
+{
+	TPZBndCond * bc = dynamic_cast<TPZBndCond *> ( cmesh->FindMaterial ( -5) );
+	bc->Val2()(0,0)=factor;
+
 }
 
 TPZGeoMesh * CreateGMeshGid ( int ref )
@@ -233,6 +296,126 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     return gmesh;
 }
 
+// TPZGeoMesh *  CreateGMesh ( int ref )
+// {
+//     const std::string name ( "Slope Problem " );
+// 
+//     TPZGeoMesh *gmesh  =  new TPZGeoMesh();
+// 
+//     gmesh->SetName ( name );
+//     gmesh->SetDimension ( 2 );
+// 
+//     TPZVec<REAL> coord ( 2 );
+// 
+//     vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0.,40.},
+// 	
+// 	{35./3., 40.},{2 * 35/3., 40.}, {30., 40.},
+// 	
+// 	{30., 30.}, {60.,30.},
+// 	
+// 	{2* 35./3.,2* 35/3.}, {45., 2* 35/3.},
+// 	
+// 	 {35./3., 35/3.}, {60., 35./3.}
+// 
+//     };
+//     vector<vector<int>> topol = {
+// 		{0,  1,  14, 13},
+// 		{1,  2,  10, 14}, 
+// 		{14, 10, 3,  12}, 
+// 		{13, 14, 12, 11},
+// 		{11, 12, 3,  9}, 
+// 		{9,  3,  4,  8},
+// 		{11, 9,  8,  7},
+// 		{13, 11, 7, 6},
+// 		{0, 13,  6, 5}
+//     };
+// 
+// 
+//     gmesh->NodeVec().Resize ( co.size() );
+// 
+//     for ( int inode=0; inode<co.size(); inode++ ) {
+//         coord[0] = co[inode][0];
+//         coord[1] = co[inode][1];
+//         gmesh->NodeVec() [inode] = TPZGeoNode ( inode, coord, *gmesh );
+//     }
+//     TPZVec <long> TopoQuad ( 4 );
+//     for ( int iel=0; iel<topol.size(); iel++ ) {
+//         TopoQuad[0] = topol[iel][0];
+//         TopoQuad[1] = topol[iel][1];
+//         TopoQuad[2] =	topol[iel][2];
+//         TopoQuad[3] = topol[iel][3];
+//         new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( iel, TopoQuad, 1,*gmesh );
+//     }
+//     int id = topol.size();
+//     TPZVec <long> TopoLine ( 2 );
+//     TopoLine[0] = 0;
+//     TopoLine[1] = 1;
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, *gmesh );//bottom
+// 
+//     id++;
+//     TopoLine[0] = 1;
+//     TopoLine[1] = 2;
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, *gmesh );//rigth
+// 
+//     id++;
+//     TopoLine[0] = 0;
+//     TopoLine[1] = 5;
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh );//left
+// 
+//     {
+//             id++;
+//             TopoLine[0] = 5;
+//             TopoLine[1] = 6;
+//             new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+//             
+//             id++;
+//             TopoLine[0] = 6;
+//             TopoLine[1] = 7;
+//             new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+//             
+//             id++;
+//             TopoLine[0] = 7;
+//             TopoLine[1] = 8;
+//             new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+//             
+//             id++;
+//             TopoLine[0] = 8;
+//             TopoLine[1] = 4;
+//             new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+//     }
+// 
+// 
+//     {
+//         id++;
+//         TopoLine[0] = 3;
+//         TopoLine[1] = 10;
+//         new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
+//         
+//         id++;
+//         TopoLine[0] = 10;
+//         TopoLine[1] = 2;
+//         new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
+//     }
+// 
+// 
+//     id++;
+//     TopoLine[0] = 3;
+//     TopoLine[1] = 4;
+//     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );//ramp
+// 
+//     gmesh->BuildConnectivity();
+//     for ( int d = 0; d<ref; d++ ) {
+//         int nel = gmesh->NElements();
+//         TPZManVector<TPZGeoEl *> subels;
+//         for ( int iel = 0; iel<nel; iel++ ) {
+//             TPZGeoEl *gel = gmesh->ElementVec() [iel];
+//             gel->Divide ( subels );
+//         }
+//     }
+// 
+//     return gmesh;
+// }
+
 TPZGeoMesh *  CreateGMesh ( int ref )
 {
     const std::string name ( "Slope Problem " );
@@ -293,52 +476,56 @@ TPZGeoMesh *  CreateGMesh ( int ref )
     TopoLine[0] = 1;
     TopoLine[1] = 2;
     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, *gmesh );//rigth
+	
+	{
+        id++;
+        TopoLine[0] = 3;
+        TopoLine[1] = 10;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh ); // top rigth
+        
+        id++;
+        TopoLine[0] = 10;
+        TopoLine[1] = 2;
+        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh ); // top rigth
+    }
 
-    id++;
-    TopoLine[0] = 0;
-    TopoLine[1] = 5;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh );//left
+	id++;
+    TopoLine[0] = 3;
+    TopoLine[1] = 4;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh );//ramp
+	
+
 
     {
             id++;
             TopoLine[0] = 5;
             TopoLine[1] = 6;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
             
             id++;
             TopoLine[0] = 6;
             TopoLine[1] = 7;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
             
             id++;
             TopoLine[0] = 7;
             TopoLine[1] = 8;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
             
             id++;
             TopoLine[0] = 8;
             TopoLine[1] = 4;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh ); //top left
+            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
     }
 
 
-    {
-        id++;
-        TopoLine[0] = 3;
-        TopoLine[1] = 10;
-        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
-        
-        id++;
-        TopoLine[0] = 10;
-        TopoLine[1] = 2;
-        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); // top rigth
-    }
 
 
     id++;
-    TopoLine[0] = 3;
-    TopoLine[1] = 4;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );//ramp
+    TopoLine[0] = 0;
+    TopoLine[1] = 5;
+    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );//left
+
 
     gmesh->BuildConnectivity();
     for ( int d = 0; d<ref; d++ ) {
@@ -369,57 +556,4 @@ void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
 }
 
 
-TPZCompMesh * CreateCMesh( TPZGeoMesh *gmesh, int pOrder )
-{
-    // Creating computational mesh:
-    TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
-    cmesh->SetDefaultOrder ( pOrder );
-    cmesh->SetDimModel ( 2 );
-    cmesh->SetAllCreateFunctionsContinuous();
-
-    // Create the material:
-    // TPZDarcyFlow *material = new TPZDarcyFlow(m_matID,m_dim);
-	int matid=1,dim=2;
-    auto *material = new TPZDarcyFlow ( matid,dim );
-    //Bet Degan loamy sand 
-	//STATE permeability = 6.3e-5;//m/s
-	STATE permeability = 1.;//m/s
-
-    material->SetConstantPermeability ( permeability );
-	material->SetId(1);
-
-    cmesh->InsertMaterialObject ( material );
-
-    // Condition of contours
-    TPZFMatrix<STATE>  val1 ( 2,2,0. );
-    TPZFMatrix<STATE>  val2 ( 2,1,0. );
-	
-	TPZAutoPointer<TPZFunction<STATE> > pressure = new TPZDummyFunction<STATE>(ForcingBCPressao);
-    
-	TPZAutoPointer<TPZFunction<STATE> > rhs = new TPZDummyFunction<STATE>(Forcing);
-    
-    //material->SetForcingFunction(rhs);
-    
-
-     TPZMaterial * BCond0 = material->CreateBC ( material, -3, 0, val1, val2 );//tr
-     BCond0->SetForcingFunction(pressure);
-
-     TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
-     BCond1->SetForcingFunction(pressure);
-     
-     TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
-     BCond2->SetForcingFunction(pressure);
-
-
-    cmesh->InsertMaterialObject(BCond0);
-    cmesh->InsertMaterialObject(BCond1);
-    cmesh->InsertMaterialObject(BCond2);
-
-    //Creating computational elements that manage the space of the mesh:
-    cmesh->AutoBuild();
-    cmesh->AdjustBoundaryElements();
-    cmesh->CleanUpUnconnectedNodes();
-
-    return cmesh;
-}
 
