@@ -50,6 +50,7 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder );
 
 void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor );
 
+
 void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames );
 
 void  CreatePostProcessingMesh ( TPZPostProcAnalysis * PostProcess,TPZCompMesh * cmesh );
@@ -79,7 +80,7 @@ void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor );
 template <class T>
 std::vector<T> str_vec ( std::vector<std::string> &vs );
 
-void SolveDarcyProlem(TPZCompMesh *cmesh,int porder);
+void SolveDarcyProlem(TPZCompMesh *cmesh,string vtk);
 
 void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp);
 
@@ -89,39 +90,56 @@ TPZCompMesh * CreateCMeshDarcyDummy( TPZGeoMesh *gmesh, int pOrder );
 
 TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder );
 
+void PostDarcy(TPZAnalysis * analysis,string vtk);
+
 int main()
 {
 
-    int porder= 3;
+    int porder= 2;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
 
 
-    TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
-
-
-    SolveDarcyProlem(darcycompmesh, porder);
     
-//       TPZCompMesh *  darcycompmeshdummy =  CreateCMeshDarcyDummy(gmesh,  porder );
-//       darcycompmeshdummy->LoadSolution(darcycompmesh->Solution());
-// //     
-//      TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( darcycompmeshdummy);
-//      anal->LoadSolution(darcycompmesh->Solution());
 
+
+    string vtk = "Darcyx.vtk"; 
+    
+    
+    TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
+    std::string vtkFiled ="vtkfolder/deterministic.vtk";
+    
+
+    //Rain Load
+    int steps=5;
+    REAL totalload,load,delta;
+    totalload=0.0002;//m/s
+    totalload=1.;//m/s
+    delta=totalload/steps;
+    load=0.;
     //Deterministic
-	if(true)
+	for(int iload=0;iload<=steps;iload++)
  	{
-	    TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
-    	std::string vtkFiled ="vtkfolder/deterministic.vtk";
-    	TPZCompMesh *cmeshdeter = CreateCMesh ( gmesh,porder );
-        
-        SetFlux(cmeshdeter,darcycompmesh);
+        TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
+        TPZCompMesh *cmeshdeter = CreateCMesh ( gmesh,porder );
+        cout << "\n --------- iload = "<< iload << " | load = "<< load << endl;
+        cout << "\n Setting Load.. " << endl;
+        LoadingRampRainFall ( darcycompmesh,  load );
 
+        cout << "\n Solving Darcy.. " << endl;
+        SolveDarcyProlem(darcycompmesh, vtk);
+        
+        cout << "\n Setting flux in mechanic comp mesh.. " << endl;
+        SetFlux(cmeshdeter,darcycompmesh);
+        
+        cout << "\n Strength reduction routine.. " << endl;
     	ShearRed ( cmeshdeter );
         
-        
+        cout << "\n Post Processing.. " << endl;
     	CreatePostProcessingMesh ( postprocdeter, cmeshdeter );
-    	Post ( postprocdeter,vtkFiled ); 
+    	Post ( postprocdeter,vtkFiled );
+        
+        load+=delta;
 	}
 
 
@@ -131,7 +149,7 @@ int main()
     return 0;
 }
 
-void SolveDarcyProlem(TPZCompMesh *cmesh,int porder)
+void SolveDarcyProlem(TPZCompMesh *cmesh,string vtk)
 {
 
 
@@ -150,14 +168,20 @@ void SolveDarcyProlem(TPZCompMesh *cmesh,int porder)
 
     analysis->Run();
 
+
+    PostDarcy(analysis,vtk);
+
+    
+}
+
+void PostDarcy(TPZAnalysis * analysis,string vtk)
+{
     TPZVec<std::string> scalarVars ( 1 ),vectorVars ( 1 );
     scalarVars[0] = "Pressure";
     vectorVars[0] = "Flux";
-    analysis->DefineGraphMesh ( 2,scalarVars,vectorVars,"Darcyx.vtk" );
+    analysis->DefineGraphMesh ( 2,scalarVars,vectorVars,vtk);
     constexpr int resolution{0};
     analysis->PostProcess ( resolution );
-
-    
 }
 
 
@@ -166,7 +190,7 @@ void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
         const auto &y=pt[1];
         const auto &z=pt[2];
         REAL atm  = 10.33;//10.33 mca = 1 atm
-        disp[0] = -9.8/*kn/m^3*/ * ( 40-y )/* m */ ;/* = kn/m^2 */
+        disp[0] = -9.8/*kn/m^3*/ * ( 40-y )/* m */ ;/* = kn/m^2 = kPa*/
 }
 
 void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
@@ -190,8 +214,8 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
 	int matid=1,dim=2;
     auto *material = new TPZDarcyFlow ( matid,dim );
     //Bet Degan loamy sand 
-	//STATE permeability = 6.3e-5;//m/s
-	STATE permeability = 0.63;//m/s
+	//STATE permeability = 0.0063 ;//cm/s
+	STATE permeability = 0.000063;//m/s
 	//STATE permeability = 10.;//m/s
     material->SetConstantPermeability ( permeability );
 	material->SetId(1);
@@ -208,20 +232,22 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     
     //material->SetForcingFunction(rhs);
     
-
+//     REAL big = TPZMaterial::gBigNumber;
+//     val2(0,0)=big;
+//     val1(0,0)=big;
+//     val1(1,1)=big;
      TPZMaterial * BCond0 = material->CreateBC ( material, -3, 0, val1, val2 );//tr
      BCond0->SetForcingFunction(pressure);
 
-     TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
-     BCond1->SetForcingFunction(pressure);
+     TPZMaterial * BCond1 = material->CreateBC ( material, -4, 1, val1, val2 );//ramp
+     //BCond1->SetForcingFunction(pressure);
 	 
-	val2(0,0)=-1;
+	//val2(0,0)=-1;
 	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 1, val1, val2 );//tl
-	BCond2->SetForcingFunction(pressure);
+	//BCond2->SetForcingFunction(pressure);
 
      
 	 
-	//LoadingRampRainFall ( cmesh,  1. );
 
 
     cmesh->InsertMaterialObject(BCond0);
@@ -232,75 +258,31 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     cmesh->AutoBuild();
     cmesh->AdjustBoundaryElements();
     cmesh->CleanUpUnconnectedNodes();
+    
+    
+	//LoadingRampRainFall ( cmesh,  1. );
 
     return cmesh;
 }
 
 void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor )
 {
-	TPZAutoPointer<TPZFunction<STATE> > pressure = new TPZDummyFunction<STATE>(ForcingBCPressao);
-	TPZMaterial * material = dynamic_cast<TPZDarcyFlow *> ( cmesh->FindMaterial ( 1 ) );
-	
-    // Condition of contours
-    TPZFMatrix<STATE>  val1 ( 2,2,0. );
-    TPZFMatrix<STATE>  val2 ( 2,1,0. );
-	
-	val2(0,0)=-10;
-	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 1, val1, val2 );//tl
-	BCond2->SetForcingFunction(pressure);
-	cmesh->InsertMaterialObject(BCond2);
+//     REAL big = TPZMaterial::gBigNumber;
+//     
+//     auto * bc1 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-3));
+// 	bc1->Val2()(0,0)=factor*big;
+//     bc1->Val1()(0,0)=big;
+    
+    auto * bc2 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-4));
+	bc2->Val2()(0,0)=factor;
+    
+	auto * bc3 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-5));
+	bc3->Val2()(0,0)=factor;
+    
+    
 
 }
 
-// TPZCompMesh * CreateCMeshDarcyDummy( TPZGeoMesh *gmesh, int pOrder )
-// {
-// 
-//     unsigned int dim  = 2;
-//     const std::string name ( "Dummy mesh Problem " );
-// 
-//     TPZCompMesh * cmesh =  new TPZCompMesh ( gmesh );
-//     cmesh->SetName ( name );
-//     cmesh->SetDefaultOrder ( pOrder );
-//     cmesh->SetDimModel ( dim );
-// 
-// 
-// 
-// 	int matid=1;
-//     auto *material = new TPZDarcyFlow ( matid,dim );
-//     //Bet Degan loamy sand 
-// 	//STATE permeability = 6.3e-5;//m/s
-// 	STATE permeability = 1.;//m/s
-// 
-//     material->SetConstantPermeability ( permeability );
-// 	material->SetId(1);
-// 
-//     cmesh->InsertMaterialObject ( material );
-// 
-//     TPZFMatrix<STATE> val1 ( 2,2,0. );
-//     TPZFMatrix<STATE>  val2 ( 2,1,0. );
-//     int directionadirichlet =3;
-//     val2 ( 0,0 ) = 1;
-//     val2 ( 1,0 ) = 1;
-//     auto * bc_bottom = material->CreateBC ( material, -1,directionadirichlet, val1, val2 );//bottom
-//     val2 ( 0,0 ) = 1;
-//     val2 ( 1,0 ) = 0;
-//     auto * bc_rigth = material->CreateBC ( material, -2, directionadirichlet, val1, val2 );//rigth
-//     val2 ( 0,0 ) = 1;
-//     val2 ( 1,0 ) = 0;
-//     auto * bc_left = material->CreateBC ( material, -6, directionadirichlet, val1, val2 );//left
-// 
-//     cmesh->InsertMaterialObject ( bc_bottom );
-//     cmesh->InsertMaterialObject ( bc_rigth );
-//     cmesh->InsertMaterialObject ( bc_left );
-// 
-//     //cmesh->InsertMaterialObject ( top );
-//     cmesh->SetAllCreateFunctionsContinuousWithMem();
-// 
-//     cmesh->AutoBuild();
-// 
-//     return cmesh;
-// 
-// }
 
 void ComputeSolution(TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphix,TPZSolVec &sol, TPZGradSolVec &dsol){
     const int dim = cel->Reference()->Dimension();
@@ -713,14 +695,10 @@ void ShearRed ( TPZCompMesh * cmesh)
         bool optimize =true;
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
 
-        anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+        anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv );
         norm = Norm ( anal->Rhs() );
-        
-        //anal->AcceptSolution();
-        
-       // SetFlux(cmesh,meshdarcy);
 
-        //std::cout << "| Load step = " << counterout << " | Rhs norm = " << norm << "| delta displacement norm = "<< unorm << std::endl;
+        std::cout << "FS = " << FS << " | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
         if ( norm>= tol2 ) {
             displace = displace0;
             FSmax = FS;
@@ -730,17 +708,17 @@ void ShearRed ( TPZCompMesh * cmesh)
             FSmin = FS;
             FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
         }
-        std::cout << "FS = " << FS << std::endl;
+        //std::cout << "FS = " << FS << std::endl;
         c=cohesion0/FS;
         phi=atan ( tan ( phi0 ) /FS );
         psi=phi;
         LEMC.fYC.SetUp ( phi, psi, c, ER );
         material->SetPlasticity ( LEMC );
         counterout++;
-    }  while ( ( FSmax - FSmin ) / FS > tol && counterout<maxcount);
+    }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) || norm>tol2);
 	bool optimize =false;
 	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
-    anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+    anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv );
     anal->AcceptSolution();
 }
 #include "TPZFrontMatrix.h"
@@ -792,8 +770,8 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
     TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
     TPZAdmChunkVector<TPZElastoPlasticMem>  &mem = pMatWithMem2->GetMemory();
 
-     cout << "mem.NElements() "<< mem.NElements()  <<endl;
-     cout << " nels0 "<< nels0  <<endl;
+     //cout << "mem.NElements() "<< mem.NElements()  <<endl;
+     //cout << " nels0 "<< nels0  <<endl;
     if ( pMatWithMem2 ) {
         pMatWithMem2->SetUpdateMem ( true );
     }
@@ -837,9 +815,9 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 
         if(celplastic->Material()->Id()!=1 || celdarcy->Material()->Id()!=1)
         {
-            cout << "\n Boundary El "<<endl;
-            cout << "\n celplastic->Material()->Id() = "<< celplastic->Material()->Id()<<endl;
-            cout << "\n celdarcy->Material()->Id() = "<< celdarcy->Material()->Id()<<endl;
+           // cout << "\n Boundary El "<<endl;
+           // cout << "\n celplastic->Material()->Id() = "<< celplastic->Material()->Id()<<endl;
+           // cout << "\n celdarcy->Material()->Id() = "<< celdarcy->Material()->Id()<<endl;
             continue;
         }
         

@@ -72,7 +72,7 @@ void TPZDarcyFlow::ContributeBC( TPZMaterialData &data, STATE weight, TPZFMatrix
     switch (bc.Type()) {
         case 0 : // Dirichlet condition
             for (in = 0; in < phr; in++) {
-                std::cout << "pt "<<data.x << std::endl;
+                //std::cout << "pt "<<data.x << std::endl;
                 ef(in, 0) += (STATE) (gBigNumber * phi.Get(in, 0) * weight) * v2;
                 for (jn = 0; jn < phr; jn++) {
                     ek(in, jn) += gBigNumber * phi.Get(in, 0) * phi.Get(jn, 0) * weight;
