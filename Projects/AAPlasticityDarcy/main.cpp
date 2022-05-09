@@ -114,7 +114,7 @@ int main()
     int steps=5;
     REAL totalload,load,delta;
     totalload=0.0002;//m/s
-    totalload=1.;//m/s
+    totalload=-1.;//m/s
     delta=totalload/steps;
     load=0.;
     //Deterministic
@@ -233,9 +233,6 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     //material->SetForcingFunction(rhs);
     
 //     REAL big = TPZMaterial::gBigNumber;
-//     val2(0,0)=big;
-//     val1(0,0)=big;
-//     val1(1,1)=big;
      TPZMaterial * BCond0 = material->CreateBC ( material, -3, 0, val1, val2 );//tr
      BCond0->SetForcingFunction(pressure);
 
@@ -267,11 +264,10 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
 
 void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor )
 {
-//     REAL big = TPZMaterial::gBigNumber;
-//     
+//      REAL big = TPZMaterial::gBigNumber;
+// //     
 //     auto * bc1 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-3));
-// 	bc1->Val2()(0,0)=factor*big;
-//     bc1->Val1()(0,0)=big;
+//     bc1->Val1()(0,0)=factor;
     
     auto * bc2 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-4));
 	bc2->Val2()(0,0)=factor;

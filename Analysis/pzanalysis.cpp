@@ -416,23 +416,222 @@ void TPZAnalysis::LoadSolution() {
 		fCompMesh->LoadSolution(fSolution);
 	}
 }
-// void TPZAnalysis::Solve() {
-// 	long numeq = fCompMesh->NEquations();
+void TPZAnalysis::AssembleC (TPZFMatrix<REAL> &C)
+{
+  long iel, jel;
+  long nelem = fCompMesh->NElements();
+  TPZManVector<TPZManVector<int>> meshtopology;
+
+  TPZElementMatrix temp ( fCompMesh, TPZElementMatrix::EK );
+  TPZAdmChunkVector<TPZCompEl *> &elementvec = fCompMesh->ElementVec();
+  int sz = fCompMesh->NEquations();
+  C.Resize ( sz, sz );
+
+  long count = 0;
+  for ( iel = 0; iel < nelem; iel++ )
+    {
+      //std::cout << "\n iel " << iel << std::endl;
+      TPZCompEl *el = elementvec[iel];
+      for ( int jel = 0; jel < nelem; jel++ )
+        {
+          //std::cout << "\n jel " << jel << std::endl;
+          TPZCompEl *elj = elementvec[jel];
+          TPZElementMatrix ce ( fCompMesh, TPZElementMatrix::EK );
+          el->CalcStiffC (elj, ce );
+          //ce.fMat.Print(std::cout);
+          int nshape = ce.fMat.Rows();
+          TPZManVector<long> SourceIndexIEL, DestinationIndexIEL, SourceIndexJEL, DestinationIndexJEL;
+          //GetDestIndex ( iel, nshape, SourceIndexIEL, DestinationIndexIEL );
+          //GetDestIndex ( jel, nshape, SourceIndexJEL, DestinationIndexJEL );
+
+          for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
+            {
+              for ( int icol = 0; icol < DestinationIndexJEL.size(); icol++ )
+                {
+                  C ( DestinationIndexIEL[irow], DestinationIndexJEL[icol] ) += ce.fMat ( SourceIndexIEL[irow], SourceIndexJEL[icol] );
+                }
+            }
+
+        }//jel
+
+    }//iel
+
+ // C.Print ( std::cout );
+}
+void TPZAnalysis::AssembleB(TPZFMatrix<REAL> &B)
+{
+  long iel;
+  long nelem = fCompMesh->NElements();
+  TPZManVector<TPZManVector<int>> meshtopology;
+
+  TPZElementMatrix temp ( fCompMesh, TPZElementMatrix::EK );
+  TPZAdmChunkVector<TPZCompEl *> &elementvec = fCompMesh->ElementVec();
+  int sz = fCompMesh->NEquations();
+  B.Resize ( sz, sz );
+
+  for ( iel = 0; iel < nelem; iel++ )
+    {
+      TPZCompEl *el = elementvec[iel];
+      TPZElementMatrix be ( fCompMesh, TPZElementMatrix::EK );
+      el->CalcStiffB ( be );
+      int nshape = be.fMat.Rows();
+      TPZManVector<long> SourceIndexIEL, DestinationIndexIEL;
+      //GetDestIndex ( iel, nshape, SourceIndexIEL, DestinationIndexIEL );
+      for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
+          {
+            for ( int icol = 0; icol < DestinationIndexIEL.size(); icol++ )
+              {
+                B ( DestinationIndexIEL[irow], DestinationIndexIEL[icol] ) += be.fMat ( SourceIndexIEL[irow], SourceIndexIEL[icol] );
+              }
+          }
+    }//iel
+
+ // C.Print ( std::cout );
+}
+void TPZAnalysis::AssembleKL()
+{
+	if(!fCompMesh || !fStructMatrix || !fSolver)
+	{
+		std::stringstream sout;
+		sout << "TPZAnalysis::Assemble lacking definition for Assemble fCompMesh "<< (void *) fCompMesh
+		<< " fStructMatrix " << (void *) fStructMatrix.operator->()
+		<< " fSolver " << (void *) fSolver;
+#ifndef WINDOWS
+		sout << " at file " << __FILE__ << " line " << __LINE__ ;
+#else
+		sout << " TPZAnalysis::Assemble() " ;
+#endif
+#ifdef LOG4CXX
+		LOGPZ_ERROR(logger,sout.str().c_str());
+#else
+		std::cout << sout.str().c_str() << std::endl;
+#endif
+		return;
+	}
+    int numloadcases = ComputeNumberofLoadCases();
+	long sz = fCompMesh->NEquations();
+	fRhs.Redim(sz,numloadcases);
+	if(fSolver->Matrix() && fSolver->Matrix()->Rows()==sz)
+	{
+		fSolver->Matrix()->Zero();
+		fStructMatrix->Assemble(*(fSolver->Matrix().operator ->()),fRhs,fGuiInterface);
+	}
+	else
+	{
+		TPZMatrix<STATE> *mat = fStructMatrix->CreateAssemble(fRhs,fGuiInterface);
+		fSolver->SetMatrix(mat);
+		//aqui TPZFMatrix<STATE> nao eh nula
+	}
+#ifdef LOG4CXX
+    if(logger->isDebugEnabled())
+    {
+        std::stringstream sout;
+        fRhs.Print("Rhs",sout);
+        LOGPZ_DEBUG(logger,sout.str())
+    }
+#endif
+		
+	fSolver->UpdateFrom(fSolver->Matrix());
+}
+
+ void TPZAnalysis::SolveKL() {
+	long numeq = fCompMesh->NEquations();
+	if(fRhs.Rows() != numeq ) 
+    {
+        DebugStop();
+    }
+	long nReducedEq = fStructMatrix->NReducedEquations();
+    if (nReducedEq == numeq) 
+    {
+        TPZFMatrix<STATE> residual(fRhs);
+        TPZFMatrix<STATE> delu(numeq,1,0.);
+        //      STATE normres  = Norm(residual);
+        //	cout << "TPZAnalysis::Solve residual : " << normres << " neq " << numeq << endl;
+#ifdef LOG4CXX
+        if (logger->isDebugEnabled())
+        {
+            TPZFMatrix<STATE> res2(fRhs);
+            //fSolver->Matrix()->Residual(fSolution,fRhs,res2);
+            std::stringstream sout;
+            sout << "Residual norm " << Norm(res2) << std::endl;
+    //		res2.Print("Residual",sout);
+            LOGPZ_DEBUG(logger,sout.str())
+        }
+#endif
+    
+
+        //ToEigen ( C,eigenC );
+
+   		 //eigenInvB = eigenB.inverse();
+    
+        fSolver->Solve(residual, delu);
+        fSolution = delu;
+		
+// 		{
+//             std::ofstream out("Matrix.nb");
+//             fSolver->Matrix()->Print("Stiffness = ",out,EMathematicaInput);
+//     		residual.Print("rhs = ",out,EMathematicaInput);
+// 			fSolution.Print("u = ",out,EMathematicaInput);
+//         } 
+       //residual.Print(std::cout);
+       //fSolver->Matrix()->Print(std::cout);
+       //fSolution.Print(std::cout);
+#ifdef LOG4CXX
+        if (logger->isDebugEnabled())
+        {
+            if(!fSolver->Matrix()->IsDecomposed())
+            {
+                TPZFMatrix<STATE> res2(fRhs);
+                fSolver->Matrix()->Residual(delu,fRhs,res2);
+                std::stringstream sout;
+                sout << "Residual norm " << Norm(res2) << std::endl;
+                //            res2.Print("Residual",sout);
+                LOGPZ_DEBUG(logger,sout.str())
+            }
+        }
+#endif
+    
+    }
+    else 
+    {
+        TPZFMatrix<STATE> residual(nReducedEq,1,0.);
+    	TPZFMatrix<STATE> delu(nReducedEq,1,0.);
+        fStructMatrix->EquationFilter().Gather(fRhs,residual);
+	    fSolver->Solve(residual, delu);
+        fSolution.Redim(numeq,1);
+        fStructMatrix->EquationFilter().Scatter(delu,fSolution);
+    }
+#ifdef LOG4CXX
+    std::stringstream sout;
+    TPZStepSolver<STATE> *step = dynamic_cast<TPZStepSolver<STATE> *> (fSolver);
+    if(!step) DebugStop();
+    long nsing = step->Singular().size();
+	if(nsing && logger->isWarnEnabled()) {
+		sout << "Number of singular equations " << nsing;
+		std::list<long>::iterator it = step->Singular().begin();
+		if(nsing) sout << "\nSingular modes ";
+		while(it != step->Singular().end())
+		{
+			sout << *it << " ";
+			it++;
+		}
+		if(nsing) sout << std::endl;
+		LOGPZ_WARN(logger,sout.str())
+	}
+#endif
+#ifdef LOG4CXX
+    if (logger->isDebugEnabled())
+	{
+		std::stringstream sout;
+		sout << "Solution norm " << Norm(fSolution) << std::endl;
+		fSolution.Print("delu",sout);
+		LOGPZ_DEBUG(logger,sout.str())
+	}
+#endif	
+	fCompMesh->LoadSolution(fSolution);
+    fCompMesh->TransferMultiphysicsSolution();
 // 
-// 	TPZFMatrix<STATE> residual(fRhs);
-// 	TPZFMatrix<STATE> delu(numeq,1,0.);
-// 
-// 	//ToEigen ( C,eigenC );
-// 	//eigenInvB = eigenB.inverse();
-//     
-// 	fSolver->Solve(residual, delu);
-// 	fSolution = delu;
-//     
-// 
-// 	fCompMesh->LoadSolution(fSolution);
-//     fCompMesh->TransferMultiphysicsSolution();
-// 
-// }
+ }
 void TPZAnalysis::Print( const std::string &name, std::ostream &out) {
 	out<<endl<<name<<endl;
 	long i,nelements = fCompMesh->ConnectVec().NElements();

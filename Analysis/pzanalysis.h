@@ -278,6 +278,12 @@ public:
 	void SetStructuralMatrix(TPZAutoPointer<TPZStructMatrix> strmatrix);
 	/** @brief Set structural matrix for analysis */	
 	void SetStructuralMatrix(TPZStructMatrix &strmatrix);
+    
+     void SolveKL() ;
+     
+     void AssembleKL();
+     void AssembleC (TPZFMatrix<REAL> &C);
+     void AssembleB(TPZFMatrix<REAL> &B);
 	
 };
 
