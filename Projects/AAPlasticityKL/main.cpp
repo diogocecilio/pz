@@ -95,12 +95,32 @@ std::vector<T> str_vec ( std::vector<std::string> &vs );
 
 int main()
 {
-
     int porder= 2;
 
     int samples =1000;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
+	
+	TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh,porder );
+
+    InsertMat ( cmesh, porder );
+
+	TPZAnalysis *analysis = new TPZAnalysis (cmesh);
+	
+	analysis->SolveKL();
+	
+	string vtkfile = "saida.vtk";
+	///vtk export
+    TPZVec<std::string> scalarVars ( 2 ),vectorVars ;
+    scalarVars[0] = "vec";
+    scalarVars[0] = "vec1";
+    analysis->DefineGraphMesh ( 2,scalarVars,vectorVars, vtkfile);
+    constexpr int resolution{0};
+    analysis->PostProcess ( resolution );
+	
+	return 0;
+	
+
 
     TPZManVector<TPZCompMesh *,2> vecmesh;
 
@@ -114,7 +134,7 @@ int main()
     //string outphi="friction-gid-opt-false.txt";
     TPZFMatrix<REAL> readco,readphi;
 
-    if (false ) {
+    if (true ) {
 
     
 
@@ -323,6 +343,8 @@ TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int s
     InsertMat ( cmesh2, porder );
     int dim = cmesh->Reference()->Dimension();
     KLAnalysis * klanal = new KLAnalysis ( cmesh );
+	TPZAnalysis *analysis = new TPZAnalysis (cmesh);
+	analysis->SolveKL();
     KLMaterial * mat = dynamic_cast<KLMaterial*> ( cmesh->ElementVec() [0]->Material() );
     klanal->SetExpansionOrder ( mat->GetExpansioOrder() );
     klanal->Solve();
@@ -441,8 +463,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 
     // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
-    //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-    string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+    string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
+    //string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
 
 
 

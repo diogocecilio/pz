@@ -107,6 +107,7 @@ struct TPZElementMatrix {
 	/** @brief Apply the constraints applied to the nodes by transforming the tangent matrix and right hand side */
 	void ApplyConstraints();
 	
+	void ComputeDestinationIndices ( int iel, TPZManVector<long> &SourceIndex, TPZManVector<long> &DestinationIndex );
 };
 
 #endif

@@ -126,7 +126,7 @@ void Config1()
     std::string output = "Config1.vtk";
     well.SetVtkOutPutName ( output );
 
-
+std::cout << "\n here " <<endl;
     REAL sqj2_refine=0.0001;
     int Startfrom=0;
     const int nsubsteps = 5;
@@ -142,7 +142,7 @@ void Config1()
         REAL D = 0.018768;
         REAL W = 0.006605;
 
-        bool modelMC =false;
+        bool modelMC =true;
 
         if ( modelMC ) {
             REAL cohesion = 13.;
@@ -179,6 +179,7 @@ void Config1()
         well.PostProcess ( 0 );
 
     }
+    std::cout << "\n here 2" <<endl;
     if ( Startfrom ==0 ) {
 
         int nsteps = 5;
@@ -191,7 +192,7 @@ void Config1()
         well.Write ( save );
 
     }
-
+	std::cout << "\n here 3" <<endl;
     if ( Startfrom ==1 ) {
         TPZBFileStream read;
         read.OpenRead ( "Config1-0.bin" );
@@ -1180,10 +1181,10 @@ int main ( int argc, char **argv )
     clarg::parse_arguments ( argc, argv );
 
     plast_tot.start();
-    //  Config1();
-    ConfigSlope();
-//    Config2();
-//    Config3();
+      Config1();
+    //ConfigSlope();
+   // Config2();
+ //   Config3();
 //    Config4();
 //    Config6();
     //Config7();

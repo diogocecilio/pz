@@ -31,6 +31,15 @@ class TPZMaterial;
 #include "TPZGuiInterface.h"
 
 #include "pzstrmatrix.h"
+#include <chrono>
+
+#include <Eigen/Core>
+
+using namespace Eigen;
+#include <Eigen/Dense>
+ 
+using namespace std;
+using namespace Eigen;
 
 template<class T, int N> class TPZStack;
 
@@ -284,6 +293,10 @@ public:
      void AssembleKL();
      void AssembleC (TPZFMatrix<REAL> &C);
      void AssembleB(TPZFMatrix<REAL> &B);
+	 
+	 void FromEigen ( MatrixXd eigenmat, TPZFMatrix<REAL>  &pzmat );
+	 
+	 void ToEigen ( TPZFMatrix<REAL>  pzmat,MatrixXd &eigenmat );
 	
 };
 
@@ -308,5 +321,33 @@ inline void TPZAnalysis::SetTime(REAL time){
 inline REAL TPZAnalysis::GetTime(){
 	return this->fTime;
 }
+
+inline    void TPZAnalysis::FromEigen ( MatrixXd eigenmat, TPZFMatrix<REAL>  &pzmat )
+    {
+
+        int rows = eigenmat.rows();
+        int cols = eigenmat.cols();
+        pzmat.Resize ( rows,cols );
+        for ( int irow=0; irow<rows; irow++ ) {
+            for ( int icol=0; icol<cols; icol++ ) {
+                pzmat ( irow,icol ) =eigenmat ( irow,icol );
+            }
+        }
+
+    }
+
+inline    void TPZAnalysis::ToEigen ( TPZFMatrix<REAL>  pzmat,MatrixXd &eigenmat )
+    {
+        TPZFMatrix<REAL> intpz ( pzmat );
+        int rows = pzmat.Rows();
+        int cols = pzmat.Cols();
+        eigenmat.resize ( rows,cols );
+        for ( int irow=0; irow<rows; irow++ ) {
+            for ( int icol=0; icol<cols; icol++ ) {
+                eigenmat ( irow,icol ) =intpz ( irow,icol );
+            }
+        }
+
+    }
 
 #endif

@@ -143,7 +143,197 @@ void TPZStructMatrixST::Assemble(TPZFMatrix<STATE> & rhs,TPZAutoPointer<TPZGuiIn
 	ass_rhs.stop();
 }
 
+void TPZStructMatrixST::Serial_AssembleC(TPZMatrix<STATE> & stiffness, TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface ){
+    
+    if(!fMesh){
+        LOGPZ_ERROR(logger,"Serial_Assemble called without mesh")
+        DebugStop();
+    }
 
+    long iel;
+    long nelem = fMesh->NElements();
+    TPZElementMatrix ek(fMesh, TPZElementMatrix::EK),ef(fMesh, TPZElementMatrix::EF);
+
+    TPZTimer calcstiff("Computing the stiffness matrices");
+    TPZTimer assemble("Assembling the stiffness matrices");
+    TPZAdmChunkVector<TPZCompEl *> &elementvec = fMesh->ElementVec();
+    	int sz = fMesh->NEquations();
+  	stiffness.Resize ( sz, sz );
+    long count = 0;
+    for(iel=0; iel < nelem; iel++) {
+        TPZCompEl *el = elementvec[iel];
+        if(!el) continue;
+		for ( int jel = 0; jel < nelem; jel++ )
+        {
+		TPZCompEl *elj = elementvec[jel];
+        if(!jel) continue;
+        int matidsize = fMaterialIds.size();
+        if(matidsize){
+            TPZMaterial * mat = el->Material();
+            TPZSubCompMesh *submesh = dynamic_cast<TPZSubCompMesh *> (el);
+            if (!mat)
+            {
+                if (!submesh) {
+                    continue;
+                }
+                else if(submesh->NeedsComputing(fMaterialIds) == false) continue;
+            }
+            else
+            {
+                int matid = mat->Id();
+                if (this->ShouldCompute(matid) == false) continue;
+            }
+        }
+        
+        count++;
+        if(!(count%1000))
+        {
+            std::cout << '*';
+            std::cout.flush();
+        }
+        if(!(count%20000))
+        {
+            std::cout << "\n";
+        }
+        calcstiff.start();
+        
+        el->CalcStiffC (elj, ek );
+        if(guiInterface) if(guiInterface->AmIKilled()){
+            return;
+        }
+        
+        
+        calcstiff.stop();
+        assemble.start();
+
+        if(!el->HasDependency()) {
+			
+			TPZManVector<long> SourceIndexIEL, DestinationIndexIEL, SourceIndexJEL, DestinationIndexJEL;
+          	ek.ComputeDestinationIndices( iel, SourceIndexIEL, DestinationIndexIEL );
+          	ek.ComputeDestinationIndices ( jel, SourceIndexJEL, DestinationIndexJEL );
+			
+		
+		 for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
+            {
+              for ( int icol = 0; icol < DestinationIndexJEL.size(); icol++ )
+                {
+                  stiffness ( DestinationIndexIEL[irow], DestinationIndexJEL[icol] ) += ek.fMat ( SourceIndexIEL[irow], SourceIndexJEL[icol] );
+                }
+            }
+            
+        } else {
+            // the element has dependent nodes
+			ek.ApplyConstraints();
+			ef.ApplyConstraints();
+			TPZManVector<long> SourceIndexIEL, DestinationIndexIEL, SourceIndexJEL, DestinationIndexJEL;
+          	ek.ComputeDestinationIndices( iel, SourceIndexIEL, DestinationIndexIEL );
+          	ek.ComputeDestinationIndices ( jel, SourceIndexJEL, DestinationIndexJEL );
+			for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
+            {
+              for ( int icol = 0; icol < DestinationIndexJEL.size(); icol++ )
+                {
+                  stiffness ( DestinationIndexIEL[irow], DestinationIndexJEL[icol] ) += ek.fMat ( SourceIndexIEL[irow], SourceIndexJEL[icol] );
+                }
+            }
+            
+        }
+		}
+        assemble.stop();
+    }//fim for iel
+    //if(count > 20) std::cout << std::endl;
+
+}
+
+void TPZStructMatrixST::Serial_AssembleB(TPZMatrix<STATE> & stiffness, TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface ){
+    
+    if(!fMesh){
+        LOGPZ_ERROR(logger,"Serial_Assemble called without mesh")
+        DebugStop();
+    }
+
+    long iel;
+    long nelem = fMesh->NElements();
+    TPZElementMatrix ek(fMesh, TPZElementMatrix::EK),ef(fMesh, TPZElementMatrix::EF);
+
+    TPZTimer calcstiff("Computing the stiffness matrices");
+    TPZTimer assemble("Assembling the stiffness matrices");
+    TPZAdmChunkVector<TPZCompEl *> &elementvec = fMesh->ElementVec();
+	int sz = fMesh->NEquations();
+  	stiffness.Resize ( sz, sz );
+    long count = 0;
+    for(iel=0; iel < nelem; iel++) {
+        TPZCompEl *el = elementvec[iel];
+        if(!el) continue;
+        int matidsize = fMaterialIds.size();
+        if(matidsize){
+            TPZMaterial * mat = el->Material();
+            TPZSubCompMesh *submesh = dynamic_cast<TPZSubCompMesh *> (el);
+            if (!mat)
+            {
+                if (!submesh) {
+                    continue;
+                }
+                else if(submesh->NeedsComputing(fMaterialIds) == false) continue;
+            }
+            else
+            {
+                int matid = mat->Id();
+                if (this->ShouldCompute(matid) == false) continue;
+            }
+        }
+        
+        count++;
+        if(!(count%1000))
+        {
+            std::cout << '*';
+            std::cout.flush();
+        }
+        if(!(count%20000))
+        {
+            std::cout << "\n";
+        }
+        calcstiff.start();
+        
+        el->CalcStiffB(ek );
+        
+        if(guiInterface) if(guiInterface->AmIKilled()){
+            return;
+        }
+        
+        calcstiff.stop();
+        assemble.start();
+
+        if(!el->HasDependency()) {
+           
+      TPZManVector<long> SourceIndexIEL, DestinationIndexIEL;
+	  ek.ComputeDestinationIndices( iel, SourceIndexIEL, DestinationIndexIEL );
+      for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
+          {
+            for ( int icol = 0; icol < DestinationIndexIEL.size(); icol++ )
+              {
+               stiffness ( DestinationIndexIEL[irow], DestinationIndexIEL[icol] ) += ek.fMat ( SourceIndexIEL[irow], SourceIndexIEL[icol] );
+              }
+          }
+  
+
+        } else {
+	  ek.ApplyConstraints();
+	  ef.ApplyConstraints();
+	  TPZManVector<long> SourceIndexIEL, DestinationIndexIEL;
+      ek.ComputeDestinationIndices( iel, SourceIndexIEL, DestinationIndexIEL );
+      for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
+          {
+            for ( int icol = 0; icol < DestinationIndexIEL.size(); icol++ )
+              {
+               stiffness ( DestinationIndexIEL[irow], DestinationIndexIEL[icol] ) += ek.fMat ( SourceIndexIEL[irow], SourceIndexIEL[icol] );
+              }
+          }
+        assemble.stop();
+    }//fim for iel
+	}
+    //if(count > 20) std::cout << std::endl;
+
+}
 
 void TPZStructMatrixST::Serial_Assemble(TPZMatrix<STATE> & stiffness, TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface ){
     

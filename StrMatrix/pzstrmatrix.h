@@ -76,6 +76,9 @@ public:
     /** @brief Assemble the global right hand side */
     virtual void Assemble(TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface);
     
+	virtual void Serial_AssembleC(TPZMatrix<STATE> & stiffness, TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface );
+	
+	virtual void Serial_AssembleB(TPZMatrix<STATE> & stiffness, TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface );
     
 //     /** @brief Assemble the global right hand side body force only*/
 //     virtual void AssembleFbody(TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface);
@@ -90,7 +93,8 @@ protected:
     
     /** @brief Assemble the global right hand side */
     virtual void Serial_Assemble(TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface);
-    
+	
+
     /** @brief Assemble the global right hand side */
     virtual void MultiThread_Assemble(TPZFMatrix<STATE> & rhs, TPZAutoPointer<TPZGuiInterface> guiInterface);
     

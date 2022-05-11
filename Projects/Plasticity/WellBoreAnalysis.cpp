@@ -802,18 +802,23 @@ void TPZWellBoreAnalysis::ExecuteSimulation(int substeps, REAL factor)
         well_init.start();
         analysis.IterativeProcess(strout, tol, NumIter,linesearch,checkconv);
         well_init.stop();
+		
         
         if (conv==false) {
-            // the data of the config object indicates whether there is a vertical strain to model
-            ComputeLinearMatrix(activeEquations);
-            analysis.Solver().SetMatrix(fLinearMatrix);
-            
-            well_init.start();
-            analysis.IterativeProcess(strout, fLinearMatrix, tol, NumIter, linesearch);
-            well_init.stop();
+// 			std::cout << "\n here 4" <<endl;
+//             // the data of the config object indicates whether there is a vertical strain to model
+//             ComputeLinearMatrix(activeEquations);
+//             analysis.Solver().SetMatrix(fLinearMatrix);
+//             
+//             well_init.start();
+//             analysis.IterativeProcess(strout, fLinearMatrix, tol, NumIter, linesearch);
+//             well_init.stop();
+// 			std::cout << "\n here 4b" <<endl;
         }
+        
         if (LocalConfig.fWellConfig == EVerticalWell && cycle == 0)
         {
+			std::cout << "\n here 5" <<endl;
             InitialZStress = LocalConfig.AverageVerticalStress();
             InitialZDeformation = zdeformation;
             zdeformation = (targetZStress-InitialZStress)/elasticity;
@@ -824,6 +829,7 @@ void TPZWellBoreAnalysis::ExecuteSimulation(int substeps, REAL factor)
         }
         else if(LocalConfig.fWellConfig == EVerticalWell && cycle == 1)
         {
+			std::cout << "\n here 6" <<endl;
             SecondZStress = LocalConfig.AverageVerticalStress();
             SecondZDeformation = zdeformation;
             zdeformation = InitialZDeformation + (SecondZDeformation-InitialZDeformation)*(targetZStress-InitialZStress)/(SecondZStress-InitialZStress);

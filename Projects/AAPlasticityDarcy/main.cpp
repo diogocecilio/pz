@@ -100,9 +100,6 @@ int main()
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
 
 
-    
-
-
     string vtk = "Darcyx.vtk"; 
     
     

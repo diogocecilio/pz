@@ -8,6 +8,7 @@
 #include "pzcmesh.h"
 
 #include "pzlog.h"
+#include "pzcompel.h"
 
 #ifdef LOG4CXX
 static LoggerPtr logger(Logger::getLogger("pz.mesh.tpzelmat"));
@@ -112,8 +113,89 @@ void TPZElementMatrix::Print(std::ostream &out){
 		constrmatrix.Print(sout.str().c_str(), out, EMathematicaInput);
 	}
 }
-
+void TPZElementMatrix::ComputeDestinationIndices ( int iel, TPZManVector<long> &SourceIndex, TPZManVector<long> &DestinationIndex )
+{
+        if (!this->HasDependency()){
+		SourceIndex.Resize(this->fMat.Rows());
+		DestinationIndex.Resize(this->fMat.Rows());
+		long destindex = 0L;
+        long fullmatindex = 0L;
+		//const int numnod = elmat->NConnects();
+		const int numnod = this->fMesh->ElementVec() [iel]->NConnects();
+		for(int in = 0; in < numnod; in++){
+			//const long npindex = elmat->ConnectIndex(in);
+			const long npindex = this->fMesh->ElementVec() [iel]->ConnectIndex ( in );
+			TPZConnect &np = this->fMesh->ConnectVec()[npindex];
+			long blocknumber = np.SequenceNumber();
+			long firsteq = this->fMesh->Block().Position(blocknumber);
+			int ndf = this->fMesh->Block().Size(blocknumber);
+            if(np.HasDependency() || np.IsCondensed()) {
+                fullmatindex += ndf;
+                continue;
+            }//for (np)
+			for(int idf=0; idf<ndf; idf++){
+				SourceIndex[destindex] = fullmatindex++;
+				DestinationIndex[destindex++] = firsteq+idf;
+			}//for idf
+		}//for in
+        SourceIndex.Resize(destindex);
+        DestinationIndex.Resize(destindex);		
+	}//if
+	else{
+    
+        long destindex = 0L;
+        long fullmatindex = 0L;
+        DestinationIndex.Resize(this->fConstrMat.Rows());
+       SourceIndex.Resize(this->fConstrMat.Rows());
+        //int numnod = elmat->fConstrConnect.NElements();
+		const int numnod = this->fMesh->ElementVec() [iel]->NConnects();
+        for(int in = 0; in < numnod; in++){
+            //const long npindex = elmat->fConstrConnect[in];
+			const long npindex = this->fMesh->ElementVec() [iel]->ConnectIndex ( in );
+            TPZConnect &np = this->fMesh->ConnectVec()[npindex];
+            long blocknumber = np.SequenceNumber();
+            long firsteq = this->fMesh->Block().Position(blocknumber);
+            int ndf = this->fMesh->Block().Size(blocknumber);
+            if(np.HasDependency() || np.IsCondensed()) {
+                fullmatindex += ndf;
+                continue;
+            }//for (np)
+            for(int idf=0; idf<ndf; idf++) {
+                SourceIndex[destindex] = fullmatindex++;
+               DestinationIndex[destindex++] = firsteq+idf;
+            }//for idf
+        }//for in
+        SourceIndex.Resize(destindex);
+        DestinationIndex.Resize(destindex);
+    }
+    
+}
 void TPZElementMatrix::ComputeDestinationIndices(){
+// 	  fSourceIndex.Resize ( nshape );
+//   fDestinationIndex.Resize ( nshape );
+//   long destindex = 0L;
+//   long fullmatindex = 0L;
+//   const int numnod = fMesh->ElementVec() [iel]->NConnects();
+//   for ( int in = 0; in < numnod; in++ )
+//     {
+//       const long npindex = fMesh->ElementVec() [iel]->ConnectIndex ( in );
+//       TPZConnect &np = fMesh->ConnectVec() [npindex];
+//       long blocknumber = np.SequenceNumber();
+//       long firsteq = fMesh->Block().Position ( blocknumber );
+//       int ndf = fMesh->Block().Size ( blocknumber );
+//       if ( np.HasDependency() || np.IsCondensed() )
+//         {
+//           fullmatindex += ndf;
+//           continue;
+//         }//for (np)
+//       for ( int idf = 0; idf < ndf; idf++ )
+//         {
+//           fSourceIndex[destindex] = fullmatindex++;
+//           fDestinationIndex[destindex++] = firsteq + idf;
+//         }//for idf
+//     }//for in
+	
+	
     if (!this->HasDependency()){
 		this->fSourceIndex.Resize(this->fMat.Rows());
 		this->fDestinationIndex.Resize(this->fMat.Rows());
