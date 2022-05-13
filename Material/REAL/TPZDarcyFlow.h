@@ -10,7 +10,7 @@
 #include "pzfmatrix.h"
 #include "pzbndcond.h"
 #include "pzlog.h"
-//#include "TPZIsotropicPermeability.h"
+#include "TPZIsotropicPermeability.h"
 
 /**
  * @ingroup material

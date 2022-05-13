@@ -28,8 +28,9 @@ void TPZDarcyFlow::Contribute( TPZMaterialData &data, STATE weight, TPZFMatrix<S
     auto phr = dphi.Cols();
 
 
-     //STATE perm = GetPermeability(data.x);
+	//STATE perm = GetPermeability(data.x);
 
+	//std:: cout << "perm "<< perm<<std::endl;
 	REAL perm = fConstPermeability;
 	
     STATE source_term = 0;
@@ -187,7 +188,7 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             // KDuDz;
             TPZFNMatrix<9, STATE> dsoldx;
             TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
-           // const STATE perm = GetPermeability(data.x);
+            //const STATE perm = GetPermeability(data.x);
 			REAL perm = fConstPermeability;
             solOut[0] = perm * dsoldx(2, 0);
             return;
@@ -245,7 +246,7 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             // Div/Divergence
             TPZFNMatrix<9, STATE> dsoldx;
             TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
-           // const STATE perm = GetPermeability(data.x);
+            //const STATE perm = GetPermeability(data.x);
 			REAL perm = fConstPermeability;
             STATE res = 0;
             for (int id = 0; id < fDim; id++) {

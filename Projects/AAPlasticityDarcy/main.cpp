@@ -95,7 +95,7 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 int main()
 {
 
-    int porder= 2;
+    int porder= 3;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
 
@@ -106,9 +106,9 @@ int main()
     TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
     std::string vtkFiled ="vtkfolder/deterministic.vtk";
     
-
+cout << "\n dasdasdasdsadasd= " << endl;
     //Rain Load
-    int steps=5;
+    int steps=0;
     REAL totalload,load,delta;
     totalload=0.0002;//m/s
     totalload=-1.;//m/s
@@ -121,7 +121,7 @@ int main()
         TPZCompMesh *cmeshdeter = CreateCMesh ( gmesh,porder );
         cout << "\n --------- iload = "<< iload << " | load = "<< load << endl;
         cout << "\n Setting Load.. " << endl;
-        LoadingRampRainFall ( darcycompmesh,  load );
+        //LoadingRampRainFall ( darcycompmesh,  load );
 
         cout << "\n Solving Darcy.. " << endl;
         SolveDarcyProlem(darcycompmesh, vtk);
@@ -187,7 +187,7 @@ void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
         const auto &y=pt[1];
         const auto &z=pt[2];
         REAL atm  = 10.33;//10.33 mca = 1 atm
-        disp[0] = -9.8/*kn/m^3*/ * ( 40-y )/* m */ ;/* = kn/m^2 = kPa*/
+        disp[0] = /*kn/m^3*/  ( 40-y )/* m */ ;/* = kn/m^2 = kPa*/
 }
 
 void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
@@ -212,8 +212,9 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     auto *material = new TPZDarcyFlow ( matid,dim );
     //Bet Degan loamy sand 
 	//STATE permeability = 0.0063 ;//cm/s
-	STATE permeability = 0.000063;//m/s
-	//STATE permeability = 10.;//m/s
+	//STATE permeability = 0.000063;//m/s
+	//STATE permeability = 0.1;//m/s
+	STATE permeability = 4.;//m/s
     material->SetConstantPermeability ( permeability );
 	material->SetId(1);
 
@@ -233,12 +234,12 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
      TPZMaterial * BCond0 = material->CreateBC ( material, -3, 0, val1, val2 );//tr
      BCond0->SetForcingFunction(pressure);
 
-     TPZMaterial * BCond1 = material->CreateBC ( material, -4, 1, val1, val2 );//ramp
-     //BCond1->SetForcingFunction(pressure);
+     TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
+     BCond1->SetForcingFunction(pressure);
 	 
 	//val2(0,0)=-1;
-	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 1, val1, val2 );//tl
-	//BCond2->SetForcingFunction(pressure);
+	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
+	BCond2->SetForcingFunction(pressure);
 
      
 	 
@@ -342,7 +343,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-    string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+    //string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+	string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
 
 
 
@@ -386,8 +388,15 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
 
-    a = b;
-    b[0] = 35.;
+//     a = b;
+//     b[0] = 35.;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
+	
+	a = b;
+    b[0] = 39.2265;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsramp );
@@ -513,8 +522,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-    REAL mc_cohesion    = 10.0;
-    REAL mc_phi         = ( 30.0*M_PI/180 );
+    REAL mc_cohesion    = 500;
+    REAL mc_phi         = ( 20.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb

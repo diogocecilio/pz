@@ -62,6 +62,7 @@ void DivideElementsAbove(TPZCompMesh* cmesh,TPZGeoMesh* gmesh,REAL sqj2, std::se
 
 void ComputeElementDeformation(TPZCompMesh* cmesh);
 
+void findnodalsol(TPZGeoMesh *gmesh);
 
 int main()
 {
@@ -69,42 +70,59 @@ int main()
 	int porder =2;
 
  	TPZGeoMesh *gmesh = CreateGMeshGid (0);
+	
+	//findnodalsol(gmesh);
 	//TPZGeoMesh *gmesh2 = CreateGMeshGid (0);
 
     TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
-	
+	TPZCompMesh *cmesh2 = CreateCMesh ( gmesh, porder );
 	
 	int maxiter=100;
 	REAL tol=1.e-3;
 	bool linesearch=true;
 	bool checkconv=false;
-	int steps=3;
-	REAL finalload = 1.70;
-	std::string vtkFile ="slopwe.vtk";
-	
-	TPZElastoPlasticAnalysis  * analysis = new TPZElastoPlasticAnalysis();
+	int steps=5;
+	REAL finalload = 83;
+	std::string vtkFile ="slopwe2.vtk";
+	std::ofstream outloadu("loadvu.nb");
+	outloadu << "plot = {";
 	TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
+	
+	ShearRed (cmesh2);
+	
+	return 0;
+	
 	for(int iloadstep=1;iloadstep<=steps;iloadstep++)
  	{
 		
 
 		
-		analysis =  CreateAnal(cmesh);
+		TPZElastoPlasticAnalysis  * analysis =  CreateAnal(cmesh);
 		
 		
 		REAL load = iloadstep*finalload/steps;
+		cout << " \n --------- iloadstep  = "<< iloadstep << endl;
+		
+		cout << " \n --------- load  = "<< load << endl;
 		
 		LoadingRamp(cmesh,load);
 		analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
 		analysis->AcceptSolution();
+		
+		TPZFMatrix<REAL> sol = analysis->Solution();
+		
+		sol.Print(outloadu);
+		
+		outloadu << "{ "<<sol(573*2,0) << ", " << load << " } ," << endl;
+		
+		
 		//cmesh->LoadSolution();
-		ComputeElementDeformation(cmesh);
+		//ComputeElementDeformation(cmesh);
 		
-		std::set<long> elindices;
-		REAL sqrtj2=0.005;
+// 		std::set<long> elindices;
+// 		REAL sqrtj2=0.005;
 
-		DivideElementsAbove(cmesh,gmesh,sqrtj2,elindices);
-		
+		//DivideElementsAbove(cmesh,gmesh,sqrtj2,elindices);
 		
 
 		
@@ -115,20 +133,25 @@ int main()
 
 
 	}
-		TPZElastoPlasticAnalysis *anal  =  CreateAnal(cmesh);
-		
-		LoadingRamp(cmesh,finalload);
-		
- 		anal->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
-		
- 		anal->AcceptSolution();
-		
+	outloadu <<  " }; ListLinePlot[plot,PlotRange->All]" << endl;
+			postproc->SetCompMesh(0);
 		CreatePostProcessingMesh( postproc, cmesh);
 		
 		Post(postproc,vtkFile);
-
-
-    std::cout << "FINISHED!" << std::endl;
+// 		TPZElastoPlasticAnalysis *anal  =  CreateAnal(cmesh);
+// 		
+// 		LoadingRamp(cmesh,finalload);
+// 		
+//  		anal->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
+// 		
+//  		anal->AcceptSolution();
+// 		
+// 		CreatePostProcessingMesh( postproc, cmesh);
+// 		
+// 		Post(postproc,vtkFile);
+// 
+// 
+//     std::cout << "FINISHED!" << std::endl;
 
 
     return 0;
@@ -146,6 +169,36 @@ void Post(TPZPostProcAnalysis * postproc,std::string vtkFile )
     postproc->DefineGraphMesh(2,scalNames,vecNames,vtkFile);
 
     postproc->PostProcess(0);
+}
+void findnodalsol(TPZGeoMesh *gmesh){
+ 
+
+	int dim = gmesh->Dimension();
+ TPZVec<REAL> xd(dim,0.);
+ TPZVec<REAL> mpt(dim,0.);
+ xd[0] = 35.; xd[1] = 40.;
+
+ int nels = gmesh->NElements();
+ for(int iel=0;iel<nels;iel++){
+	 
+	 	
+		 TPZVec<REAL> qsi(dim,0.);
+	 	 TPZGeoEl * gel = gmesh->ElementVec()[iel];
+		 TPZCompEl * cel = gel->Reference();
+		 if(gel->MaterialId()<0)continue;
+		 bool check = gel->ComputeXInverse(xd,qsi,1.e-5);
+		 
+		 if(check==true)
+   		{
+	   		cout << "elemento encontrado"<<endl;
+			cout << "index do elemento = " <<gel->Index() <<endl;
+			cout << "qsi" <<endl;
+			cout << qsi[0]<< " "<< qsi[1]<<endl;
+			gel->NodePtr(0);
+			
+		}
+}
+
 }
 
 
@@ -1007,8 +1060,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-    REAL mc_cohesion    = 10.0;
-    REAL mc_phi         = ( 30.0*M_PI/180 );
+    REAL mc_cohesion    = 500.;
+    REAL mc_phi         = ( 20.*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb

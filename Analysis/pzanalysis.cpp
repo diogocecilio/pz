@@ -412,23 +412,23 @@ void TPZAnalysis::SolveKL()
     std::ofstream out ( "outinfo-p2-h4.txt" );
     TPZFMatrix<REAL> invB,invBC;
     MatrixXd eigenInvBC,eigenInvB,eigenC,eigenB;
-    cout << "Number of Equations =   " << fCompMesh->NEquations() << std::endl;
-    cout << "Assembling C  " << std::endl;
+    cout << "\n Number of Equations =   " << fCompMesh->NEquations() << std::endl;
+    cout << "\n Assembling C  " << std::endl;
     chrono::steady_clock sc;
     auto start = sc.now();
     fStructMatrix->Serial_AssembleC ( C,fRhs,fGuiInterface );
 
     auto end = sc.now();
     auto time_span = static_cast<chrono::duration<double>> ( end - start );
-    cout << "| total time taken to assemble C =  " << time_span.count() << std::endl;
+    cout << "\n | total time taken to assemble C =  " << time_span.count() << std::endl;
 
-    cout << " Assembling B  " << std::endl;
+    cout << " \n Assembling B  " << std::endl;
     start = sc.now();
 
     fStructMatrix->Serial_AssembleB ( B,fRhs,fGuiInterface );
     end = sc.now();
     time_span = static_cast<chrono::duration<double>> ( end - start );
-    cout << "| total time taken to assemble B =  " << time_span.count() << std::endl;
+    cout << "\n | total time taken to assemble B =  " << time_span.count() << std::endl;
 
     ToEigen ( B,eigenB );
     ToEigen ( C,eigenC );
@@ -439,17 +439,17 @@ void TPZAnalysis::SolveKL()
     MatrixXd val,vec;
 
     ComplexEigenSolver<MatrixXd> ces;
-    cout << " Computing Eigensystem  " << std::endl;
+    cout << " \n Computing Eigensystem  " << std::endl;
     start = sc.now();
     ces.compute ( eigenInvBC );
     end = sc.now();
     time_span = static_cast<chrono::duration<double>> ( end - start );
-    cout << "| total time taken to compute the Eigensystem =  " << time_span.count() << std::endl;
+    cout << "\n | total time taken to compute the Eigensystem =  " << time_span.count() << std::endl;
 
 
     auto endfull = fulltime.now();
     time_span = static_cast<chrono::duration<double>> ( endfull - startfull );
-    cout << "| total time  =  " << time_span.count() << std::endl;
+    cout << "\n | total time  =  " << time_span.count() << std::endl;
 	int nrows = ces.eigenvectors().rows();
 	int ncols = ces.eigenvectors().cols();
 	TPZFMatrix<REAL> vecpz(nrows,ncols);
