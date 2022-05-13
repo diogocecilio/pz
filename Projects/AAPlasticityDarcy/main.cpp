@@ -61,6 +61,8 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize );
 
 void ShearRed ( TPZCompMesh * cmesh );
 
+void GravityIncrease ( TPZCompMesh * cmesh );
+
 REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZCompMesh * incmesh );
 
 void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dphix,TPZSolVec &sol, TPZGradSolVec &dsol );
@@ -95,7 +97,7 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 int main()
 {
 
-    int porder= 3;
+    int porder= 2;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
 
@@ -104,9 +106,10 @@ int main()
     
     
     TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
+    TPZPostProcAnalysis * postprocdetergim = new TPZPostProcAnalysis();
     std::string vtkFiled ="vtkfolder/deterministic.vtk";
-    
-cout << "\n dasdasdasdsadasd= " << endl;
+    std::string vtkFiledgim ="vtkfolder/deterministicgim.vtk";
+
     //Rain Load
     int steps=0;
     REAL totalload,load,delta;
@@ -115,25 +118,38 @@ cout << "\n dasdasdasdsadasd= " << endl;
     delta=totalload/steps;
     load=0.;
     //Deterministic
+    bool water=true;
 	for(int iload=0;iload<=steps;iload++)
  	{
         TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
-        TPZCompMesh *cmeshdeter = CreateCMesh ( gmesh,porder );
-        cout << "\n --------- iload = "<< iload << " | load = "<< load << endl;
-        cout << "\n Setting Load.. " << endl;
+        TPZCompMesh *cmeshsrm = CreateCMesh ( gmesh,porder );
+        TPZCompMesh *cmeshgi = CreateCMesh ( gmesh,porder );
+        //cout << "\n --------- iload = "<< iload << " | load = "<< load << endl;
+        //cout << "\n Setting Load.. " << endl;
         //LoadingRampRainFall ( darcycompmesh,  load );
 
-        cout << "\n Solving Darcy.. " << endl;
-        SolveDarcyProlem(darcycompmesh, vtk);
+        if(water==true)
+        {
+            cout << "\n Solving Darcy... " << endl;
+            //SolveDarcyProlem(darcycompmesh, vtk);
         
-        cout << "\n Setting flux in mechanic comp mesh.. " << endl;
-        SetFlux(cmeshdeter,darcycompmesh);
+            cout << "\n Setting flux in mechanic comp mesh... " << endl;
+            SetFlux(cmeshsrm,darcycompmesh);
+            SetFlux(cmeshgi,darcycompmesh);
+        }
+        
+        cout << "\n Gravity Increase routine.. " << endl;
+        GravityIncrease ( cmeshgi );
+        
+        cout << "\n Post Processing gravity increase... " << endl;
+    	CreatePostProcessingMesh ( postprocdetergim, cmeshgi );
+    	Post ( postprocdetergim,vtkFiledgim );
         
         cout << "\n Strength reduction routine.. " << endl;
-    	ShearRed ( cmeshdeter );
+    	ShearRed ( cmeshsrm );
         
-        cout << "\n Post Processing.. " << endl;
-    	CreatePostProcessingMesh ( postprocdeter, cmeshdeter );
+        cout << "\n Post Processing... " << endl;
+    	CreatePostProcessingMesh ( postprocdeter, cmeshsrm );
     	Post ( postprocdeter,vtkFiled );
         
         load+=delta;
@@ -214,7 +230,7 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
 	//STATE permeability = 0.0063 ;//cm/s
 	//STATE permeability = 0.000063;//m/s
 	//STATE permeability = 0.1;//m/s
-	STATE permeability = 4.;//m/s
+	STATE permeability = 1.;//m/s
     material->SetConstantPermeability ( permeability );
 	material->SetId(1);
 
@@ -522,7 +538,7 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-    REAL mc_cohesion    = 500;
+    REAL mc_cohesion    = 500;//kpa
     REAL mc_phi         = ( 20.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
@@ -662,11 +678,56 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
     scalNames.Push ( "FluxX" );
     scalNames.Push ( "FluxY" );
     vecNames.Push ( "Flux" );
+    vecNames.Push ( "PrincipalStress" );
     scalNames.Push ( "Pressure" );
 
 }
 
+void GravityIncrease ( TPZCompMesh * cmesh )
+{
 
+    REAL FS=0.5,FSmax=10000.,FSmin=0.,tol=1.e-2;
+    int neq = cmesh->NEquations();
+    int maxcount=20;
+    TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
+
+    int counterout = 0;
+
+    REAL norm = 1000.;
+    REAL tol2 = 1.e-2;
+    int NumIter = 20;
+    bool linesearch = true;
+    bool checkconv = false;
+	std::ofstream outnewton("saida-newton.txt");
+    
+    do {
+
+        std::cout << "FS = " << FS << " | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
+        LoadingRamp ( cmesh,FS );
+        bool optimize =true;
+        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+
+        anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv );
+        norm = Norm ( anal->Rhs() );
+
+        
+        if ( norm>= tol2 ) {
+            cmesh->LoadSolution(displace0);
+            displace = displace0;
+            FSmax = FS;
+            FS = ( FSmin + FSmax ) / 2.;
+        } else {
+            displace0 = displace;
+            FSmin = FS;
+            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+            anal->AcceptSolution();
+        }
+        
+        counterout++;
+        
+    }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) || norm>tol2);
+
+}
 
 
 void ShearRed ( TPZCompMesh * cmesh)

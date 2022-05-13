@@ -232,6 +232,7 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name)
   if(!strcmp("FluxX",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFluxX;
   if(!strcmp("FluxY",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFluxY;
   if(!strcmp("Pressure",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EPressure;
+  if(!strcmp("PrincipalStress",          name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EPrincipalStress;
   //return TPZMatWithMem<TMEM>::VariableIndex(name);
   PZError << "TPZMatElastoPlastic::VariableIndex Error\n";
   DebugStop();
@@ -340,6 +341,7 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var)
   if(var == TPZMatElastoPlastic<T,TMEM>::EFluxX)		 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EFluxY)		 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EPressure)		 return 1;
+  if(var == TPZMatElastoPlastic<T,TMEM>::EPrincipalStress)           return 3;
   if(var == 100) return 1;
   return TPZMatWithMem<TMEM>::NSolutionVariables(var);
 }
@@ -384,7 +386,10 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
   //Elastic Strain
   TPZTensor<REAL> elasticStrain = totalStrain; // Look at line below
   elasticStrain -= plasticStrain; // here it becomes elasticStrain
-  
+  TPZTensor<REAL>::TPZDecomposed eigensystem;
+  Sigma.EigenSystem(eigensystem);
+  TPZManVector<REAL,3> eigenvals(3,0.);
+  for(int i=0;i<3;i++)eigenvals[i]= eigensystem.fEigenvalues[i];
 
   //Total Stress
   TPZTensor<REAL> totalStress = Sigma;
@@ -549,11 +554,17 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
 	break;
         case EPressure:
         Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fpressure;
+        break;
+	break;        
+        case EPrincipalStress:
+         Solout[0]= eigenvals[0];
+         Solout[1]= eigenvals[1];
+         Solout[2]= eigenvals[2];
 	break;
     default:
       DebugStop();
       break;
-  }
+  }  
 	/*
 	    Solout.Resize(this->NSolutionVariables(var));
     

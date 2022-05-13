@@ -10,56 +10,56 @@ ENABLE_TESTING()
 		else(BUILD_COMPLEX_PROJECTS)
 
 			# project to save and load a computational mesh
-			add_subdirectory(SaveAndLoad)
+			#add_subdirectory(SaveAndLoad)
 
 			#Using discontinuous approximation functions
-			add_subdirectory(descontinuo)
+			#add_subdirectory(descontinuo)
 
                 #Testing gradient reconstruction
-			add_subdirectory(Gradient_Reconstruction)
+			#add_subdirectory(Gradient_Reconstruction)
                 #Testing generating ellipse from a vector of points by least square method
-			add_subdirectory(EllipseGenerator)
+			#add_subdirectory(EllipseGenerator)
 
 			# Tutorial about hp-adaptive techniques
-			add_subdirectory(Poisson_ArcTan)
-			add_subdirectory(Poisson2D_ArcTan_Disc)
-			add_subdirectory(Poisson3D_Fichera)
-			add_subdirectory(Poisson3D_Shock)
+			#add_subdirectory(Poisson_ArcTan)
+			#add_subdirectory(Poisson2D_ArcTan_Disc)
+			#add_subdirectory(Poisson3D_Fichera)
+			#add_subdirectory(Poisson3D_Shock)
 			# the auto adaptive process is working again!!!
 			#add_subdirectory(adaptivity)
 
 			#Example of the  multi-physics simulation with discontinuous Galerkin
- 			add_subdirectory(PauloBosing)
+ 			#add_subdirectory(PauloBosing)
 
 			#Example of the tracer flow problem in multiphysics simulation.
-  			add_subdirectory(TracadorPassivo)
+  			#add_subdirectory(TracadorPassivo)
 
 			#Project to test the method hdiv stabilized.
-			add_subdirectory(HDivEstabilizado)
-			add_subdirectory(HDivEstabHHetero)
+			#add_subdirectory(HDivEstabilizado)
+			#add_subdirectory(HDivEstabHHetero)
 
 
 			#Example of the hybrid mesh
-			add_subdirectory(HybridMesh)
+			#add_subdirectory(HybridMesh)
 			
 			#Example of the  convection problem
-			add_subdirectory(Problema_Transporte)
+			#add_subdirectory(Problema_Transporte)
 
 			#Testes Douglas
-			add_subdirectory(dactests)
+			#add_subdirectory(dactests)
  
 	
 			#Example to reading and using geometric mesh
-			add_subdirectory(testgeom)
+			#add_subdirectory(testgeom)
 
 			#Testing and using shape functions
-			add_subdirectory(testshape)
+			#add_subdirectory(testshape)
             
 			#Generic Example 2D with elasticity, using matrices phi, phi, etc
-			add_subdirectory(testmat)
+			#add_subdirectory(testmat)
 
 			#Using visual matrix of the DX
-			add_subdirectory(visualmatrix)
+			#add_subdirectory(visualmatrix)
 			
 			source_group(CursoPZ FILES ${pzcurso})
 			#source_group(Shape FILES ${pztutorshape})
@@ -76,7 +76,7 @@ ENABLE_TESTING()
 			add_subdirectory(CursoPZ)
 
 			# Simple project to test rational function defined by Cedric on pyramids
-			add_subdirectory(RationalFunctionPyramid)
+			#add_subdirectory(RationalFunctionPyramid)
 
 add_subdirectory(proDG)
 
@@ -123,55 +123,55 @@ add_subdirectory(proDG)
 			#add_subdirectory(projteste)
 
 			# MHM project
-			add_subdirectory(MHM)
+			#add_subdirectory(MHM)
 
 
 			
-			add_subdirectory(MultipleLoad)
+			#add_subdirectory(MultipleLoad)
 
 			# add_subdirectory(adaptivity_refactor)
 						
-			add_subdirectory(Cubo_do_Nathan)
+			#add_subdirectory(Cubo_do_Nathan)
 			
-			add_subdirectory(HyperElasticityFAD)
+			#add_subdirectory(HyperElasticityFAD)
 
 			#Increment singular shape function: SingularShapeFunction
-			add_subdirectory(SingularShapeFunction)
-			add_subdirectory(angletest)
-			add_subdirectory(checkconv)
+			#add_subdirectory(SingularShapeFunction)
+			#add_subdirectory(angletest)
+			#add_subdirectory(checkconv)
 
 			#Orthogonalization process of Gram-Schmidt
-			add_subdirectory(matrix)
+			#add_subdirectory(matrix)
 
 			#Inserting material and boundary conditions by function
-			add_subdirectory(termica)
-			add_subdirectory(Steam)
-			add_subdirectory(QuadraticElements)
-			add_subdirectory(ThermalStress)
-			Add_subdirectory(Conductivity)
-			add_subdirectory(ConsLaw)
-			add_subdirectory(Descontinuo2)
+			#add_subdirectory(termica)
+			#add_subdirectory(Steam)
+			#add_subdirectory(QuadraticElements)
+			#add_subdirectory(ThermalStress)
+			#Add_subdirectory(Conductivity)
+			#add_subdirectory(ConsLaw)
+			#add_subdirectory(Descontinuo2)
 
-			add_subdirectory(SteamInjection)
+			#add_subdirectory(SteamInjection)
 			
 			#projeto agnaldo 09-09-2011
-			add_subdirectory(DoubleProjection)
+			#add_subdirectory(DoubleProjection)
 			#projeto omar duran 16-12-2012
-			add_subdirectory(PoroElasticAnalysis)
-			add_subdirectory(Poisson2DGID)
+			#add_subdirectory(PoroElasticAnalysis)
+			#add_subdirectory(Poisson2DGID)
 		#	add_subdirectory(OilWaterSystem)
-                        add_subdirectory(Elasticity2D)
+                       # add_subdirectory(Elasticity2D)
 		#	add_subdirectory(Gridgeneration)
 			#add_subdirectory(Poisson2DLabyrinth)
-			add_subdirectory(Frac1DHdiv)
-			add_subdirectory(SubStruct)
-			add_subdirectory(MultiphysicsSimulation)
-			add_subdirectory(ProblemGirkmann)
-			
+			#add_subdirectory(Frac1DHdiv)
+			#add_subdirectory(SubStruct)
+			#add_subdirectory(MultiphysicsSimulation)
+			#add_subdirectory(ProblemGirkmann)
+			#
 #			add_subdirectory(multplaca)
 
 			#Projeto Lua 2012
-			add_subdirectory(Lua01)
+			#add_subdirectory(Lua01)
 
 			#teste nathan
 			add_subdirectory(PlasticityPV)
@@ -183,21 +183,21 @@ add_subdirectory(proDG)
 			add_subdirectory(AAPlasticityDarcy)
 			#Projeto Denise
 			#add_subdirectory(HdivPressureTeste)
-			add_subdirectory(HpAdaptivity)
-			add_subdirectory(HDiv)
-			add_subdirectory(Hdiv3D)
-			add_subdirectory(AcoplamentoH1Hdiv)
-			add_subdirectory(Validacao)
+			#add_subdirectory(HpAdaptivity)
+			#add_subdirectory(HDiv)
+			#add_subdirectory(Hdiv3D)
+			#add_subdirectory(AcoplamentoH1Hdiv)
+			#add_subdirectory(Validacao)
 
 			#add_subdirectory(prodindex)
 			#Projeto Agnaldo
-			add_subdirectory(Testes_Agnaldo)
-			add_subdirectory(ReducedSpace)
-			add_subdirectory(ReducedSpacePlasticity)
-			add_subdirectory(StabilizedHybridElasticity)
-			add_subdirectory(GlobalPostPro)
+			#add_subdirectory(Testes_Agnaldo)
+			#add_subdirectory(ReducedSpace)
+			#add_subdirectory(ReducedSpacePlasticity)
+			#add_subdirectory(StabilizedHybridElasticity)
+			#add_subdirectory(GlobalPostPro)
 
-			add_subdirectory(Bima1)
+			#add_subdirectory(Bima1)
 #			add_subdirectory(EstabSUPG)
 #			add_subdirectory(MetodosEstab)
 			#

@@ -580,7 +580,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 			out << "\n\nNorma da solucao |Delta(Un)|  : " << norm << endl << endl;
 			
 		} else
-			if( /*norm>3000 || */ normDeltaSol>10 || iter >=numiter  ) {
+			if( /*norm>3000 || */ normDeltaSol>50 || iter >=numiter  || (norm - error) > 1.e-9) {
 				cout << "\nDivergent Method\n";
 				return;
 			}

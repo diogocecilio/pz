@@ -32,6 +32,9 @@ void TPZDarcyFlow::Contribute( TPZMaterialData &data, STATE weight, TPZFMatrix<S
 
 	//std:: cout << "perm "<< perm<<std::endl;
 	REAL perm = fConstPermeability;
+    TPZVec<REAL> k(2,0.);
+    k[0]=2;
+    k[1]=1;
 	
     STATE source_term = 0;
     if (this->HasForcingFunction()) {
@@ -46,7 +49,7 @@ void TPZDarcyFlow::Contribute( TPZMaterialData &data, STATE weight, TPZFMatrix<S
         ef(in, 0) -= weight * source_term * (phi.Get(in, 0));
         for (int jn = 0; jn < phr; jn++) {
             for (int kd = 0; kd < fDim; kd++) {
-                ek(in, jn) += weight * (dphi.Get(kd, in) * perm * dphi.Get(kd, jn));
+                ek(in, jn) += weight * (dphi.Get(kd, in) * k[kd] * dphi.Get(kd, jn));
             }
         }
     }

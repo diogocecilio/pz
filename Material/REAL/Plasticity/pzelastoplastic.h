@@ -99,7 +99,8 @@ class  TPZMatElastoPlastic : public TPZMatWithMem<TMEM>
       EFluxX=61,
       EFluxY=62,
       EFlux=63,
-      EPressure=64
+      EPressure=64,
+      EPrincipalStress=65
 };
 		
 		
