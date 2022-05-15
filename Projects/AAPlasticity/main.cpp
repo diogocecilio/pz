@@ -62,7 +62,7 @@ void DivideElementsAbove(TPZCompMesh* cmesh,TPZGeoMesh* gmesh,REAL sqj2, std::se
 
 void ComputeElementDeformation(TPZCompMesh* cmesh);
 
-void findnodalsol(TPZGeoMesh *gmesh);
+int findnodalsol(TPZGeoMesh *gmesh);
 
 int main()
 {
@@ -71,7 +71,7 @@ int main()
 
  	TPZGeoMesh *gmesh = CreateGMeshGid (0);
 	
-	//findnodalsol(gmesh);
+	int iddisplace=findnodalsol(gmesh);
 	//TPZGeoMesh *gmesh2 = CreateGMeshGid (0);
 
     TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
@@ -82,7 +82,7 @@ int main()
 	bool linesearch=true;
 	bool checkconv=false;
 	int steps=5;
-	REAL finalload = 26;
+	REAL finalload = 30;
 	std::string vtkFile ="slopwe2.vtk";
 	std::ofstream outloadu("loadvu.nb");
 	outloadu << "plot = {";
@@ -90,7 +90,7 @@ int main()
 	
 	//ShearRed (cmesh2);
 	
-	return 0;
+
 	
 	for(int iloadstep=1;iloadstep<=steps;iloadstep++)
  	{
@@ -107,13 +107,14 @@ int main()
 		
 		LoadingRamp(cmesh,load);
 		analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
-		analysis->AcceptSolution();
 		
 		TPZFMatrix<REAL> sol = analysis->Solution();
 		
-		sol.Print(outloadu);
+		//cmesh->Solution().Print(cout);
 		
-		outloadu << "{ "<<sol(573*2,0) << ", " << load << " } ," << endl;
+		analysis->AcceptSolution();
+		
+		outloadu << "{ "<<-sol(iddisplace*2,0) << ", " << load << " } ," << endl;
 		
 		
 		//cmesh->LoadSolution();
@@ -170,14 +171,15 @@ void Post(TPZPostProcAnalysis * postproc,std::string vtkFile )
 
     postproc->PostProcess(0);
 }
-void findnodalsol(TPZGeoMesh *gmesh){
+int findnodalsol(TPZGeoMesh *gmesh){
  
-
+    //b[0] = 39.2265;
+    //b[1] = 40.;
 	int dim = gmesh->Dimension();
  TPZVec<REAL> xd(dim,0.);
  TPZVec<REAL> mpt(dim,0.);
- xd[0] = 35.; xd[1] = 40.;
-
+ xd[0] =39.2265; xd[1] = 40.;
+int id;
  int nels = gmesh->NElements();
  for(int iel=0;iel<nels;iel++){
 	 
@@ -192,9 +194,23 @@ void findnodalsol(TPZGeoMesh *gmesh){
    		{
 	   		cout << "elemento encontrado"<<endl;
 			cout << "index do elemento = " <<gel->Index() <<endl;
-			cout << "qsi" <<endl;
-			cout << qsi[0]<< " "<< qsi[1]<<endl;
-			gel->NodePtr(0);
+			int nnodes=gel->NNodes();
+			for(int inode=0;inode<nnodes;inode++)
+			{
+				TPZVec<REAL> co(3);
+				TPZGeoNode* node = gel->NodePtr(inode);
+				node->GetCoordinates(co);
+				id = node->Id();
+
+				if(fabs(co[0]-xd[0])<1.e-3 && fabs(co[1]-xd[1])<1.e-3)
+				{
+					cout << "node id = "<<id <<endl;
+					cout << " Coordinates "<< endl;
+					cout << " x = "<< co[0] << ",  y = " << co[1] << endl;
+					return id;
+				}
+			}
+
 			
 		}
 }
@@ -889,8 +905,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-    string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-
+   // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
 
 
 
@@ -933,13 +949,19 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
 
-    a = b;
-    b[0] = 35.;
+//     a = b;
+//     b[0] = 35.;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
+	a = b;
+    b[0] = 39.2265;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsramp );
     idsvec.push_back ( idsramp );
-
+	
     a = b;
     b[0] = 0.;
     b[1] = 40.;
@@ -1060,8 +1082,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-    REAL mc_cohesion    = 500.;
-    REAL mc_phi         = ( 20.*M_PI/180 );
+    REAL mc_cohesion    = 68.;
+    REAL mc_phi         = ( 50.*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
