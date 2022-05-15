@@ -13,8 +13,13 @@
 #include "pzvec.h"
 #include "pzpostprocanalysis.h"
 #include <iostream>
-
-
+#include<Eigen/IterativeLinearSolvers>
+#include <Eigen/LU>
+#include <Eigen/Core>
+#include <iostream>
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
+using namespace Eigen;
 class TPZElastoPlasticAnalysis : public TPZNonLinearAnalysis {
 
 public:
@@ -76,7 +81,7 @@ public:
 	virtual void LoadSolution(TPZFMatrix<STATE> & loadsol);
 	
 	virtual void IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
-	
+	void IterativeProcess(std::ostream &out,REAL tol,int numiter);
 	//Implements the cylindrical arc length method ref- Souza Neto 2009
 	virtual void IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
 
@@ -157,7 +162,113 @@ public:
         fMeshVec.Resize(0);
     }
     
+    
+ 
+inline void SolveEigenSparse ( int type, TPZAutoPointer<TPZMatrix<REAL> > A, TPZFMatrix<REAL> b, TPZFMatrix<REAL>& x )
+{
+
+    typedef Eigen::Triplet<double> T;
+    std::vector<T> tripletList;
+    int sz=A->Rows();
+
+    tripletList.reserve ( sz*100 );
+    // tripletList.reserve(80000);
+
+    x.Resize ( sz, 1);
+    SparseMatrix<double> AA ( sz, sz );
+    VectorXd bbb ( sz );
+    for ( int i = 0; i < sz; i++ ) {
+        for ( int j = 0; j < sz; j++ ) {
+            if ( fabs ( A->Get(i,j) ) >1.e-12) {
+                tripletList.push_back ( T ( i,j,A->Get(i,j) ) );
+            }
+        }
+        bbb ( i ) = b(i,0);
+    }
+
+    AA.setFromTriplets ( tripletList.begin(), tripletList.end() );
+
+    AA.makeCompressed();
+
+    VectorXd xx;
+    if ( type==0 ) {
+        SimplicialLLT< SparseMatrix<double> > solver;
+		solver.analyzePattern ( AA );
+        solver.factorize ( AA );
+		xx = solver.solve ( bbb );
+       // xx = solver.compute ( AA ).solve ( bbb );
+    } else if ( type==1 ) {
+        SparseLU< SparseMatrix<double> > solver2;
+        solver2.analyzePattern ( AA );
+        solver2.factorize ( AA );
+        xx = solver2.solve ( bbb );
+    } else if ( type==2 ) {
+        ConjugateGradient<SparseMatrix<double>, Lower|Upper> cg;
+        cg.compute ( AA );
+        xx = cg.solve ( bbb );
+        std::cout << "#iterations:     " << cg.iterations() << std::endl;
+        std::cout << "estimated error: " << cg.error()      << std::endl;
+    }
+    else if ( type==3 ) {
+        SimplicialLDLT<SparseMatrix<double> > solver;
+		solver.analyzePattern ( AA );
+        solver.factorize ( AA );
+		xx = solver.solve ( bbb );
+    }
+    for ( int i=0; i<sz; i++ ) {
+        x(i,0)=xx ( i );
+    }
+}
 	
+
+void SolveEigen ( TPZAutoPointer<TPZMatrix<REAL> > A, TPZFMatrix<REAL> b, TPZFMatrix<REAL>& x )
+{
+
+    x.Resize ( A->Rows(), 1 );
+    MatrixXd AA ( A->Rows(), A->Rows() );
+    VectorXd bbb ( A->Rows());
+    for ( int i = 0; i < A->Rows(); i++ ) {
+        for ( int j = 0; j < A->Rows(); j++ ) {
+            AA ( i, j ) = A->Get(i,j);
+        }
+        bbb ( i ) = b(i,0);
+    }
+    LLT<MatrixXd> llt;
+    //LU<MatrixXd> lu;
+    llt.compute ( AA );
+    VectorXd xxx=llt.solve ( bbb );
+    for ( int i = 0; i < A->Rows(); i++ ) {
+        x(i,0) = xxx ( i );
+    }
+}
+	
+void FromEigen ( MatrixXd eigenmat, TPZFMatrix<REAL>  &pzmat )
+    {
+
+        int rows = eigenmat.rows();
+        int cols = eigenmat.cols();
+        pzmat.Resize ( rows,cols );
+        for ( int irow=0; irow<rows; irow++ ) {
+            for ( int icol=0; icol<cols; icol++ ) {
+                pzmat ( irow,icol ) =eigenmat ( irow,icol );
+            }
+        }
+
+    }
+
+    void ToEigen ( TPZFMatrix<REAL>  pzmat,MatrixXd &eigenmat )
+    {
+        TPZFMatrix<REAL> intpz ( pzmat );
+        int rows = pzmat.Rows();
+        int cols = pzmat.Cols();
+        eigenmat.resize ( rows,cols );
+        for ( int irow=0; irow<rows; irow++ ) {
+            for ( int icol=0; icol<cols; icol++ ) {
+                eigenmat ( irow,icol ) =intpz ( irow,icol );
+            }
+        }
+
+    }
 protected:
 	
 	/* @brief Cumulative solution vector*/

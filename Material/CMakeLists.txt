@@ -4,7 +4,7 @@ file(GLOB headers *.h)
 install(FILES ${headers} DESTINATION ${NEOPZ_INCLUDE})
 
 file(GLOB sources *.cpp)
-
+include_directories("/usr/include/eigen3")
 if(BUILD_COMPLEX_PROJECTS)
   add_subdirectory(Complex)
 else()

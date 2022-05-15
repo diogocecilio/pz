@@ -532,10 +532,95 @@ REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatri
 }//void
 
 
-void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {
+void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter) {
 	
 	int iter = 0;
 	REAL error = 1.e10;
+	int numeq = fCompMesh->NEquations();
+	TPZAutoPointer<TPZMatrix<REAL> > K;
+	TPZFMatrix<REAL> rhs,du;
+	TPZFMatrix<STATE> prevsol(fSolution);
+	while(error > tol && iter < numiter) {
+		cout << "assemble"<< endl;
+		Assemble();
+		TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
+		cout << "solve"<< endl;
+		int type=0;//llt
+		//SolveEigenSparse ( type, K, fRhs, fSolution );
+		//rhs=fRhs;
+		//SolveEigen ( K, rhs, du );
+		//SolveEigenSparse ( type, K, rhs, du );
+		Solve();
+		//fSolution = du;
+		if (true){
+			TPZFMatrix<STATE> nextSol;
+			REAL LineSearchTol = 1e-3 * Norm(fSolution);
+			const int niter = 10;
+			this->LineSearch(prevsol, fSolution, nextSol, LineSearchTol, niter);
+			fSolution = nextSol;
+		}
+		//Solve();
+		//fSolution = du;
+		TPZFMatrix<STATE> sol = fSolution;
+		sol += prevsol;
+
+		
+		prevsol -= fSolution;
+		REAL normDeltaSol = Norm(prevsol);
+		prevsol = fSolution;
+		this->LoadSolution(fSolution);
+		this->AssembleResidual();
+		REAL norm = Norm(fRhs);
+
+		cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << norm << endl;
+
+		error = norm;
+		iter++;
+
+	}
+	
+}
+// void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter) {
+// 	
+// 	int iter = 0;
+// 	REAL error = 1.e10;
+// 	int numeq = fCompMesh->NEquations();
+// 	TPZAutoPointer<TPZMatrix<REAL> > K;
+// 	TPZFMatrix<REAL> rhs,Kf,x,du;
+// 	TPZFMatrix<STATE> prevsol(fSolution);
+// 	
+// 	while(error > tol && iter < numiter) {
+// 
+// 		Assemble();
+// 		TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
+// 		rhs = fRhs;
+// 		int type=0;//llt
+// 		SolveEigenSparse ( type, K, rhs, du );
+// 		
+// 		REAL normDeltaSol = Norm(du);
+// 		
+// 		//fSolution+=du;
+// 		
+// 		//prevsol = fSolution;
+// 		
+// 		//this->LoadSolution(fSolution);
+// 		
+// 		//this->AssembleResidual();
+// 		
+// 		REAL norm = Norm(fRhs);
+// 		
+// 		cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << norm << endl;
+// 		
+// 		error = norm;
+// 		iter++;
+// 		
+// 	}
+// 	
+// }
+void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {
+	
+	int iter = 0;
+	REAL error = 1.e10,error2=1.e10;
 	int numeq = fCompMesh->NEquations();
 	
 	TPZFMatrix<STATE> prevsol(fSolution);
@@ -553,7 +638,26 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		
 //        fSolution.Redim(0,0);
 		Assemble();
-		Solve();
+		TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
+		TPZFMatrix<STATE> rhs =fRhs;
+		chrono::steady_clock sc;
+		auto start = sc.now();
+		if(false)
+  		{
+			TPZFMatrix<STATE> du;
+			//SolveEigen ( K, rhs, du );
+			SolveEigenSparse(0, K, rhs, du );
+			fSolution=du;
+			auto end = sc.now();
+    		auto time_span = static_cast<chrono::duration<double>> ( end - start );
+    		cout << "| total time taken to solve eigen=  " << time_span.count()<< std::endl;
+		}else{
+			Solve();
+			auto end = sc.now();
+    		auto time_span = static_cast<chrono::duration<double>> ( end - start );
+    		//cout << "| total time taken to solve PZ=  " << time_span.count()<< std::endl;
+		}
+
 		if (linesearch){
 			TPZFMatrix<STATE> nextSol;
 			REAL LineSearchTol = 1e-3 * Norm(fSolution);
@@ -580,11 +684,11 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 			out << "\n\nNorma da solucao |Delta(Un)|  : " << norm << endl << endl;
 			
 		} else
-			if( /*norm>3000 || */ normDeltaSol>50 || iter >=numiter  || (norm - error) > 1.e-9) {
+			if( norm>2000 || normDeltaSol>50 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9&&norm>50)) {
 				cout << "\nDivergent Method\n";
 				return;
 			}
-
+		error2 = normDeltaSol;
 		error = norm;
 		iter++;
 		out.flush();

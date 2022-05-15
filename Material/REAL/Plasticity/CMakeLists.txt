@@ -4,5 +4,5 @@ file(GLOB headers *.h)
 install(FILES ${headers} DESTINATION ${NEOPZ_INCLUDE})
 
 file(GLOB sources *.cpp)
-
+include_directories("/usr/include/eigen3")
 set(pzmaterial_Plasticity_SRCS ${headers} ${sources} PARENT_SCOPE)

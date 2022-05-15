@@ -4,7 +4,7 @@ file(GLOB headers *.h)
 install(FILES ${headers} DESTINATION ${NEOPZ_INCLUDE})
 
 file(GLOB sources *.cpp)
-
+include_directories("/usr/include/eigen3")
 if (USING_FAD AND BUILD_PLASTICITY_MATERIALS)
 	if ((STATE_TYPE STREQUAL "double") AND (REAL_TYPE STREQUAL "double"))
 		add_subdirectory(Plasticity)

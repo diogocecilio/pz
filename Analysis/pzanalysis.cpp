@@ -264,9 +264,10 @@ void TPZAnalysis::AssembleResidual()
 
 void TPZAnalysis::Assemble()
 {
+	cout << "aqqqq " ;
     if ( !fCompMesh || !fStructMatrix || !fSolver ) {
         std::stringstream sout;
-        sout << "TPZAnalysis::Assemble lacking definition for Assemble fCompMesh "<< ( void * ) fCompMesh
+        cout << "TPZAnalysis::Assemble lacking definition for Assemble fCompMesh "<< ( void * ) fCompMesh
              << " fStructMatrix " << ( void * ) fStructMatrix.operator->()
              << " fSolver " << ( void * ) fSolver;
 #ifndef WINDOWS
@@ -281,6 +282,7 @@ void TPZAnalysis::Assemble()
 #endif
         return;
     }
+    
     int numloadcases = ComputeNumberofLoadCases();
     long sz = fCompMesh->NEquations();
     fRhs.Redim ( sz,numloadcases );

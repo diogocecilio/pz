@@ -1027,7 +1027,7 @@ void ShearRed ( TPZCompMesh * cmesh )
 #include "TPZSpStructMatrix.h"
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
-    int numthreads=10;
+    int numthreads=0;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
@@ -1040,8 +1040,8 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 
     ///Setting a direct solver
     TPZStepSolver<STATE> step;
-    step.SetDirect ( ELDLt );
-    //step.SetDirect ( ECholesky );
+    //step.SetDirect ( ELDLt );
+    step.SetDirect ( ECholesky );
     analysis->SetSolver ( step );
 
     long neq = cmesh->NEquations();

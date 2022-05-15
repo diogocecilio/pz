@@ -3,6 +3,8 @@
  * @brief Contains the implementation of the CheckConvergence function.
  */
 
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 

@@ -1,5 +1,5 @@
 
-
+#define  PZPLAST
 #include <cmath>
 #include <set>
 #include <iostream>
@@ -97,7 +97,7 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 int main()
 {
 
-    int porder= 2;
+    int porder= 3;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
 
@@ -131,7 +131,7 @@ int main()
         if(water==true)
         {
             cout << "\n Solving Darcy... " << endl;
-            //SolveDarcyProlem(darcycompmesh, vtk);
+            SolveDarcyProlem(darcycompmesh, vtk);
         
             cout << "\n Setting flux in mechanic comp mesh... " << endl;
             SetFlux(cmeshsrm,darcycompmesh);
@@ -359,8 +359,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-    //string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-	string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
+    string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+	//string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
 
 
 
@@ -404,19 +404,19 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
 
-//     a = b;
-//     b[0] = 35.;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
-	
-	a = b;
-    b[0] = 39.2265;
+    a = b;
+    b[0] = 35.;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsramp );
     idsvec.push_back ( idsramp );
+// // 	
+// 	a = b;
+//     b[0] = 39.2265;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
 
     a = b;
     b[0] = 0.;
@@ -538,14 +538,16 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-    REAL mc_cohesion    = 500;//kpa
-    REAL mc_phi         = ( 20.0*M_PI/180 );
+   // REAL mc_cohesion    = 68;//kpa
+   // REAL mc_phi         = ( 50.0*M_PI/180 );
+	REAL mc_cohesion    = 10;//kpa
+    REAL mc_phi         = ( 30.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
     // Elastic predictor
     TPZElasticResponse ER;
-    REAL nu = 0.49;
+    REAL nu = 0.3;
     REAL E = 20000.;
 
     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
@@ -686,46 +688,49 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
 void GravityIncrease ( TPZCompMesh * cmesh )
 {
 
-    REAL FS=0.5,FSmax=10000.,FSmin=0.,tol=1.e-2;
+    REAL FS=0.1,FSmax=100.,FSmin=0.,tol=0.01;
     int neq = cmesh->NEquations();
-    int maxcount=20;
+    int maxcount=50;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
 
     int counterout = 0;
 
     REAL norm = 1000.;
-    REAL tol2 = 1.e-2;
+    REAL tol2 = 0.1;
     int NumIter = 20;
     bool linesearch = true;
     bool checkconv = false;
 	std::ofstream outnewton("saida-newton.txt");
-    
+
     do {
 
-        std::cout << "FS = " << FS << " | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
+        std::cout << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
         LoadingRamp ( cmesh,FS );
         bool optimize =true;
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
-
+		
         anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv );
+		//anal->IterativeProcess ( outnewton, tol2, NumIter);
+
         norm = Norm ( anal->Rhs() );
 
-        
         if ( norm>= tol2 ) {
             cmesh->LoadSolution(displace0);
-            displace = displace0;
             FSmax = FS;
             FS = ( FSmin + FSmax ) / 2.;
+
         } else {
-            displace0 = displace;
+            
             FSmin = FS;
-            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
             anal->AcceptSolution();
+			//FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+			displace0 = anal->Solution();
+			FS+=0.1;
         }
         
         counterout++;
         
-    }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) || norm>tol2);
+    }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
 
 }
 
@@ -797,7 +802,7 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
     TPZSkylineStructMatrix matskl ( cmesh );
-    //TPZFStructMatrix matskl ( cmesh );
+   // TPZFStructMatrix matskl ( cmesh );
 
     matskl.SetNumThreads ( numthreads );
 
@@ -806,7 +811,8 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
     ///Setting a direct solver
     TPZStepSolver<STATE> step;
     step.SetDirect ( ELDLt );
-    //step.SetDirect ( ECholesky );
+	//step.SetDirect ( ENoDecompose );
+   // step.SetDirect ( ECholesky );
     analysis->SetSolver ( step );
 
     long neq = cmesh->NEquations();
