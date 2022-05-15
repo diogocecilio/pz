@@ -82,13 +82,13 @@ int main()
 	bool linesearch=true;
 	bool checkconv=false;
 	int steps=5;
-	REAL finalload = 83;
+	REAL finalload = 26;
 	std::string vtkFile ="slopwe2.vtk";
 	std::ofstream outloadu("loadvu.nb");
 	outloadu << "plot = {";
 	TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
 	
-	ShearRed (cmesh2);
+	//ShearRed (cmesh2);
 	
 	return 0;
 	

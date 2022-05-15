@@ -97,7 +97,7 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 int main()
 {
 
-    int porder= 3;
+    int porder= 2;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
 
@@ -359,8 +359,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-    string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-	//string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
+   // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+	string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
 
 
 
@@ -404,19 +404,19 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
 
-    a = b;
-    b[0] = 35.;
-    b[1] = 40.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
-    idsvec.push_back ( idsramp );
-// // 	
-// 	a = b;
-//     b[0] = 39.2265;
+//     a = b;
+//     b[0] = 35.;
 //     b[1] = 40.;
 //     read.Line ( a, b, ndivs, pathbottom );
 //     read.FindIdsInPath ( pathbottom, idsramp );
 //     idsvec.push_back ( idsramp );
+// // 	
+	a = b;
+    b[0] = 39.2265;
+    b[1] = 40.;
+    read.Line ( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idsramp );
+    idsvec.push_back ( idsramp );
 
     a = b;
     b[0] = 0.;
@@ -538,10 +538,10 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-   // REAL mc_cohesion    = 68;//kpa
-   // REAL mc_phi         = ( 50.0*M_PI/180 );
-	REAL mc_cohesion    = 10;//kpa
-    REAL mc_phi         = ( 30.0*M_PI/180 );
+    REAL mc_cohesion    = 68;//kpa
+    REAL mc_phi         = ( 50.0*M_PI/180 );
+//	REAL mc_cohesion    = 10;//kpa
+//    REAL mc_phi         = ( 30.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
@@ -696,7 +696,7 @@ void GravityIncrease ( TPZCompMesh * cmesh )
     int counterout = 0;
 
     REAL norm = 1000.;
-    REAL tol2 = 0.1;
+    REAL tol2 = 1;
     int NumIter = 20;
     bool linesearch = true;
     bool checkconv = false;
@@ -708,8 +708,12 @@ void GravityIncrease ( TPZCompMesh * cmesh )
         LoadingRamp ( cmesh,FS );
         bool optimize =true;
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
-		
+		chrono::steady_clock sc;
+		auto start = sc.now();
         anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv );
+		auto end = sc.now();
+		auto time_span = static_cast<chrono::duration<double>> ( end - start );
+		cout << "| total time in iterative process =  " << time_span.count()<< std::endl;
 		//anal->IterativeProcess ( outnewton, tol2, NumIter);
 
         norm = Norm ( anal->Rhs() );
@@ -723,9 +727,9 @@ void GravityIncrease ( TPZCompMesh * cmesh )
             
             FSmin = FS;
             anal->AcceptSolution();
-			//FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+			FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
 			displace0 = anal->Solution();
-			FS+=0.1;
+			//FS+=0.1;
         }
         
         counterout++;
