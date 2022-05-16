@@ -37,77 +37,77 @@ TPZMatrix<STATE> * KLStrMatrix::CreateAssemble ( TPZFMatrix<STATE> &rhs, TPZAuto
 
 }
 
-// void KLStrMatrix::AssembleC (TPZFMatrix<REAL> &C)
-// {
-//   long iel, jel;
-//   long nelem = fMesh->NElements();
-//   TPZManVector<TPZManVector<int>> meshtopology;
-// 
-//   TPZElementMatrix temp ( fMesh, TPZElementMatrix::EK );
-//   TPZAdmChunkVector<TPZCompEl *> &elementvec = fMesh->ElementVec();
-//   int sz = fMesh->NEquations();
-//   C.Resize ( sz, sz );
-// 
-//   for ( iel = 0; iel < nelem; iel++ )
-//     {
-//       //std::cout << "\n iel " << iel << std::endl;
-//       TPZCompEl *el = elementvec[iel];
-//       for ( int jel = 0; jel < nelem; jel++ )
-//         {
-//           //std::cout << "\n jel " << jel << std::endl;
-//           TPZCompEl *elj = elementvec[jel];
-//           TPZElementMatrix ce ( fMesh, TPZElementMatrix::EK );
-//           el->CalcStiffC (elj, ce );
-//           //ce.fMat.Print(std::cout);
-//           int nshape = ce.fMat.Rows();
-//           TPZManVector<long> SourceIndexIEL, DestinationIndexIEL, SourceIndexJEL, DestinationIndexJEL;
-//           GetDestIndex ( iel, nshape, SourceIndexIEL, DestinationIndexIEL );
-//           GetDestIndex ( jel, nshape, SourceIndexJEL, DestinationIndexJEL );
-// 
-//           for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
-//             {
-//               for ( int icol = 0; icol < DestinationIndexJEL.size(); icol++ )
-//                 {
-//                   C ( DestinationIndexIEL[irow], DestinationIndexJEL[icol] ) += ce.fMat ( SourceIndexIEL[irow], SourceIndexJEL[icol] );
-//                 }
-//             }
-// 
-//         }//jel
-// 
-//     }//iel
-// 
-//  // C.Print ( std::cout );
-// }
-// void KLStrMatrix::AssembleB(TPZFMatrix<REAL> &B)
-// {
-//   long iel;
-//   long nelem = fMesh->NElements();
-//   TPZManVector<TPZManVector<int>> meshtopology;
-// 
-//   TPZElementMatrix temp ( fMesh, TPZElementMatrix::EK );
-//   TPZAdmChunkVector<TPZCompEl *> &elementvec = fMesh->ElementVec();
-//   int sz = fMesh->NEquations();
-//   B.Resize ( sz, sz );
-// 
-//   for ( iel = 0; iel < nelem; iel++ )
-//     {
-//       TPZCompEl *el = elementvec[iel];
-//       TPZElementMatrix be ( fMesh, TPZElementMatrix::EK );
-//       el->CalcStiffB ( be );
-//       int nshape = be.fMat.Rows();
-//       TPZManVector<long> SourceIndexIEL, DestinationIndexIEL;
-//       GetDestIndex ( iel, nshape, SourceIndexIEL, DestinationIndexIEL );
-//       for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
-//           {
-//             for ( int icol = 0; icol < DestinationIndexIEL.size(); icol++ )
-//               {
-//                 B ( DestinationIndexIEL[irow], DestinationIndexIEL[icol] ) += be.fMat ( SourceIndexIEL[irow], SourceIndexIEL[icol] );
-//               }
-//           }
-//     }//iel
-// 
-//  // C.Print ( std::cout );
-// }
+void KLStrMatrix::AssembleC (TPZFMatrix<REAL> &C)
+{
+  long iel, jel;
+  long nelem = fMesh->NElements();
+  TPZManVector<TPZManVector<int>> meshtopology;
+
+  TPZElementMatrix temp ( fMesh, TPZElementMatrix::EK );
+  TPZAdmChunkVector<TPZCompEl *> &elementvec = fMesh->ElementVec();
+  int sz = fMesh->NEquations();
+  C.Resize ( sz, sz );
+
+  for ( iel = 0; iel < nelem; iel++ )
+    {
+      //std::cout << "\n iel " << iel << std::endl;
+      TPZCompEl *el = elementvec[iel];
+      for ( int jel = 0; jel < nelem; jel++ )
+        {
+          //std::cout << "\n jel " << jel << std::endl;
+          TPZCompEl *elj = elementvec[jel];
+          TPZElementMatrix ce ( fMesh, TPZElementMatrix::EK );
+          el->CalcStiffC (elj, ce );
+          //ce.fMat.Print(std::cout);
+          int nshape = ce.fMat.Rows();
+          TPZManVector<long> SourceIndexIEL, DestinationIndexIEL, SourceIndexJEL, DestinationIndexJEL;
+          GetDestIndex ( iel, nshape, SourceIndexIEL, DestinationIndexIEL );
+          GetDestIndex ( jel, nshape, SourceIndexJEL, DestinationIndexJEL );
+
+          for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
+            {
+              for ( int icol = 0; icol < DestinationIndexJEL.size(); icol++ )
+                {
+                  C ( DestinationIndexIEL[irow], DestinationIndexJEL[icol] ) += ce.fMat ( SourceIndexIEL[irow], SourceIndexJEL[icol] );
+                }
+            }
+
+        }//jel
+
+    }//iel
+
+ // C.Print ( std::cout );
+}
+void KLStrMatrix::AssembleB(TPZFMatrix<REAL> &B)
+{
+  long iel;
+  long nelem = fMesh->NElements();
+  TPZManVector<TPZManVector<int>> meshtopology;
+
+  TPZElementMatrix temp ( fMesh, TPZElementMatrix::EK );
+  TPZAdmChunkVector<TPZCompEl *> &elementvec = fMesh->ElementVec();
+  int sz = fMesh->NEquations();
+  B.Resize ( sz, sz );
+
+  for ( iel = 0; iel < nelem; iel++ )
+    {
+      TPZCompEl *el = elementvec[iel];
+      TPZElementMatrix be ( fMesh, TPZElementMatrix::EK );
+      el->CalcStiffB ( be );
+      int nshape = be.fMat.Rows();
+      TPZManVector<long> SourceIndexIEL, DestinationIndexIEL;
+      GetDestIndex ( iel, nshape, SourceIndexIEL, DestinationIndexIEL );
+      for ( int irow = 0; irow < DestinationIndexIEL.size(); irow++ )
+          {
+            for ( int icol = 0; icol < DestinationIndexIEL.size(); icol++ )
+              {
+                B ( DestinationIndexIEL[irow], DestinationIndexIEL[icol] ) += be.fMat ( SourceIndexIEL[irow], SourceIndexIEL[icol] );
+              }
+          }
+    }//iel
+
+ // C.Print ( std::cout );
+}
 // void KLStrMatrix::AssembleB(TPZFMatrix<REAL> &B)
 // {
 // 
@@ -232,7 +232,7 @@ void KLStrMatrix::GetDestIndex ( int iel, int nshape, TPZManVector<long> &fSourc
     }//for in
 
 }
-
+/*
 void KLStrMatrix::AssembleC (TPZFMatrix<REAL> &C)
 {
   long iel, jel;
@@ -307,7 +307,7 @@ void KLStrMatrix::AssembleB(TPZFMatrix<REAL> &B)
 
  // C.Print ( std::cout );
 }
-
+*/
 
 
 void KLStrMatrix::Solve()

@@ -685,7 +685,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		TPZFMatrix<STATE> range(numeq,1,1.);
 		CheckConvergence(*this,fSolution,range,coefs);
 	}
-	
+	std::ofstream outnewton("outnewton-inside-analysis.txt");
 	double NormResLambda0 = Norm(fRhs);
 	
 	while(error > tol && iter < numiter) {
@@ -705,7 +705,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 			fSolution=du;
 			auto end = sc.now();
     		auto time_span = static_cast<chrono::duration<double>> ( end - start );
-    		cout << "| total time taken to solve eigen=  " << time_span.count()<< std::endl;
+    		out << "| total time taken to solve eigen=  " << time_span.count()<< std::endl;
 		}else{
 			Solve();
 			auto end = sc.now();
@@ -732,7 +732,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		this->AssembleResidual();
 		double NormResLambda = Norm(fRhs);
 		double norm = NormResLambda;
-		cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << endl;
+		out << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << endl;
 		
 		if(norm < tol) {
 			out << "\nTolerancia atingida na iteracao : " << (iter+1) << endl;
@@ -740,7 +740,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 			
 		} else
 			if(  iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9&&norm>50)) {
-				cout << "\nDivergent Method\n";
+				out << "\nDivergent Method\n";
 				return;
 			}/*			if( norm>2000 || normDeltaSol>50 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9&&norm>50)) {
 				cout << "\nDivergent Method\n";

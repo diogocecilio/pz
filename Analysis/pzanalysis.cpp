@@ -264,7 +264,7 @@ void TPZAnalysis::AssembleResidual()
 
 void TPZAnalysis::Assemble()
 {
-	cout << "aqqqq " ;
+	//cout << "aqqqq " ;
     if ( !fCompMesh || !fStructMatrix || !fSolver ) {
         std::stringstream sout;
         cout << "TPZAnalysis::Assemble lacking definition for Assemble fCompMesh "<< ( void * ) fCompMesh

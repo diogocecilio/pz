@@ -68,14 +68,15 @@ void KLAnalysis::Assemble()
 
 void KLAnalysis::Solve()
 {
-	std::ofstream outfull("outinfofulltime-p2-h4.txt");
+
 	chrono::steady_clock fulltime;
 	auto startfull = fulltime.now();
-	std::ofstream out("outinfo-p2-h4.txt");
+	std::ofstream out("outinfo3P2.txt");
+	out << "fExpansionOrder =  " << fExpansionOrder<< std::endl;
     TPZFMatrix<REAL> invB,invBC,B,C;
     MatrixXd eigenInvBC,eigenInvB,eigenC,eigenB;
-	cout << "Number of Equations =   " << fCompMesh->NEquations() << std::endl;
-    cout << "Assembling C  " << std::endl;
+	out << "Number of Equations =   " << fCompMesh->NEquations() << std::endl;
+    out << "Assembling C  " << std::endl;
     chrono::steady_clock sc;
     auto start = sc.now();
 
@@ -83,16 +84,16 @@ void KLAnalysis::Solve()
 
     auto end = sc.now();
     auto time_span = static_cast<chrono::duration<double>> ( end - start );
-    cout << "| total time taken to assemble C =  " << time_span.count()<< std::endl;
+    out << "| total time taken to assemble C =  " << time_span.count()<< std::endl;
 
-   cout << " Assembling B  " << std::endl;
+   out << " Assembling B  " << std::endl;
     start = sc.now();
 
     fStrMatrix->AssembleB ( B );
 
     end = sc.now();
     time_span = static_cast<chrono::duration<double>> ( end - start );
-    cout << "| total time taken to assemble B =  " << time_span.count()<< std::endl;
+    out << "| total time taken to assemble B =  " << time_span.count()<< std::endl;
 
     ToEigen ( B,eigenB );
     ToEigen ( C,eigenC );
@@ -103,17 +104,17 @@ void KLAnalysis::Solve()
     MatrixXd val,vec;
 
     ComplexEigenSolver<MatrixXd> ces;
-    cout << " Computing Eigensystem  " << std::endl;
+    out << " Computing Eigensystem  " << std::endl;
     start = sc.now();
     ces.compute ( eigenInvBC );
     end = sc.now();
     time_span = static_cast<chrono::duration<double>> ( end - start );
-   cout << "| total time taken to compute the Eigensystem =  " << time_span.count()<< std::endl;
+   out << "| total time taken to compute the Eigensystem =  " << time_span.count()<< std::endl;
 	
 	
 	auto endfull = fulltime.now();
 	time_span = static_cast<chrono::duration<double>> ( endfull - startfull );
-    cout << "| total time  =  " << time_span.count()<< std::endl;
+    out << "| total time  =  " << time_span.count()<< std::endl;
 	
     int ncols = ces.eigenvectors().cols();
     int M = fExpansionOrder;
@@ -121,7 +122,7 @@ void KLAnalysis::Solve()
     int nrows = ces.eigenvectors().rows();
     val.resize ( M,1 );
     vec.resize ( nrows,M );
-
+	
     for ( int icol=0; icol< M; icol++ )
     {
         val ( icol,0 ) =ces.eigenvalues() [nrows-icol-1].real();
@@ -166,14 +167,15 @@ void KLAnalysis::Solve()
     }
     end = sc.now();
     time_span = static_cast<chrono::duration<double>> ( end - start );
-    cout << "| total time taken to integrate the solution over the domain =  " << time_span.count()<< std::endl;
-
-	cout << intphisqr << endl;
+    out << "| total time taken to integrate the solution over the domain =  " << time_span.count()<< std::endl;
+	FromEigen(val,fEigenValues);
+	out << intphisqr << endl;
     for ( int icol=0; icol< M; icol++ )
     {
         for(int irow=0; irow<nrows; irow++)
         {
-            vecpz(irow,icol)=fEigenVectors[icol](irow,0);
+            //vecpz(irow,icol)= fEigenVectors[icol](irow,0)*sqrt( fEigenValues(icol,0) ) ;
+			vecpz(irow,icol)= fEigenVectors[icol](irow,0)  ;
         }
     }
     LoadSolution(vecpz);
@@ -187,12 +189,12 @@ void KLAnalysis::Solve()
     }
 
     REAL totalarea = ComputeTotalArea();
-    cout << "total area = "<<totalarea << std::endl;
+    out << "total area = "<<totalarea << std::endl;
     //std::cout << " err / (fsig * fsig) = " <<err / (fsig * fsig) << std::endl;
     cout << "mean error 1 = " <<1. - 1./totalarea *   err2 << std::endl;
     cout << "mean error 2 = " <<1. - 1./totalarea *   err << std::endl;
 
-    FromEigen(val,fEigenValues);
+    
 
 
 }

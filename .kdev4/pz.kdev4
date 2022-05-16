@@ -65,12 +65,12 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/pz
+Executable=file:///home/diogo/projects/pz-build-release/Projects/AAPlasticityKL/AAPlasticityKL
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Project Target=pz,Projects,AADarcy,AADarcy
 Use External Terminal=false
 Working Directory=
-isExecutable=false
+isExecutable=true
 
 [Project]
 VersionControlSupport=kdevgit

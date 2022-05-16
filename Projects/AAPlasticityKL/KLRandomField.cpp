@@ -43,6 +43,8 @@ TPZVec<TPZFMatrix<REAL>> KLRandomField::CreateLogNormalRandomField()
 
     Identity.Multiply ( vect, PHI );
 
+	//PHI = vect;
+	
     PHI.Transpose ( &PHIt );
 
     std::normal_distribution<double> distribution ( 0., 1. );
