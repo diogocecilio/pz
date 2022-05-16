@@ -56,7 +56,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref );
 
 TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder );
 
-void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor );
+void LoadingRamp ( plasticmat * body,  REAL factor );
+
 
 void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames );
 
@@ -68,7 +69,7 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize );
 
 void ShearRed ( TPZCompMesh * cmesh );
 
-REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh );
+TPZManVector<REAL,10> ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh );
 
 void  InsertMat ( TPZCompMesh * cmesh,int porder );
 
@@ -97,15 +98,15 @@ void SolveDarcyProlem(TPZCompMesh *cmesh,string vtk);
 TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder );
 void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp);
 void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp);
-REAL GravityIncrease ( TPZCompMesh * cmesh );
+TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh );
 REAL findnodalsol(TPZCompMesh *cmesh);
 
-ofstream outglobal ( "outglobal.txt" );
-std::ofstream outloadu("gimloadvsu-darcy.nb");
+//ofstream outglobal ( "outglobal2.txt" );
+//std::ofstream outloadu("gimloadvsu-darcy2.nb");
 int main()
 {
 	//seting porder
-    int porder= 3;
+    int porder= 2;
 
 	//seting mc samples
     int samples =1000;
@@ -115,13 +116,13 @@ int main()
 
     TPZManVector<TPZCompMesh *,2> vecmesh;
 
-    string outco="cohesion-gid.txt";
+    string outco="rffolder/cohesion-gid-p2-2kels.txt";
 
-    string outphi="friction-gid.txt";
+    string outphi="rffolder/friction-gid-p2-2kels.txt";
 
     TPZFMatrix<REAL> readco,readphi;
 
-	bool createfield=true;
+	bool createfield=false;
 	//if true creates random fields
 	//if false read random fields
     if (createfield ) {
@@ -160,21 +161,39 @@ int main()
     bool gim = true;
   
     TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
-	std::string vtkFile;
+	std::string vtkFile0;
 	string str;
 	if(gim==true)
 	{
-    	 vtkFile ="vtkfolder/out-gim-mc.vtk";
+    	 vtkFile0 ="vtkfolder/out-gim-mc";
 		   str="outfsgim.txt";
 	}else{
-		 vtkFile ="vtkfolder/out-srm-mc.vtk";
+		 vtkFile0 ="vtkfolder/out-srm-mc";
 		  str="outfssrm.txt";
 	}
     std::ofstream outfs(str);
 	
+	string namefolder = "gim-type1-p2";
+    //char* cstr = new char[namefolder.length() + 1];
+    //strcpy ( cstr, namefolder.c_str() );
 
-    for ( int isample=1; isample<samples; isample++ ) {
+    for ( int isample=800; isample<1000; isample++ ) {
 
+		
+		string  filename = namefolder;
+		string datafile = "/information";
+		string ext = ".txt";
+		filename += datafile;
+		auto s = std::to_string ( isample );
+		filename += s;
+		filename += ext;
+		std::ofstream fileinfo ( filename );
+		fileinfo << "Monte Carlo Sample = " << isample << std::endl;
+		string vtkFile=vtkFile0;
+		string ext2=".vtk";
+		vtkFile+=s;
+		vtkFile+=ext2;
+		
 		//create the elastoplastic comp mesh
         TPZCompMesh *cmesh = CreateCMesh ( gmesh,porder );
 
@@ -188,37 +207,42 @@ int main()
         chrono::steady_clock sc;
         auto start = sc.now();
 		
-        REAL FS;
+        TPZManVector<REAL,10> out;
         if(gim==true)
         {
             //for GIM set material param with FS = 1 only once.
             //The loading will increase inside the method, but the Strength will be constant
             SetMaterialParamenters ( cmesh,vecmesh,isample,1 );
-            FS = GravityIncrease(cmesh);
+            out = GravityIncrease(cmesh);
 			auto end = sc.now();
             auto time_span = static_cast<chrono::duration<double>> ( end - start );
-			outglobal<< "\n \n *************************** ";
-			outglobal<< "\n \n Gravity Increase took: " << time_span.count() << " seconds !!!";
+			cout<< "\n \n *************************** ";
+
             cout << "\n Gravity Increase took: " << time_span.count() << " seconds !!!";
 
         } else {
             //here the material parameters will be decreased inside the method
-            FS = ShearRed ( cmesh,isample, vecmesh );
+            out = ShearRed ( cmesh,isample, vecmesh );
             auto end = sc.now();
             auto time_span = static_cast<chrono::duration<double>> ( end - start );
-			outglobal << "\n Strength Reduction took: " << time_span.count() << " seconds !!!";
+
             cout << "\n Strength Reduction took: " << time_span.count() << " seconds !!!";
         }
 
-        outglobal << "\n MC realization  = " << isample  << ", FS = " << FS << std::endl;
-        cout << "\n MC realization  = " << isample  << ", FS = " << FS << std::endl;
+        cout << "\n MC realization  = " << isample  << ", FS = " << out[0] << std::endl;
 
-        outfs <<isample << " "<< FS << endl;
+        //outfs <<isample << " "<< FS << endl;
+		
+
+		fileinfo << "Safety Factor = " << out[0] << std::endl;
+		fileinfo << "counterout = " << out[1] << std::endl;
+		fileinfo << "rnorm = " << out[2] << std::endl;
 
         postproc->SetCompMesh(0);
         CreatePostProcessingMesh ( postproc, cmesh );
 
         Post ( postproc,vtkFile );
+		delete cmesh;
     }
 
     std::cout << "\n FINISHED!" << std::endl;
@@ -346,7 +370,7 @@ TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int s
     klanal->SetExpansionOrder ( mat->GetExpansioOrder() );
     klanal->Solve();
 
-    string file ="out-eigenfunctions.vtk";
+    string file ="rffolder/out-eigenfunctions.vtk";
     klanal->Post ( file,dim,0 );
 
     TPZManVector<TPZCompMesh *,2> vecmesh ( 2 );
@@ -370,11 +394,11 @@ TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int s
     vecmesh[0]=cmesh;
     vecmesh[1]=cmesh2;
 
-    file ="out-coessssP2.vtk";
+    file ="rffolder/out-coessssP2.vtk";
     klanal->Post ( file,dim,0 );
     KLAnalysis * klanal2 = new KLAnalysis ( cmesh2 );
     cmesh2->LoadSolution ( hhat[1] );
-    file ="out-phissss.vtk";
+    file ="rffolder/out-phissss.vtk";
     klanal2->Post ( file,dim,0 );
     return vecmesh;
 }
@@ -398,7 +422,7 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder 
 
 TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
 {
-    int expansionorder=200;
+    int expansionorder=100;
     REAL Lx=20;
     REAL Ly=2;
     REAL Lz=1.;
@@ -444,8 +468,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     // string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-    string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-
+   // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+string file ="/home/diogo/projects/pz/data/gid-tri-2kels.msh";
 
 
 
@@ -789,13 +813,20 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
 
 }
 
-void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor )
+// void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor )
+// {
+//     plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+//     TPZManVector<REAL, 3> force ( 3,0. );
+//     force[1]=-factor*20.;
+//     body->SetBodyForce ( force );
+// 
+// }
+
+void LoadingRamp ( plasticmat * body,  REAL factor )
 {
-    plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
     TPZManVector<REAL, 3> force ( 3,0. );
     force[1]=-factor*20.;
     body->SetBodyForce ( force );
-
 }
 
 void  CreatePostProcessingMesh ( TPZPostProcAnalysis * PostProcess,TPZCompMesh * cmesh )
@@ -882,9 +913,11 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
 
 }
 
-REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh )
+TPZManVector<REAL,10> ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> vecmesh )
 {
-    LoadingRamp ( cmesh,1. );
+	TPZManVector<REAL,10> out(10,0.);
+	plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+    LoadingRamp ( body,1. );
 
     REAL FS=0.1,FSmax=10000.;
     REAL FSmin=0.;
@@ -946,14 +979,18 @@ REAL ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TPZCompMesh *,2> ve
     anal->AcceptSolution();
     //cmesh->LoadSolution(displace);
 
-    return FS;
+	out[0]=FS;
+	out[1]=counterout;
+	out[2]=norm;
+    return out;
 
 }
 
 
 void ShearRed ( TPZCompMesh * cmesh )
 {
-    LoadingRamp ( cmesh,1. );
+	plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+    LoadingRamp ( body,1. );
 
     REAL FS=0.1,FSmax=10000.,FSmin=0.,tol=1.e-3;
     int neq = cmesh->NEquations();
@@ -1012,7 +1049,7 @@ void ShearRed ( TPZCompMesh * cmesh )
 #include "TPZSpStructMatrix.h"
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
-    int numthreads=0;
+    int numthreads=16;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
@@ -1538,9 +1575,10 @@ REAL findnodalsol(TPZCompMesh *cmesh) {
 }
 
 
-REAL GravityIncrease ( TPZCompMesh * cmesh )
+TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 {
 
+	TPZManVector<REAL,10> output(10,0.);
     REAL FS=0.1,FSmax=100.,FSmin=0.,tol=0.1;
     int neq = cmesh->NEquations();
     int maxcount=100;
@@ -1556,21 +1594,21 @@ REAL GravityIncrease ( TPZCompMesh * cmesh )
 	//std::ofstream outnewton("outnewton.txt");
     
     REAL uy=0.;
-	
-    outloadu << "\n plot = {";
+	plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+    //outloadu << "\n plot = {";
     do {
 
-        outglobal << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
-        LoadingRamp ( cmesh,FS );
+       // outglobal << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
+        LoadingRamp ( body,FS );
         bool optimize =true;
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
         chrono::steady_clock sc;
         auto start = sc.now();
-        anal->IterativeProcess ( outglobal, tol2, NumIter,linesearch,checkconv );
+        anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv );
 
         auto end = sc.now();
         auto time_span = static_cast<chrono::duration<double>> ( end - start );
-        outglobal << "| total time in iterative process =  " << time_span.count()<< std::endl;
+        cout << "| total time in iterative process =  " << time_span.count()<< std::endl;
         //anal->IterativeProcess ( outnewton, tol2, NumIter);
 
         norm = Norm ( anal->Rhs() );
@@ -1581,8 +1619,8 @@ REAL GravityIncrease ( TPZCompMesh * cmesh )
             FS = ( FSmin + FSmax ) / 2.;
 
         } else {
-            uy+=findnodalsol(cmesh);
-            outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
+          //  uy+=findnodalsol(cmesh);
+          //  outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
             FSmin = FS;
             anal->AcceptSolution();
             FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
@@ -1591,10 +1629,14 @@ REAL GravityIncrease ( TPZCompMesh * cmesh )
         }
 
         counterout++;
-
+		delete anal;
     }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
-    outloadu <<  " };";
-	outloadu <<"\n ListLinePlot[plot,PlotRange->All]" << endl;
-    return FS;
+	//delete body;
+   // outloadu <<  " };";
+	//outloadu <<"\n ListLinePlot[plot,PlotRange->All]" << endl;
+	output[0]=FS;
+	output[1]=counterout;
+	output[2]=norm;
+    return output;
 }
 
