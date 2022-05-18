@@ -1300,9 +1300,11 @@ template <class T, class TMEM>
 void TPZMatElastoPlastic<T,TMEM>::ComputeDeltaStrainVector(TPZMaterialData & data, TPZFMatrix<REAL> &DeltaStrain)
 {
 	TPZFNMatrix<9> DSolXYZ(3,3,0.);
-	data.axes.Multiply(data.dsol[0],DSolXYZ,1/*transpose*/);
-    cout << "\n data dsol \n";
+	    cout << "\n data dsol \n";
 	data.dsol[0].Print("data.sol");
+	data.axes.Print("data.axes");
+	data.axes.Multiply(data.dsol[0],DSolXYZ,1/*transpose*/);
+
     DeltaStrain.Redim(6,1);
     DeltaStrain(_XX_,0) = DSolXYZ(0,0);
     DeltaStrain(_YY_,0) = DSolXYZ(1,1);

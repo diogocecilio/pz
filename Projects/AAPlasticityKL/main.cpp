@@ -39,6 +39,8 @@
 #include "KLInterpolationSpace.h"
 #include "KLRandomField.h"
 #include "TPZDarcyFlow.h"
+#include <sys/stat.h>
+#include <thread>
 using namespace std;
 
 
@@ -100,29 +102,109 @@ void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp);
 void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp);
 TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh );
 REAL findnodalsol(TPZCompMesh *cmesh);
-
+void MonteCarloFlow(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> vecmesh,int porder, string namefolderx);
+void MonteCarlo(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> vecmesh,int porder, string namefolderx);
 //ofstream outglobal ( "outglobal2.txt" );
 //std::ofstream outloadu("gimloadvsu-darcy2.nb");
+
+void myTreads ( int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> vecmesh,int porder, string namefolderx )
+{
+	MonteCarlo(a,b, gmesh,vecmesh,porder,namefolderx );
+}
+
+void myTreadsFlow ( int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> vecmesh,int porder, string namefolderx )
+{
+	MonteCarloFlow(a,b, gmesh,vecmesh,porder,namefolderx );
+}
+
+TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh, int porder,int samples, string namefolderx);
+
 int main()
 {
-	//seting porder
-    int porder= 2;
+	
 
-	//seting mc samples
-    int samples =1000;
+	int samples=1000;
+	
+	int porder=2;
+	
+
+	string namefolderflow = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc-flow";
+
+	//MonteCarloFlow(750,1000,gmesh,vecmesh,porder,namefolderflow);
+	
+	string namefolder = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc";
+	
+	//MonteCarlo(0,250,gmesh,vecmesh,porder,namefolder);
+	
+	
+// 	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+// 		
+// 	TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder);
+// 	
+// 	 MonteCarlo(0, 2,  gmesh, vecmesh,porder,namefolder);
+// 	
+// 	 return 0;
+	
+	std::vector <std::thread> threadsmat1,threadsmat2;
+	
+	int nthreads =5;
+	
+	int delta = int ( samples/nthreads );
+	
+    int a=0,b=delta;
+	
+	for ( int i=0; i<nthreads; i++ )
+	{
+		std::cout << "a = "<< a <<std::endl;
+		
+        std::cout << "b = "<< b <<std::endl;
+		
+		
+		TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+		
+		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder);
+		
+		std::thread threadx ( myTreads,a,b, gmesh,vecmesh,porder,namefolder );
+		
+		
+		TPZGeoMesh* gmeshflow = CreateGMeshGid ( 0 );
+		
+		TPZManVector<TPZCompMesh*,2> vecmeshflow = SettingCreateFilds(gmeshflow, porder, samples,namefolder);
+		
+		std::thread threadflow(myTreadsFlow,a,b, gmeshflow,vecmesh,porder,namefolderflow );
+		
+	
+		threadsmat1.push_back ( std::move ( threadx ) );
+		
+		threadsmat2.push_back ( std::move ( threadflow ) );
+		
+		a=b+1;
+		
+        b+=delta;
+		
+	}
+
+    for ( auto &threadx: threadsmat1 ) threadx.join();
+	for ( auto &threadflow: threadsmat2 ) threadflow.join();
+	
+    return 0;
+}
+
+TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,int porder,int samples, string namefolderx)
+{
 
 	//creating geometric mesh, reading it from .msh file
-    TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
+   // gmesh = CreateGMeshGid ( 0 );
 
-    TPZManVector<TPZCompMesh *,2> vecmesh;
+    string outco="rffolder/cohesion-p2-type1-alpha.txt";
 
-    string outco="rffolder/cohesion-p2-type3-alpha.txt";
-
-    string outphi="rffolder/friction-p2-type3-alpha.txt";
+    string outphi="rffolder/friction-p2-type1-alpha.txt";
 
     TPZFMatrix<REAL> readco,readphi;
 
 	bool createfield=false;
+	
+	TPZManVector<TPZCompMesh *,2> vecmesh;
 	//if true creates random fields
 	//if false read random fields
     if (createfield ) {
@@ -130,7 +212,6 @@ int main()
         PrintMat ( outco,vecmesh[0]->Solution() );
         PrintMat ( outphi,vecmesh[1]->Solution() );
 
-        return 0;
     } else {
         vecmesh = CreateFieldsDummy ( gmesh,porder );
         ReadFile ( outco,readco );
@@ -144,114 +225,142 @@ int main()
 	//load the random fields solution in dummy meshes
     vecmesh[0]->LoadSolution ( readco );
     vecmesh[1]->LoadSolution ( readphi );
-
-
-	//solve the darcy flow problem
-    string vtk = "Darcy.vtk";
-    TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
-    bool water=true;
-    if(water==true)
-    {
-        cout << "\n Solving Darcy... " << endl;
-        SolveDarcyProlem(darcycompmesh, vtk);
-    }
-
-    //set wich type of solution
-    //gim or srm
-    bool gim = true;
-  
-    TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
-	std::string vtkFile0;
-	string str;
-	if(gim==true)
-	{
-    	 vtkFile0 ="/home/diogo/projects/output-slope-reliability/vtkfolder-flow/out-gim-mc";
-		   str="/home/diogo/projects/output-slope-reliability/vtkfolder-flow/outfsgim.txt";
-	}else{
-		 vtkFile0 ="/home/diogo/projects/output-slope-reliability/vtkfolder-flow/out-srm-mc";
-		  str="/home/diogo/projects/output-slope-reliability/vtkfolder-flow/outfssrm.txt";
-	}
-    std::ofstream outfs(str);
 	
-	string namefolder = "/home/diogo/projects/output-slope-reliability/gim-type3-p2-flow";
-    //char* cstr = new char[namefolder.length() + 1];
-    //strcpy ( cstr, namefolder.c_str() );
+	return vecmesh;
+}
 
-    for ( int isample=750; isample<1000; isample++ ) {
+void MonteCarlo(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> vecmesh,int porder, string namefolderx)
+{
+	
+    char* cstr = new char[namefolderx.length() + 1];
+    strcpy ( cstr, namefolderx.c_str() );
+    int check = mkdir ( cstr, 777 );
+	
+	std::string vtkFile0,str;
+	
+	vtkFile0=namefolderx;
+	
+	vtkFile0+="/vtkfolder/out-gim-mc";
 
-		
-		string  filename = namefolder;
-		string datafile = "/information";
-		string ext = ".txt";
-		filename += datafile;
+    for ( int isample=a; isample<b; isample++ ) {
+
+		TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
 		auto s = std::to_string ( isample );
-		filename += s;
-		filename += ext;
-		std::ofstream fileinfo ( filename );
-		fileinfo << "Monte Carlo Sample = " << isample << std::endl;
-		string vtkFile=vtkFile0;
-		string ext2=".vtk";
-		vtkFile+=s;
-		vtkFile+=ext2;
-		
+
 		//create the elastoplastic comp mesh
         TPZCompMesh *cmesh = CreateCMesh ( gmesh,porder );
-
-        if(water==true)
-        {
-			//outfs << "\n Setting flux in mechanic comp mesh... " << endl;
-            cout << "\n Setting flux in mechanic comp mesh... " << endl;
-            SetFlux(cmesh,darcycompmesh);
-        }
 
         chrono::steady_clock sc;
         auto start = sc.now();
 		
         TPZManVector<REAL,10> out;
-        if(gim==true)
-        {
-            //for GIM set material param with FS = 1 only once.
-            //The loading will increase inside the method, but the Strength will be constant
-            SetMaterialParamenters ( cmesh,vecmesh,isample,1 );
-            out = GravityIncrease(cmesh);
-			auto end = sc.now();
-            auto time_span = static_cast<chrono::duration<double>> ( end - start );
-			cout<< "\n \n *************************** ";
 
-            cout << "\n Gravity Increase took: " << time_span.count() << " seconds !!!";
-
-        } else {
-            //here the material parameters will be decreased inside the method
-            out = ShearRed ( cmesh,isample, vecmesh );
-            auto end = sc.now();
-            auto time_span = static_cast<chrono::duration<double>> ( end - start );
-
-            cout << "\n Strength Reduction took: " << time_span.count() << " seconds !!!";
-        }
-
-        cout << "\n MC realization  = " << isample  << ", FS = " << out[0] << std::endl;
-
-        //outfs <<isample << " "<< FS << endl;
+		//for GIM set material param with FS = 1 only once.
+		//The loading will increase inside the method, but the Strength will be constant
+		SetMaterialParamenters ( cmesh,vecmesh,isample,1 );
+		out = GravityIncrease(cmesh);
+		auto end = sc.now();
+		auto time_span = static_cast<chrono::duration<double>> ( end - start );
+		cout<< "\n \n *************************** ";
+		cout << "\n Gravity Increase took: " << time_span.count() << " seconds !!!";
+        
+		string  filename = namefolderx;
+		string datafile = "/information";
+		string ext = ".txt";
+		filename += datafile;
 		
-
+		filename += s;
+		filename += ext;
+		std::ofstream fileinfo ( filename );
+		fileinfo << "Monte Carlo Sample = " << isample << std::endl;
 		fileinfo << "Safety Factor = " << out[0] << std::endl;
 		fileinfo << "counterout = " << out[1] << std::endl;
 		fileinfo << "rnorm = " << out[2] << std::endl;
-
+		
+		string vtkFile=vtkFile0;
+		string ext2=".vtk";
+		vtkFile+=s;
+		vtkFile+=ext2;
+		cout << "\n vtkFile = " << vtkFile << endl;
         postproc->SetCompMesh(0);
         CreatePostProcessingMesh ( postproc, cmesh );
 
         Post ( postproc,vtkFile );
 		delete cmesh;
     }
-
-    std::cout << "\n FINISHED!" << std::endl;
-
-
-    return 0;
 }
+void MonteCarloFlow(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> vecmesh,int porder, string namefolderx)
+{
+	
+    char* cstr = new char[namefolderx.length() + 1];
+    strcpy ( cstr, namefolderx.c_str() );
+    int check = mkdir ( cstr, 777 );
+	
+	//solve the darcy flow problem
+	string vtk = namefolderx;
+	vtk += "/Darcy.vtk";
+    TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
+	cout << "\n Solving Darcy... " << endl;
+	SolveDarcyProlem(darcycompmesh, vtk);
+	
+    
+	
+	std::string vtkFile0,str;
+	
+	vtkFile0=namefolderx;
+	
+	vtkFile0+="/vtkfolder/out-gim-mc";
 
+    for ( int isample=a; isample<b; isample++ ) {
 
+		TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
+		auto s = std::to_string ( isample );
+
+		//create the elastoplastic comp mesh
+        TPZCompMesh *cmesh = CreateCMesh ( gmesh,porder );
+
+		cout << "\n Setting flux in mechanic comp mesh... " << endl;
+		SetFlux(cmesh,darcycompmesh);
+
+        chrono::steady_clock sc;
+        auto start = sc.now();
+		
+        TPZManVector<REAL,10> out;
+
+		//for GIM set material param with FS = 1 only once.
+		//The loading will increase inside the method, but the Strength will be constant
+		SetMaterialParamenters ( cmesh,vecmesh,isample,1 );
+		out = GravityIncrease(cmesh);
+		auto end = sc.now();
+		auto time_span = static_cast<chrono::duration<double>> ( end - start );
+		cout<< "\n \n *************************** ";
+		cout << "\n Gravity Increase took: " << time_span.count() << " seconds !!!";
+        
+		string  filename = namefolderx;
+		string datafile = "/information";
+		string ext = ".txt";
+		filename += datafile;
+		
+		filename += s;
+		filename += ext;
+		std::ofstream fileinfo ( filename );
+		fileinfo << "Monte Carlo Sample = " << isample << std::endl;
+		fileinfo << "Safety Factor = " << out[0] << std::endl;
+		fileinfo << "counterout = " << out[1] << std::endl;
+		fileinfo << "rnorm = " << out[2] << std::endl;
+		
+		string vtkFile=vtkFile0;
+		string ext2=".vtk";
+		vtkFile+=s;
+		vtkFile+=ext2;
+		cout << "\n vtkFile = " << vtkFile << endl;
+        postproc->SetCompMesh(0);
+        CreatePostProcessingMesh ( postproc, cmesh );
+
+        Post ( postproc,vtkFile );
+		delete cmesh;
+    }
+}
 void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 {
 
@@ -427,7 +536,7 @@ TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
     REAL Ly=2;
     REAL Lz=1.;
     //int type=3;
-	int type=3;
+	int type=1;
     int id=1;
     int dim = gmesh->Dimension();
 
@@ -1066,6 +1175,11 @@ void ShearRed ( TPZCompMesh * cmesh )
 #include "tpzsparseblockdiagonalstructmatrix.h"
 #include "TPBSpStructMatrix.h"
 #include "TPZSpStructMatrix.h"
+#include <boost/mpl/void.hpp>
+#include <boost/mpl/void.hpp>
+#include <sys/stat.h>
+#include <sys/stat.h>
+#include <sys/stat.h>
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
     int numthreads=16;
@@ -1617,7 +1731,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
     //outloadu << "\n plot = {";
     do {
 
-        std::cout << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
+
         LoadingRamp ( body,FS );
 		//LoadingRamp ( body,0.0000001 );
         bool optimize =true;
@@ -1628,7 +1742,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 
         auto end = sc.now();
         auto time_span = static_cast<chrono::duration<double>> ( end - start );
-        cout << "| total time in iterative process =  " << time_span.count()<< std::endl;
+        cout << "\n last FS = " << FS  <<" | Load step = " << counterout << "| total time in iterative process =  " << time_span.count()<< std::endl;
         //anal->IterativeProcess ( outnewton, tol2, NumIter);
 
         norm = Norm ( anal->Rhs() );
@@ -1648,13 +1762,15 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
             
             //FS+=0.1;
         }
-
+        
         counterout++;
 		delete anal;
     }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
 	//delete body;
    // outloadu <<  " };";
 	//outloadu <<"\n ListLinePlot[plot,PlotRange->All]" << endl;
+	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,true );
+	anal->AcceptSolution();
 	output[0]=FS;
 	output[1]=counterout;
 	output[2]=norm;
