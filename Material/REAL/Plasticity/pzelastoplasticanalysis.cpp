@@ -773,7 +773,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 // 
 // }
 
-void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {
+void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters) {
 	
 	int iter = 0;
 	REAL error = 1.e10,error2=1.e10;
@@ -788,7 +788,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		CheckConvergence(*this,fSolution,range,coefs);
 	}
      bool a=true,b=true,c=true;
-     while( a &&  (b || c)  )  {
+     while( a &&  (b || c) && iter<numiter )  {
 		
 //        fSolution.Redim(0,0);
 		Assemble();
@@ -816,14 +816,68 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		a = iter < numiter ;
 		b =error2 > tol*1.e-3;
 		c= error > tol;
-		if(norm < tol) {
-			//out << "\nTolerancia atingida na iteracao : " << (iter+1) << endl;
-			//out << "\n\nNorma da solucao |Delta(Un)|  : " << norm << endl << endl;
-		} else
-			if(normDeltaSol>50 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9&& norm>50)) {
-				out << "\nDivergent Method\n";
-				return;
-			}
+		
+		if( (normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9 ) {
+			out << "\nDivergent Method\n";
+			return;
+		}
+		error = norm;
+		error2=normDeltaSol;
+		iter++;
+		out.flush();
+		
+	}
+	iters=iter;
+}
+
+void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {
+	
+	int iter = 0;
+	REAL error = 1.e10,error2=1.e10;
+	int numeq = fCompMesh->NEquations();
+	
+	TPZFMatrix<STATE> prevsol(fSolution);
+	if(prevsol.Rows() != numeq) prevsol.Redim(numeq,1);
+	
+	if(checkconv){
+		TPZVec<REAL> coefs(1,1.);
+		TPZFMatrix<STATE> range(numeq,1,1.);
+		CheckConvergence(*this,fSolution,range,coefs);
+	}
+     bool a=true,b=true,c=true;
+     while( a &&  (b || c) && iter<numiter )  {
+		
+//        fSolution.Redim(0,0);
+		Assemble();
+		Solve();
+		if (linesearch){
+			TPZFMatrix<STATE> nextSol;
+			REAL LineSearchTol = 1e-3 * Norm(fSolution);
+			const int niter = 10;
+			this->LineSearch(prevsol, fSolution, nextSol, LineSearchTol, niter);
+			fSolution = nextSol;
+		}
+		else{
+			TPZFMatrix<STATE> sol = fSolution;
+			sol += prevsol;
+		}
+		
+		prevsol -= fSolution;
+		REAL normDeltaSol = Norm(prevsol);
+		prevsol = fSolution;
+		this->LoadSolution(fSolution);
+		this->AssembleResidual();
+		double NormResLambda = Norm(fRhs);
+		double norm = NormResLambda;
+		out << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << endl;
+		a = iter < numiter ;
+		b =error2 > tol*1.e-3;
+		c= error > tol;
+		
+		if( (normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9 &&  normDeltaSol>1.) {
+			out << "\nDivergent Method\n";
+			return;
+		}
 		error = norm;
 		error2=normDeltaSol;
 		iter++;

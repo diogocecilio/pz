@@ -119,10 +119,52 @@ void myTreadsFlow ( int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *
 
 TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh, int porder,int samples, string namefolderx);
 
+void SolveMultiThread();
+
+void SolveSerial(int a, int b, bool flow);
+
+
 int main()
 {
 	
 
+	int a=252;
+	int b=253;
+	bool flow=false;
+	SolveSerial(a,b,flow);
+	
+	//SolveMultiThread();
+
+	
+    return 0;
+}
+
+
+void SolveSerial(int a, int b, bool flow)
+{
+	int samples=1000;
+	
+	int porder=2;
+	
+	string namefolderflow = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc-flow";
+	
+	string namefolder = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc";
+	
+	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+		
+	TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder);
+	
+	if(flow)
+ 	{
+	 	MonteCarloFlow(a, b,  gmesh, vecmesh,porder,namefolderflow);
+	}else{
+		MonteCarlo(a, b,  gmesh, vecmesh,porder,namefolder);
+	}
+	
+}
+
+void SolveMultiThread()
+{
 	int samples=1000;
 	
 	int porder=2;
@@ -147,11 +189,14 @@ int main()
 	
 	std::vector <std::thread> threadsmat1,threadsmat2;
 	
-	int nthreads =5;
+	int nthreads =10;
 	
 	int delta = int ( samples/nthreads );
 	
     int a=0,b=delta;
+	
+	//a=0;b=500;
+	//a=500;b=1000;
 	
 	for ( int i=0; i<nthreads; i++ )
 	{
@@ -186,8 +231,6 @@ int main()
 
     for ( auto &threadx: threadsmat1 ) threadx.join();
 	for ( auto &threadflow: threadsmat2 ) threadflow.join();
-	
-    return 0;
 }
 
 TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,int porder,int samples, string namefolderx)
@@ -1712,7 +1755,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 {
 
 	TPZManVector<REAL,10> output(10,0.);
-    REAL FS=0.5,FSmax=100.,FSmin=0.,tol=0.01;
+    REAL FS=0.1,FSmax=100.,FSmin=0.,tol=0.01;
     int neq = cmesh->NEquations();
     int maxcount=20;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
@@ -1720,8 +1763,8 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
     int counterout = 0;
 
     REAL norm = 1000.;
-    REAL tol2 = 0.1;
-    int NumIter = 30;
+    REAL tol2 = 1.;
+    int NumIter = 20;
     bool linesearch = true;
     bool checkconv = false;
 	//std::ofstream outnewton("outnewton.txt");
@@ -1738,7 +1781,8 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
         chrono::steady_clock sc;
         auto start = sc.now();
-        anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv );
+		int iters;
+        anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv ,iters);
 
         auto end = sc.now();
         auto time_span = static_cast<chrono::duration<double>> ( end - start );
@@ -1758,9 +1802,8 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 			displace0 = anal->Solution();
             FSmin = FS;
             anal->AcceptSolution();
-            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
-            
-            //FS+=0.1;
+			FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+
         }
         
         counterout++;
