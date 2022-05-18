@@ -116,9 +116,9 @@ int main()
 
     TPZManVector<TPZCompMesh *,2> vecmesh;
 
-    string outco="rffolder/cohesion-gid-p2-2kels.txt";
+    string outco="rffolder/cohesion-p2-type3-alpha.txt";
 
-    string outphi="rffolder/friction-gid-p2-2kels.txt";
+    string outphi="rffolder/friction-p2-type3-alpha.txt";
 
     TPZFMatrix<REAL> readco,readphi;
 
@@ -165,19 +165,19 @@ int main()
 	string str;
 	if(gim==true)
 	{
-    	 vtkFile0 ="vtkfolder/out-gim-mc";
-		   str="outfsgim.txt";
+    	 vtkFile0 ="/home/diogo/projects/output-slope-reliability/vtkfolder-flow/out-gim-mc";
+		   str="/home/diogo/projects/output-slope-reliability/vtkfolder-flow/outfsgim.txt";
 	}else{
-		 vtkFile0 ="vtkfolder/out-srm-mc";
-		  str="outfssrm.txt";
+		 vtkFile0 ="/home/diogo/projects/output-slope-reliability/vtkfolder-flow/out-srm-mc";
+		  str="/home/diogo/projects/output-slope-reliability/vtkfolder-flow/outfssrm.txt";
 	}
     std::ofstream outfs(str);
 	
-	string namefolder = "gim-type1-p2";
+	string namefolder = "/home/diogo/projects/output-slope-reliability/gim-type3-p2-flow";
     //char* cstr = new char[namefolder.length() + 1];
     //strcpy ( cstr, namefolder.c_str() );
 
-    for ( int isample=800; isample<1000; isample++ ) {
+    for ( int isample=750; isample<1000; isample++ ) {
 
 		
 		string  filename = namefolder;
@@ -422,12 +422,12 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder 
 
 TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
 {
-    int expansionorder=100;
+    int expansionorder=150;
     REAL Lx=20;
     REAL Ly=2;
     REAL Lz=1.;
     //int type=3;
-	int type=1;
+	int type=3;
     int id=1;
     int dim = gmesh->Dimension();
 
@@ -469,8 +469,11 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     // string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
    // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-string file ="/home/diogo/projects/pz/data/gid-tri-2kels.msh";
-
+//string file ="/home/diogo/projects/pz/data/gid-tri-2kels.msh";
+//string file ="/home/diogo/projects/pz/data/gid-tri-4k.msh";
+//string file ="/home/diogo/projects/pz/data/gid-tri-2k.msh";
+string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
+//string file ="/home/diogo/projects/pz/data/h10-beta60.msh";
 
 
     readgidmesh read = readgidmesh ( file );
@@ -511,13 +514,29 @@ string file ="/home/diogo/projects/pz/data/gid-tri-2kels.msh";
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
-
+////h10-beta 45
     a = b;
     b[0] = 35.;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsramp );
     idsvec.push_back ( idsramp );
+
+//h10-beta 30
+// 	a = b;
+//     b[0] = 27.675;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
+//h10-beta 60	
+// 	a = b;
+//     b[0] = 39.2265;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
+	
 
     a = b;
     b[0] = 0.;
@@ -1062,8 +1081,8 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 
     ///Setting a direct solver
     TPZStepSolver<STATE> step;
-    //step.SetDirect ( ELDLt );
-    step.SetDirect ( ECholesky );
+    step.SetDirect ( ELDLt );
+   // step.SetDirect ( ECholesky );
     analysis->SetSolver ( step );
 
     long neq = cmesh->NEquations();
@@ -1579,15 +1598,15 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 {
 
 	TPZManVector<REAL,10> output(10,0.);
-    REAL FS=0.1,FSmax=100.,FSmin=0.,tol=0.1;
+    REAL FS=0.5,FSmax=100.,FSmin=0.,tol=0.01;
     int neq = cmesh->NEquations();
-    int maxcount=100;
+    int maxcount=20;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
 
     int counterout = 0;
 
     REAL norm = 1000.;
-    REAL tol2 = 1.;
+    REAL tol2 = 0.1;
     int NumIter = 30;
     bool linesearch = true;
     bool checkconv = false;
@@ -1598,8 +1617,9 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
     //outloadu << "\n plot = {";
     do {
 
-       // outglobal << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
+        std::cout << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
         LoadingRamp ( body,FS );
+		//LoadingRamp ( body,0.0000001 );
         bool optimize =true;
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
         chrono::steady_clock sc;
@@ -1621,10 +1641,11 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
         } else {
           //  uy+=findnodalsol(cmesh);
           //  outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
+			displace0 = anal->Solution();
             FSmin = FS;
             anal->AcceptSolution();
             FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
-            displace0 = anal->Solution();
+            
             //FS+=0.1;
         }
 

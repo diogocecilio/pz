@@ -226,7 +226,7 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 	}
   
   	REAL fac= -ForceLoc[1]/20;
-	//cout << "fac = "<< fac << endl;
+
 	int in;
 	for(in = 0; in < phr; in++)
 	{
@@ -408,6 +408,7 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 		this->fForcingFunction->Execute(data.x,ForceLoc);
 	}
   	REAL fac= -ForceLoc[1]/20;
+
 	int in;
 	for(in = 0; in < phr; in++)
 	{
