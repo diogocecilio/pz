@@ -71,7 +71,7 @@ void KLAnalysis::Solve()
 
 	chrono::steady_clock fulltime;
 	auto startfull = fulltime.now();
-	std::ofstream out("outinfo3P2.txt");
+	std::ofstream out("outinfo.txt");
 	out << "fExpansionOrder =  " << fExpansionOrder<< std::endl;
     TPZFMatrix<REAL> invB,invBC,B,C;
     MatrixXd eigenInvBC,eigenInvB,eigenC,eigenB;

@@ -773,7 +773,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 // 
 // }
 
-void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters) {
+bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters) {
 	
 	int iter = 0;
 	REAL error = 1.e10,error2=1.e10;
@@ -788,11 +788,36 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		CheckConvergence(*this,fSolution,range,coefs);
 	}
      bool a=true,b=true,c=true;
-     while( a &&  (b || c) && iter<numiter )  {
+     while( a && b && c  )  {
 		
 //        fSolution.Redim(0,0);
 		Assemble();
-		Solve();
+		
+		
+		
+		chrono::steady_clock sc;
+        auto start = sc.now();
+        if(false)
+        {
+            TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
+            TPZFMatrix<STATE> rhs =fRhs;
+            TPZFMatrix<STATE> du;
+            //SolveEigen ( K, rhs, du );
+            SolveEigenSparse(0, K, rhs, du );
+            fSolution=du;
+            auto end = sc.now();
+            auto time_span = static_cast<chrono::duration<double>> ( end - start );
+            cout << "| total time taken to solve eigen=  " << time_span.count()<< std::endl;
+        } else {
+            //cout <<  "sdadas" << endl;
+            Solve();
+            //cout <<  "aaaaaaaaaa" << endl;
+            auto end = sc.now();
+            auto time_span = static_cast<chrono::duration<double>> ( end - start );
+           // cout << "| total time taken to solve PZ=  " << time_span.count()<< std::endl;
+        }
+		
+		
 		if (linesearch){
 			TPZFMatrix<STATE> nextSol;
 			REAL LineSearchTol = 1e-3 * Norm(fSolution);
@@ -812,14 +837,14 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		this->AssembleResidual();
 		double NormResLambda = Norm(fRhs);
 		double norm = NormResLambda;
-		out << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << endl;
+		out << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << " | tol = "<<tol << " num iter = " << numiter<< endl;
 		a = iter < numiter ;
 		b =error2 > tol*1.e-3;
 		c= error > tol;
 		
-		if( (normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9 ) {
+		if( normDeltaSol>5 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9&&norm>1)) {
 			out << "\nDivergent Method\n";
-			return;
+			return false;
 		}
 		error = norm;
 		error2=normDeltaSol;
@@ -828,6 +853,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		
 	}
 	iters=iter;
+	return true;
 }
 
 void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv) {

@@ -83,7 +83,7 @@ public:
 	virtual void IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv);
 	void IterativeProcess(std::ostream &out,REAL tol,int numiter);
 	
-	void IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters);
+	bool IterativeProcess(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv,int &iters);
 	
 	
 	//Implements the cylindrical arc length method ref- Souza Neto 2009
