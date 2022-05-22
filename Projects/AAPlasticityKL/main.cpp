@@ -130,8 +130,13 @@ void SolveDeterministic(int porder);
 void SolveDeterministicSRM(int porder);
 int main()
 {
+
+// 	string namefolderx = "test-folder";
+// 	char* cstr = new char[namefolderx.length() + 1];
+//     strcpy ( cstr, namefolderx.c_str() );
+//     int check = mkdir ( cstr, 777 );
 	
-// 	int samples=1000;
+// 	int samples=10000;
 // 	
 // 	int porder=2;
 // 	
@@ -150,11 +155,11 @@ int main()
 //	SolveDeterministicSRM(2);
 
 	bool flow=false;
-	bool gim = false;
-	SolveSerial(900,1000,flow,false);
+	bool gim = true;
+	//SolveSerial(223,300,flow,false);
 	
 
-	//SolveMultiThread(500,1000,8,gim);//1:10 hrs
+	SolveMultiThread(0,1100,16,gim);//1:10 hrs
 	//SolveMultiThread(500,1000,4,gim);
 
 
@@ -195,22 +200,9 @@ void SolveMultiThread(int a0,int b0, int nthreads,bool gim)
 	int porder=2;
 	
 
-	string namefolderflow = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc-flow";
-
-	//MonteCarloFlow(750,1000,gmesh,vecmesh,porder,namefolderflow);
+	string namefolderflow = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc-flow-gim-type1";
 	
-	string namefolder = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc";
-	
-	//MonteCarlo(0,250,gmesh,vecmesh,porder,namefolder);
-	
-	
-// 	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
-// 		
-// 	TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder);
-// 	
-// 	 MonteCarlo(0, 2,  gmesh, vecmesh,porder,namefolder);
-// 	
-// 	 return 0;
+	string namefolder = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc-gim-type1";
 	
 	std::vector <std::thread> threadsmat1,threadsmat2;
 	
@@ -226,23 +218,27 @@ void SolveMultiThread(int a0,int b0, int nthreads,bool gim)
         std::cout << "b = "<< b <<std::endl;
 		
 		
-		TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+ 		TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
 		
-		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder);
-		
+ 		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder);
+
 		std::thread threadx ( myTreads,a,b, gmesh,vecmesh,porder,namefolder ,gim);
+
+
 		
 		
-		//TPZGeoMesh* gmeshflow = CreateGMeshGid ( 0 );
+	//	TPZGeoMesh* gmeshflow = CreateGMeshGid ( 0 );
 		
-		//TPZManVector<TPZCompMesh*,2> vecmeshflow = SettingCreateFilds(gmeshflow, porder, samples,namefolderflow);
+	//	TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmeshflow, porder, samples,namefolder);
 		
-		//std::thread threadflow(myTreadsFlow,a,b, gmeshflow,vecmesh,porder,namefolderflow,gim);
+	//	TPZManVector<TPZCompMesh*,2> vecmeshflow = SettingCreateFilds(gmeshflow, porder, samples,namefolderflow);
+		
+	//	std::thread threadflow(myTreadsFlow,a,b, gmeshflow,vecmeshflow,porder,namefolderflow,gim);
 		
 	
 		threadsmat1.push_back ( std::move ( threadx ) );
 		
-		//threadsmat2.push_back ( std::move ( threadflow ) );
+	//	threadsmat2.push_back ( std::move ( threadflow ) );
 		
 		a=b+1;
 		
@@ -262,11 +258,11 @@ TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,int porder,in
 	string outco,outphi;
 	if(porder==2)
  	{
-	      outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/cohesion-p2-type3-alpha-H10-beta45.txt";
-		  outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/friction-p2-type3-alpha-H10-beta45.txt";
+	      outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/cohesion-p2-type1-alpha-H10-beta45.txt";
+		  outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/friction-p2-type1-alpha-H10-beta45.txt";
 	}else{
-		  outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/cohesion-p3-type3-alpha-H10-beta45.txt";
-		  outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/friction-p3-type3-alpha-H10-beta45.txt";
+		  outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/cohesion-p3-type1-alpha-H10-beta45.txt";
+		  outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/friction-p3-type1-alpha-H10-beta45.txt";
 	}
 
 
@@ -692,7 +688,7 @@ TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
     REAL Lx=20;
     REAL Ly=2;
     REAL Lz=1.;
-    int type=3;
+    int type=1;
 	//int type=1;
     int id=1;
     int dim = gmesh->Dimension();
@@ -1421,6 +1417,7 @@ TPZManVector<REAL,10> ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TP
         SetMaterialParamenters ( cmesh,vecmesh,isample,FS );
         //if(( FSmax - FSmin ) / FS > tol)anal->AcceptSolution();
         counterout++;
+		delete anal;
     }  while ( ( FSmax - FSmin ) / FS > tol );
 
     bool optimize =true;
@@ -1429,6 +1426,7 @@ TPZManVector<REAL,10> ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TP
     anal->AcceptSolution();
     //cmesh->LoadSolution(displace);
 
+	delete anal;
 	out[0]=FS;
 	out[1]=counterout;
 	out[2]=norm;
