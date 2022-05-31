@@ -842,7 +842,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		b =error2 > tol*1.e-3;
 		c= error > tol;
 		
-		if( normDeltaSol>5 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9&&norm>1)) {
+		if( normDeltaSol>10 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9&&norm>1)) {
 			out << "\nDivergent Method\n";
 			return false;
 		}

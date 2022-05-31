@@ -95,7 +95,7 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder 
 
 template <class T>
 std::vector<T> str_vec ( std::vector<std::string> &vs );
-
+#include "fadType.h"
 void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh);
 void PostDarcy(TPZAnalysis * analysis,string vtk);
 void SolveDarcyProlem(TPZCompMesh *cmesh,string vtk);
@@ -123,20 +123,32 @@ TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,int porder,in
 
 void SolveMultiThread();
 
-void SolveSerial(int a, int b, bool flow,bool gim);
-void SolveMultiThread(int a0,int b0, int nthreads,bool gim);
+void SolveSerial(int a, int b, bool flow,bool gim,string file);
+void SolveMultiThread(int a0,int b0, int nthreads,bool gim,string file);
 
 void SolveDeterministic(int porder);
 void SolveDeterministicSRM(int porder);
 int main()
 {
+    
 
+//   float x = 1.5,y=0.5;
+// 
+//   //TinyFad<2,float> x1(x),x2(y), y1;
+//   //Fad<float> x1(x),x2(y), y1;
+//   TFad<2,float> x1(x),x2(y), y1;
+//   x1.diff(0,2);
+//   x2.diff(1,2);
+//   y1 = ( sin(x1/x2) + x1/x2 - exp(x2) )* (x1/x2 - exp(x2));
+// 
+//   cout << "Fad     : " << y1 << endl;
+//  return 0;
 // 	string namefolderx = "test-folder";
 // 	char* cstr = new char[namefolderx.length() + 1];
 //     strcpy ( cstr, namefolderx.c_str() );
 //     int check = mkdir ( cstr, 777 );
 	
-// 	int samples=10000;
+// 	int samples=1000;
 // 	
 // 	int porder=2;
 // 	
@@ -154,12 +166,15 @@ int main()
 //	SolveDeterministic(2);
 //	SolveDeterministicSRM(2);
 
+		
+	//string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida-flow";
+	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida";
 	bool flow=false;
-	bool gim = true;
-	//SolveSerial(223,300,flow,false);
+	bool gim = false;
+	SolveSerial(751,1000,flow,gim,file);
 	
-
-	SolveMultiThread(0,1100,16,gim);//1:10 hrs
+//0.898321 182
+//	SolveMultiThread(0,1000,1,gim,file);//1:10 hrs
 	//SolveMultiThread(500,1000,4,gim);
 
 
@@ -168,15 +183,12 @@ int main()
 }
 
 
-void SolveSerial(int a, int b, bool flow,bool gim)
+void SolveSerial(int a, int b, bool flow,bool gim,string file)
 {
 	int samples=1000;
 	
 	int porder=2;
-	
-	string namefolderflow = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc-flow";
-	
-	string namefolder = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc";
+
 	
 	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
 		
@@ -184,25 +196,23 @@ void SolveSerial(int a, int b, bool flow,bool gim)
 	
 	if(flow)
  	{
-		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolderflow);
-	 	MonteCarloFlow(a, b,  gmesh, vecmesh,porder,namefolderflow,gim);
+		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file);
+	 	MonteCarloFlow(a, b,  gmesh, vecmesh,porder,file,gim);
 	}else{
-		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder);
-		MonteCarlo(a, b,  gmesh, vecmesh,porder,namefolder,gim);
+		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file);
+		MonteCarlo(a, b,  gmesh, vecmesh,porder,file,gim);
 	}
 	
 }
 
-void SolveMultiThread(int a0,int b0, int nthreads,bool gim)
+void SolveMultiThread(int a0,int b0, int nthreads,bool gim,string file)
 {
 	int samples=b0-a0;
 	
 	int porder=2;
 	
 
-	string namefolderflow = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc-flow-gim-type1";
-	
-	string namefolder = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/output-mc-gim-type1";
+
 	
 	std::vector <std::thread> threadsmat1,threadsmat2;
 	
@@ -220,20 +230,20 @@ void SolveMultiThread(int a0,int b0, int nthreads,bool gim)
 		
  		TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
 		
- 		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder);
+ 		TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file);
 
-		std::thread threadx ( myTreads,a,b, gmesh,vecmesh,porder,namefolder ,gim);
+		std::thread threadx ( myTreads,a,b, gmesh,vecmesh,porder,file ,gim);
 
 
 		
 		
 	//	TPZGeoMesh* gmeshflow = CreateGMeshGid ( 0 );
 		
-	//	TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmeshflow, porder, samples,namefolder);
+		//TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmeshflow, porder, samples,namefolder);
 		
-	//	TPZManVector<TPZCompMesh*,2> vecmeshflow = SettingCreateFilds(gmeshflow, porder, samples,namefolderflow);
+	//	TPZManVector<TPZCompMesh*,2> vecmeshflow = SettingCreateFilds(gmeshflow, porder, samples,file);
 		
-	//	std::thread threadflow(myTreadsFlow,a,b, gmeshflow,vecmeshflow,porder,namefolderflow,gim);
+	//	std::thread threadflow(myTreadsFlow,a,b, gmeshflow,vecmeshflow,porder,file,gim);
 		
 	
 		threadsmat1.push_back ( std::move ( threadx ) );
@@ -246,25 +256,19 @@ void SolveMultiThread(int a0,int b0, int nthreads,bool gim)
 		
 	}
 
-    for ( auto &threadx: threadsmat1 ) threadx.join();
-	//for ( auto &threadflow: threadsmat2 ) threadflow.join();
+    //for ( auto &threadx: threadsmat1 ) threadx.join();
+	for ( auto &threadflow: threadsmat2 ) threadflow.join();
 }
 
 TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,int porder,int samples, string namefolderx,bool createfield)
 {
 
-	//creating geometric mesh, reading it from .msh file
-   // gmesh = CreateGMeshGid ( 0 );
 	string outco,outphi;
-	if(porder==2)
- 	{
-	      outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/cohesion-p2-type1-alpha-H10-beta45.txt";
-		  outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/friction-p2-type1-alpha-H10-beta45.txt";
-	}else{
-		  outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/cohesion-p3-type1-alpha-H10-beta45.txt";
-		  outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/friction-p3-type1-alpha-H10-beta45.txt";
-	}
-
+	outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/v2cohesion-p2-type3-alpha-H10-beta45-lx-40-ly4.txt";
+	outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/v2friction-p2-type3-alpha-H10-beta45-lx-40-ly4.txt";
+	
+//		outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/v2cohesion-p2-type3-alpha-H10-beta45.txt";
+//	outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/v2friction-p2-type3-alpha-H10-beta45.txt";
 
     TPZFMatrix<REAL> readco,readphi;
 
@@ -303,8 +307,13 @@ void MonteCarlo(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> 
 	std::string vtkFile0,str;
 	
 	vtkFile0=namefolderx;
+	if(gim==true)
+ 	{
+	 vtkFile0+="/vtkfolder/out-gim-mc";
+	}else{
+		vtkFile0+="/vtkfolder/out-srm-mc";
+	}
 	
-	vtkFile0+="/vtkfolder/out-gim-mc";
 
     for ( int isample=a; isample<b; isample++ ) {
 
@@ -367,7 +376,7 @@ void MonteCarlo(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> 
 void SolveDeterministic(int porder)
 {
 
-	string vtkFile0="/vtkfolder/deterministic-gim.vtk";
+	string vtkFile0="deterministic-gim.vtk";
 
 	TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
 	
@@ -381,7 +390,8 @@ void SolveDeterministic(int porder)
 		
 	TPZManVector<REAL,10> out;
 
-	out = GravityIncrease(cmesh);
+	//out = GravityIncrease(cmesh);
+	ShearRed(cmesh);
 	
 	auto end = sc.now();
 	
@@ -684,11 +694,11 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder 
 
 TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
 {
-    int expansionorder=150;
-    REAL Lx=20;
-    REAL Ly=2;
+    int expansionorder=300;
+    REAL Lx=40.;
+    REAL Ly=4.;
     REAL Lz=1.;
-    int type=1;
+    int type=3;
 	//int type=1;
     int id=1;
     int dim = gmesh->Dimension();
@@ -1208,8 +1218,12 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-    REAL mc_cohesion    = 10.0;
-    REAL mc_phi         = ( 30.0*M_PI/180 );
+//     REAL mc_cohesion    = 10.0;
+//     REAL mc_phi         = ( 30.0*M_PI/180 );
+//     REAL mc_psi         = mc_phi;
+	
+	REAL mc_cohesion    = 50.0;
+    REAL mc_phi         = ( 20.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
@@ -1515,8 +1529,8 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 
     ///Setting a direct solver
     TPZStepSolver<STATE> step;
-    //step.SetDirect ( ELDLt );
-	step.SetDirect ( ECholesky );
+    step.SetDirect ( ELDLt );
+	//step.SetDirect ( ECholesky );
     analysis->SetSolver ( step );
 
     long neq = cmesh->NEquations();
@@ -2032,23 +2046,23 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 {
 
 	TPZManVector<REAL,10> output(10,0.);
-    REAL FS=0.5,FSmax=100.,FSmin=0.,tol=0.01;
+    REAL FS=0.5,FSmax=5.,FSmin=0.,tol=0.01;
     int neq = cmesh->NEquations();
-    int maxcount=20;
+    int maxcount=50;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
 
     int counterout = 0;
 
     REAL norm = 1000.;
-    REAL tol2 = 0.1;
+     REAL tol2 = 0.001;
     int NumIter = 30;
     bool linesearch = true;
     bool checkconv = false;
-	//std::ofstream outnewton("outnewton.txt");
+	std::ofstream outloadu("outloadu.nb");
     
     REAL uy=0.;
 	plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
-    //outloadu << "\n plot = {";
+    outloadu << "\n plot = {";
     do {
 
 
@@ -2075,8 +2089,8 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
             FS = ( FSmin + FSmax ) / 2.;
 
         } else {
-          //  uy+=findnodalsol(cmesh);
-          //  outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
+            uy+=findnodalsol(cmesh);
+            outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
 			displace0 = anal->Solution();
             FSmin = FS;
             anal->AcceptSolution();
@@ -2089,8 +2103,8 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 		delete anal;
     }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
 	//delete body;
-   // outloadu <<  " };";
-	//outloadu <<"\n ListLinePlot[plot,PlotRange->All]" << endl;
+    outloadu <<  " };";
+	outloadu <<"\n ListLinePlot[plot,PlotRange->All]" << endl;
 	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,true );
 	anal->AcceptSolution();
 	output[0]=FS;

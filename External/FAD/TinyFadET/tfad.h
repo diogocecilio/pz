@@ -315,7 +315,7 @@ template <int Num,class T> inline std::ostream& operator << (std::ostream& os, c
   
   for (int i=0; i< Num; i++) {
      os.width(12);
-     os << a.dx(i);
+     os << a.dx(i)<<" ";
   }
 
   os << "]\n";

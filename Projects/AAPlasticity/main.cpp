@@ -64,8 +64,17 @@ void ComputeElementDeformation(TPZCompMesh* cmesh);
 
 REAL findnodalsol(TPZCompMesh *cmesh);
 
+void MaterialPointMohrCoulomb();
+
+void FadTest();
+
 int main()
 {
+	FadTest();
+	MaterialPointMohrCoulomb();
+	
+	return 0;
+	
 	
 	int porder =2;
 
@@ -157,6 +166,145 @@ int main()
 
     return 0;
 }
+
+void MaterialPointMohrCoulomb(){
+
+    // Mohr Coulomb data
+    REAL mc_cohesion    =490.;
+    REAL mc_phi         = ( 20.0*M_PI/180 );
+    REAL mc_psi         = mc_phi;
+
+    /// ElastoPlastic Material using Mohr Coulomb
+    // Elastic predictor
+    TPZElasticResponse ER;
+    REAL nu = 0.48;
+    REAL E = 1.e7;
+
+    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> mc;
+    ER.SetUp( E, nu );
+	mc.fER =ER;
+   //mc.SetElasticResponse( ER );
+    mc.fYC.SetUp ( mc_phi, mc_psi, mc_cohesion, ER );
+	TPZTensor<REAL> eps;
+	TPZTensor<REAL> sigma;
+	TPZFMatrix<REAL> Dep;
+	//{0.00172731, 0.0000361516, -0.000923047, 0., 0., 0.}
+	eps.XX()=0.00172731;eps.YY()=0.0000361516;eps.ZZ()=-0.000923047;
+	//ER.Compute(eps,sigma);
+	//sigma.Print(std::cout);
+	mc.ApplyStrainComputeDep(eps,sigma,Dep);
+	sigma.Print(std::cout);
+	
+	
+}
+  const auto rhs = [](const TPZVec<REAL>&loc, TPZVec<STATE> &dx,TPZFMatrix<STATE> &d2x){
+        const REAL &x0 = loc[0];
+        const REAL &y0 = loc[1];
+	
+	const int N=2;
+	dx.Resize(N);
+	d2x.Resize(N,N);
+	TFad<N,TFad<N,float> > xsecnd2,ysecnd2,test2;
+  	TFad<N,float> x(x0),y(y0);
+
+	x.fastAccessDx(0)=1;
+	x.fastAccessDx(1)=0;
+	y.fastAccessDx(0)=0;
+	y.fastAccessDx(1)=1;
+	xsecnd2=x;
+	xsecnd2.fastAccessDx(0)=1;
+	xsecnd2.fastAccessDx(1)=0;
+	ysecnd2=y;
+	ysecnd2.fastAccessDx(0)=0;
+	ysecnd2.fastAccessDx(1)=1;
+	test2 = (-exp(ysecnd2) + xsecnd2/ysecnd2)*(-exp(ysecnd2) + xsecnd2/ysecnd2 + sin(xsecnd2/ysecnd2));
+	
+	dx[0]=test2.val().fastAccessDx(0);
+	dx[1]=test2.val().fastAccessDx(1);
+	
+	d2x(0,0)=test2.fastAccessDx(0).fastAccessDx(0);
+	d2x(1,1)= test2.fastAccessDx(1).fastAccessDx(1);
+	d2x(1,0)= test2.fastAccessDx(0).fastAccessDx(1);
+	d2x(0,1)= test2.fastAccessDx(1).fastAccessDx(0);
+	
+  };
+  
+  const auto rhs2 = [](const TPZFMatrix<STATE>&loc, TPZFMatrix<STATE> &dx,TPZFMatrix<STATE> &d2x){
+        const REAL &x0 = loc.Get(0,0);
+        const REAL &y0 = loc.Get(1,0);
+	
+	const int N=2;
+	//dx.Resize(N,1);
+	//d2x.Resize(N,N);
+	TFad<N,TFad<N,float> > xsecnd2,ysecnd2,xi,beta;
+  	TFad<N,float> x(x0),y(y0);
+
+	x.fastAccessDx(0)=1;
+	x.fastAccessDx(1)=0;
+	y.fastAccessDx(0)=0;
+	y.fastAccessDx(1)=1;
+	xsecnd2=x;
+	xsecnd2.fastAccessDx(0)=1;
+	xsecnd2.fastAccessDx(1)=0;
+	ysecnd2=y;
+	ysecnd2.fastAccessDx(0)=0;
+	ysecnd2.fastAccessDx(1)=1;
+	
+	xi=x;
+	xi.fastAccessDx(0)=1;
+	xi.fastAccessDx(1)=0;
+	beta=y;
+	beta.fastAccessDx(0)=0;
+	beta.fastAccessDx(1)=1;
+	TFad<N,TFad<N,float> > sig1(79812.41),sig2(68385.69), sig3(61904.62),phi(20.*M_PI/180.f),c(490.f),nu(0.48),Pi(M_PI),um(1.f),dois(2.f),tres(3.f),seis(6.f),dezoito(18.f),sqrt3(sqrt(3.f));
+	
+	TFad<N,TFad<N,float> >  test2;
+	
+	test2=((dois*(um-dois*nu))*(sqrt3*sig1 + sqrt3*sig2 +sqrt3*sig3 - tres*xi)*(sqrt3*sig1 + sqrt3*sig2 +sqrt3*sig3 - tres*xi) +(um + nu)*(tres*sig2 - tres*sig3 + (seis*sin(beta)*(-(sqrt3*c*cos(phi)) + xi*sin(phi)))/
+          (cos(beta)*(um + sin(phi)) - (-um + sin(phi))*sin(beta + Pi/seis)))*(tres*sig2 - tres*sig3 + (seis*sin(beta)*(-(sqrt3*c*cos(phi)) + xi*sin(phi)))/
+          (cos(beta)*(um + sin(phi)) - (-um + sin(phi))*sin(beta + Pi/seis)))+tres*(um + nu)*(-dois*sig1 + sig2 + sig3 + (dois*cos(beta)*(tres*c*cos(phi) - sqrt3* xi *sin(phi)))/
+          (cos( beta )*(um+ sin(phi)) - (-um + sin(phi))*sin( beta  + Pi/seis)))*(-dois*sig1 + sig2 + sig3 + (dois*cos(beta)*(tres*c*cos(phi) - sqrt3* xi *sin(phi)))/
+          (cos( beta )*(um+ sin(phi)) - (-um + sin(phi))*sin( beta  + Pi/seis))))/dezoito;
+
+	dx(0,0)=test2.val().fastAccessDx(0);
+	dx(1,0)=test2.val().fastAccessDx(1);
+	
+	d2x(0,0)=test2.fastAccessDx(0).fastAccessDx(0);
+	d2x(1,1)= test2.fastAccessDx(1).fastAccessDx(1);
+	d2x(1,0)= test2.fastAccessDx(0).fastAccessDx(1);
+	d2x(0,1)= test2.fastAccessDx(1).fastAccessDx(0);
+	
+  };
+  
+void FadTest()
+{
+
+	TPZFMatrix<REAL> pt(2,1);
+	pt(0,0)=10000;
+	pt(1,0)=0.8;
+	TPZFMatrix<REAL> jac(2,2),dx(2,1),x0(2,1),xn(2,1);
+	rhs2(pt,dx,jac);
+	//jac.Print(cout);
+	//dx.Print(cout);
+	x0(0,0)=0.;
+	x0(1,0)=1.0472;
+	for(int it=0;it<7;it++){
+		rhs2(x0,dx,jac);
+// 		cout <<  "x0 = " << x0(0,0) << " "<<x0(1,0) <<  endl;
+// 		cout <<  "dx = " << dx(0,0) << " "<<dx(1,0) <<  endl;
+// 		cout <<  "jac = " << jac(0,0) << " "<<jac(0,1) <<  endl;
+// 		cout <<  "jac = " << jac(1,0) << " "<<jac(1,1) <<  endl;
+        jac.Solve_LU(&dx);
+ 		x0-=dx;
+ 		xn=x0;
+ 		x0=xn;
+ 		cout <<  "iter = " << it << "  norm = " << sqrt(dx(0,0)*dx(0,0)+dx(1,0)*dx(1,0)) << endl;
+	}
+	cout <<  "xn = "  << endl;
+	xn.Print(cout);
+}
+
+
 
 void Post(TPZPostProcAnalysis * postproc,std::string vtkFile )
 {
@@ -680,7 +828,7 @@ void ShearRed ( TPZCompMesh * cmesh)
 {
 	LoadingRamp(cmesh,1.);
 	
-    REAL FS=1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+    REAL FS=1,FSmax=5.,FSmin=0.,tol=1.e-3;
 	int neq = cmesh->NEquations();
 
     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
