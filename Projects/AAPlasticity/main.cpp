@@ -70,7 +70,7 @@ void FadTest();
 
 int main()
 {
-	FadTest();
+	//FadTest();
 	MaterialPointMohrCoulomb();
 	
 	return 0;
@@ -91,7 +91,7 @@ int main()
 	bool linesearch=true;
 	bool checkconv=false;
 	int steps=30;
-	REAL finalload = 32.;
+	REAL finalload = 4.;
 	std::string vtkFile ="slopx.vtk";
 	std::ofstream outloadu("loadvu.nb");
 	outloadu << "plot = {";
@@ -170,30 +170,40 @@ int main()
 void MaterialPointMohrCoulomb(){
 
     // Mohr Coulomb data
-    REAL mc_cohesion    =490.;
+    REAL mc_cohesion    =50.;
     REAL mc_phi         = ( 20.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
     // Elastic predictor
     TPZElasticResponse ER;
-    REAL nu = 0.48;
-    REAL E = 1.e7;
+    REAL nu = 0.49;
+    REAL E = 20000;
 
     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> mc;
     ER.SetUp( E, nu );
 	mc.fER =ER;
    //mc.SetElasticResponse( ER );
     mc.fYC.SetUp ( mc_phi, mc_psi, mc_cohesion, ER );
-	TPZTensor<REAL> eps;
+	TPZTensor<REAL> eps,deps;
 	TPZTensor<REAL> sigma;
 	TPZFMatrix<REAL> Dep;
-	//{0.00172731, 0.0000361516, -0.000923047, 0., 0., 0.}
-	eps.XX()=0.00172731;eps.YY()=0.0000361516;eps.ZZ()=-0.000923047;
-	//ER.Compute(eps,sigma);
-	//sigma.Print(std::cout);
+
+	sigma.XX()=17658.1;sigma.YY()=15494.7;sigma.ZZ()=16244.8;sigma.XY()=-19.7463;
+	ER.ComputeDeformation(sigma,eps);
+	REAL kprev=0.;
+	TPZVec<REAL> coef;
+	//cout << "before" << endl;
+	//eps.Print(std::cout);
+	//cout << "affter" << endl;
 	mc.ApplyStrainComputeDep(eps,sigma,Dep);
-	sigma.Print(std::cout);
+	deps.XX()=0.000001;deps.YY()=0.000002;deps.ZZ()=0.0000015;deps.XZ()=-0.000001;deps.YZ()=0.000002;deps.XY()=0.000003;
+	mc.TaylorCheck(eps,deps,kprev,coef);
+	coef.Print(cout);
+	//cout << "out" << endl;
+	//sigma.Print(std::cout);
+	cout << "Dep" << endl;
+	Dep.Print(std::cout);
 	
 	
 }
@@ -256,8 +266,9 @@ void MaterialPointMohrCoulomb(){
 	beta=y;
 	beta.fastAccessDx(0)=0;
 	beta.fastAccessDx(1)=1;
-	TFad<N,TFad<N,float> > sig1(79812.41),sig2(68385.69), sig3(61904.62),phi(20.*M_PI/180.f),c(490.f),nu(0.48),Pi(M_PI),um(1.f),dois(2.f),tres(3.f),seis(6.f),dezoito(18.f),sqrt3(sqrt(3.f));
-	
+
+// 	TFad<N,TFad<N,float> > sig1(79812.41),sig2(68385.69), sig3(61904.62),phi(20.*M_PI/180.f),c(490.f),nu(0.48),Pi(M_PI),um(1.f),dois(2.f),tres(3.f),seis(6.f),dezoito(18.f),sqrt3(sqrt(3.f));
+		TFad<N,TFad<N,float> > sig1(183753.31587364181),sig2(157264.29661659044), sig3(143880.63541092159),phi(20.*M_PI/180.f),c(490.f),nu(0.48),Pi(M_PI),um(1.f),dois(2.f),tres(3.f),seis(6.f),dezoito(18.f),sqrt3(sqrt(3.f));
 	TFad<N,TFad<N,float> >  test2;
 	
 	test2=((dois*(um-dois*nu))*(sqrt3*sig1 + sqrt3*sig2 +sqrt3*sig3 - tres*xi)*(sqrt3*sig1 + sqrt3*sig2 +sqrt3*sig3 - tres*xi) +(um + nu)*(tres*sig2 - tres*sig3 + (seis*sin(beta)*(-(sqrt3*c*cos(phi)) + xi*sin(phi)))/
@@ -327,7 +338,7 @@ TPZGeoMesh * gmesh =  cmesh->Reference();
 	int dim = gmesh->Dimension();
  TPZVec<REAL> xd(dim,0.);
  TPZVec<REAL> mpt(dim,0.);
- xd[0] =39.2265; xd[1] = 40.;
+ xd[0] =35; xd[1] = 40.;
 int id;
  int nels = gmesh->NElements();
  for(int iel=0;iel<nels;iel++){
@@ -1073,8 +1084,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
    // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
-
+//string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
+string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
 
 
     readgidmesh read = readgidmesh ( file );
@@ -1116,18 +1127,18 @@ string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
 
-//     a = b;
-//     b[0] = 35.;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
-	a = b;
-    b[0] = 39.2265;
+    a = b;
+    b[0] = 35.;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsramp );
     idsvec.push_back ( idsramp );
+// 	a = b;
+//     b[0] = 39.2265;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
 	
     a = b;
     b[0] = 0.;
@@ -1249,8 +1260,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-    REAL mc_cohesion    = 68.;
-    REAL mc_phi         = ( 50.*M_PI/180 );
+    REAL mc_cohesion    = 50.;
+    REAL mc_phi         = ( 20.*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb

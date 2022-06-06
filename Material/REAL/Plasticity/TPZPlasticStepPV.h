@@ -22,7 +22,8 @@ REAL NormVecOfMat(TPZFNMatrix <9> mat);
 REAL InnerVecOfMat(TPZFMatrix<REAL> &m1,TPZFMatrix<REAL> &m2);
 TPZFMatrix<REAL> ProdT(TPZFMatrix<REAL> &m1,TPZFMatrix<REAL> &m2);
 TPZFNMatrix <6> FromMatToVoight(TPZFNMatrix <9> mat);
-
+void ProdT(TPZManVector<REAL,3> &v1, TPZManVector<REAL,3> &v2, TPZFMatrix<REAL> & mat) ;
+TPZManVector<REAL,3>  FromToManVec(TPZFNMatrix <9> mat);
 template <class TVar>
 class TPZFMatrix;
 
@@ -138,6 +139,10 @@ public:
 	 */
 	virtual void ApplyStrainComputeDep(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma, TPZFMatrix<REAL> &Dep);
     
+	
+
+virtual void TangentOperator(TPZFMatrix<REAL> & gradient,TPZTensor<REAL>::TPZDecomposed & eps_eigen_system, TPZTensor<REAL>::TPZDecomposed & sig_eigen_system, TPZFMatrix<REAL> & Tangent);
+	
     /**
 	 * Attempts to compute an epsTotal value in order to reach an imposed stress state sigma.
 	 * This method should be used only for test purposes because it isn't fully robust. Some
@@ -206,7 +211,15 @@ public:
     {
         //fPlasticMem.Resize(0);
     }
-	
+	//REAL NormVecOfMat(TPZFNMatrix <9> mat);
+
+	//REAL InnerVecOfMat(TPZFMatrix<REAL> &m1,TPZFMatrix<REAL> &m2);
+
+	//TPZFMatrix<REAL> ProdT(TPZManVector<REAL,3> &v1, TPZManVector<REAL,3> &v2);
+
+	//void ProdT(TPZManVector<REAL,3> &v1, TPZManVector<REAL,3> &v2, TPZFMatrix<REAL> & mat);
+
+	//TPZFNMatrix <6> FromMatToVoight(TPZFNMatrix <9> mat);
 	//virtual void Write(TPZStream &buf) const;
 	
 	//virtual void Read(TPZStream &buf);

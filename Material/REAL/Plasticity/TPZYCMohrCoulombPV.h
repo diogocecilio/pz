@@ -333,6 +333,13 @@ public:
         tensor.dJ2().FromTensorToNRmatrix ( a2 );
         tensor.dJ3().FromTensorToNRmatrix ( a3 );
 
+		//tensor.Print(cout);
+		//cout << "c1" << c1 << endl;
+		//cout << "c2" << c2 << endl;
+		//cout << "c3" << c3 << endl;
+		//a1.Print("a1");
+		//a2.Print("a2");
+		//a3.Print("a3");
         a1*=c1;
         a2*=c2;
         a3*=c3;
@@ -427,16 +434,29 @@ public:
     {
         //Eq. 14 (Crisfield Eng. Comput., 1987)
         REAL c1=C1(),c2=C2 ( tensor ),c3=C3 ( tensor ),c4=C4 ( tensor ),c23=C23 ( tensor ),c22=C22 ( tensor ),c33=C33 ( tensor );
+		//cout << "c1 " << c1<<endl;
+		//cout << "c2 "<<c2<<endl;
+		//cout << "c3 "<< c3 << endl;
+		//cout << "c4 "<< c4<<endl;
+		//cout << "c23 "<< c23<<endl;
+		//cout << "c22 "<< c22 <<endl;
+		//cout << "c33 "<< c33 <<endl;
         REAL c32 =c23;
         TPZFMatrix<REAL> da2dsig = d2J2d2sig();
         TPZFMatrix<REAL> da3dsig = d2J3d2sig ( tensor );
+				//cout << "da2dsig"<<endl;
+        //da2dsig.Print(cout);
+				//		cout << "da3dsig"<<endl;
+       // da3dsig.Print(cout);
         TPZFMatrix<REAL> dadsig ( 6,6 ),a2 ( 6,1 ),a3 ( 6,1 ),a2t,a3t,temp1,temp2,temp3,temp4;
         //cout << "dj2"<<endl;
-        //tensor.dJ2().Print();
+        //tensor.dJ2().Print(cout);
         tensor.dJ2().FromTensorToNRmatrix ( a2 );
-        //cout << "a2"<<endl;
-        //a2.Print();
+        //cout << "dj2"<<endl;
+       // a2.Print(cout);
         tensor.dJ3().FromTensorToNRmatrix ( a3 );
+		//cout << "a3"<<endl;
+        //a3.Print(cout);
         a2.Transpose ( &a2t );
         a3.Transpose ( &a3t ); //tranposto é deitado
         da2dsig*=c2;
@@ -610,6 +630,9 @@ public:
 
         return P2;
     }
+    
+    
+    
 
 };
 

@@ -102,6 +102,15 @@ public:
     * @param[in] epsilon tensor de deformacao
     * @param[out] sigma tensor de tensao
     */
+    template <class T>
+    void Compute ( const TPZTensor<T> & epsilon, TPZTensor<T> & sigma ) const
+    {
+        T trace = epsilon.I1();
+        sigma.Identity();
+        sigma.Multiply ( trace,fLambda );
+        sigma.Add ( epsilon,2.*fMu );
+    }
+
 //     template <class T>
 //     void Compute ( const TPZTensor<T> & epsilon, TPZTensor<T> & sigma ) const
 //     {
@@ -114,20 +123,22 @@ public:
 // 
 //         sigma.Add ( epsilon,2.*fMu );
 //     }
-
-        template <class T>
-    void Compute ( const TPZTensor<T> & epsilon, TPZTensor<T> & sigma ) const
-    {
-
-        T trace = epsilon.I1();
-        sigma.Identity();
-        sigma.Multiply ( trace,fLambda );
-
-        sigma.Add ( epsilon,2.*fMu );
-    }
     /**
      * @brief Calcula o tensor de deformacao em funcao do tensor de tensao
      */
+    template <class T>
+    void ComputeDeformation ( const TPZTensor<T> & sigma, TPZTensor<T> & epsilon ) const
+    {
+
+        const T Fac = T ( ( 1/3. ) * ( 1./ ( 3.*fLambda+2.*fMu ) -1./ ( 2.*fMu ) ) );
+        T trace = sigma.I1();
+        epsilon.Identity();
+        epsilon.Multiply ( trace,Fac );
+        epsilon.Add ( sigma,1./ ( 2.*fMu ) );
+		//TPZFMatrix<REAL> C = GetElasticMatrix();
+
+    }
+
 //     template <class T>
 //     void ComputeDeformation ( const TPZTensor<T> & sigma, TPZTensor<T> & epsilon ) const
 //     {
@@ -141,21 +152,6 @@ public:
 //         epsilon.Add ( sigma,1./ ( 2.*fMu ) );
 // 
 //     }
-//     
-        template <class T>
-    void ComputeDeformation ( const TPZTensor<T> & sigma, TPZTensor<T> & epsilon ) const
-    {
-
-        const T Fac = T ( ( 1/3. ) * ( 1./ ( 3.*fLambda+2.*fMu ) -1./ ( 2.*fMu ) ) );
-        T trace = sigma.I1();
-        epsilon.Identity();
-        epsilon.Multiply ( trace,Fac );
-        epsilon.Add ( sigma,1./ ( 2.*fMu ) );
-
-    }
-
-
-
 
     /**
      * @brief Computes the elastic matrix, writing it to the matrix Kep
@@ -181,7 +177,61 @@ public:
         for ( i = 0; i < 6; i++ ) Kef ( i, i ) += Mu2;
     }
 
+    TPZFMatrix<REAL> GetElasticMatrix()
+    {
+        TPZFMatrix<REAL> C ( 6, 6, 0. );
+        REAL G = fMu;
+        REAL K = fLambda+2.*G/3.;
+        C ( _XX_,_XX_ ) = ( 4 * G ) / 3 + K;
+        C ( _XX_,_YY_ ) = - ( ( 2 * G ) / 3 ) + K;
+        C ( _XX_,_ZZ_ ) = - ( ( 2 * G ) / 3 ) + K;
+        C ( _XX_,_XZ_ ) = 0.;
+        C ( _XY_,_YZ_ ) = 0.;
+        C ( _XX_,_XY_ ) = 0.;
 
+
+        C ( _YY_,_XX_ ) = - ( ( 2 * G ) / 3 ) + K;
+        C ( _YY_,_YY_ ) = ( 4 * G ) / 3 + K;
+        C ( _YY_,_ZZ_ ) = - ( ( 2 * G ) / 3 ) + K;
+        C ( _YY_,_XZ_ ) = 0.;
+        C ( _YY_,_YZ_ ) = 0.;
+        C ( _YY_,_XY_ ) = 0.;
+
+
+        C ( _ZZ_,_XX_ ) = - ( ( 2 * G ) / 3 ) + K;
+        C ( _ZZ_,_YY_ ) = - ( ( 2 * G ) / 3 ) + K;
+        C ( _ZZ_,_ZZ_ ) = ( 4 * G ) / 3 + K;
+        C ( _ZZ_,_XZ_ ) = 0.;
+        C ( _ZZ_,_YZ_ ) = 0.;
+        C ( _ZZ_,_XY_ ) = 0.;
+
+
+        C ( _XZ_,_XX_ ) = 0;
+        C ( _XZ_,_YY_ ) = 0;
+        C ( _XZ_,_ZZ_ ) = 0;
+        C ( _XZ_,_XZ_ ) = G ;
+        C ( _XZ_,_YZ_ ) = 0.;
+        C ( _XZ_,_XY_ ) = 0.;
+
+
+        C ( _YZ_,_XX_ ) = 0;
+        C ( _YZ_,_YY_ ) = 0;
+        C ( _YZ_,_ZZ_ ) = 0;
+        C ( _YZ_,_XZ_ ) = 0.;
+        C ( _YZ_,_YZ_ ) = G ;
+        C ( _YZ_,_XY_ ) = 0.;
+
+
+        C ( _XY_,_XX_ ) = 0;
+        C ( _XY_,_YY_ ) = 0;
+        C ( _XY_,_ZZ_ ) = 0;
+        C ( _XY_,_XZ_ ) = 0.;
+        C ( _XY_,_YZ_ ) = 0.;
+        C ( _XY_,_XY_ ) = G ;
+
+
+        return C;
+    }
     REAL fLambda;
     REAL fMu;
 
