@@ -67,7 +67,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL>
 	fN.fEpsP = epsPN; 
 }
 
-/*
+
 template <class YC_t, class ER_t>
 void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma, TPZFMatrix<REAL> &Dep)
 {
@@ -302,7 +302,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
         }
     }
 #endif
-}*/
+}
 
 
 // template <class YC_t, class ER_t>
@@ -405,95 +405,95 @@ void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &
 // }
 
 
-template <class YC_t, class ER_t>
-void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma, TPZFMatrix<REAL> &Dep) {
-    
-    TPZTensor<REAL>::TPZDecomposed sig_eigen_system, eps_eigen_system;
-    TPZTensor<REAL> sigtr;
-
-    TPZTensor<REAL> epsTr, epsPN, epsElaNp1;
-   //epsPN = fN.m_eps_p;
-	epsPN = fN.fEpsP;
-    epsTr = epsTotal;
-    epsTr -= epsPN; // Porque soh tem implementado o operator -=
-
-    // Compute and Decomposition of SigTrial
-    fER.Compute(epsTr, sigtr); // sigma = lambda Tr(E)I + 2 mu E
-    epsTr.EigenSystem(eps_eigen_system);
-    //epsTr.ComputeEigenvectors(eps_eigen_system);
-    sigtr.EigenSystem(sig_eigen_system);
-    //sigtr.ComputeEigenvectors(sig_eigen_system);
-
-    TPZManVector<REAL, 3> sigtrvec(sig_eigen_system.fEigenvalues), sigprvec(3, 0.);
-
-#ifdef PZ_LOG
-    if (logger.isDebugEnabled()) {
-        std::stringstream sout;
-		sig_eigen_system.Print(sout);
-        LOGPZ_DEBUG(logger, sout.str())
-    }
-    STATE printPlastic = fN.VolHardening();
-#endif
-
-    // ReturnMap in the principal values
-    STATE nextalpha = 0;
-    TPZFNMatrix<9> GradSigma(3, 3, 0.);
-  //  fYC.ProjectSigmaDep(sigtrvec, fN.fAlpha, sigprvec, nextalpha, GradSigma);
-		TPZTensor<REAL> sigtrtensor;
-    fYC.ProjectSigmaDep(sigtrvec,sigtrtensor, fN.fAlpha, sigprvec, nextalpha, GradSigma);
-    fN.fAlpha = nextalpha;
- 	cout << "Sig Trial " << sigtrvec << "\nSig Project " << sigprvec << std::endl;
-#ifdef PZ_LOG
-    if (logger.isDebugEnabled()) {
-        std::stringstream sout;
-        sout << "Sig Trial " << sigtrvec << "\nSig Project " << sigprvec << std::endl;
-        GradSigma.Print("GradSigma", sout, EMathematicaInput);
-        LOGPZ_DEBUG(logger, sout.str())
-    }
-#endif
-
-    // Reconstruction of sigmaprTensor
-    sig_eigen_system.fEigenvalues = sigprvec; // updating the projected values used inside TangentOperator method.
-    sigma = TPZTensor<REAL>(sig_eigen_system);
-    TangentOperator(GradSigma, eps_eigen_system, sig_eigen_system, Dep);
-
-	
-    fER.ComputeDeformation(sigma, epsElaNp1);
-    fN.fEpsT = epsTotal;
-    epsPN = epsTotal;
-    epsPN -= epsElaNp1; // Transforma epsPN em epsPNp1
-    fN.fEpsP = epsPN;
-
-
-#ifdef PZ_LOG
-    if (logger2.isDebugEnabled()) {
-        if (fabs(printPlastic - fN.m_hardening) > 1.e-4) {
-            std::stringstream sout;
-            TPZVec<STATE> phi;
-            TPZTensor<STATE> epsElastic(fN.m_eps_t);
-            epsElastic -= fN.m_eps_p;
-            Phi(epsElastic, phi);
-            sout << " \n phi = [";
-            for (int i = 0; i < phi.size(); i++) {
-                sout << phi[i] << " ";
-            }
-
-            sout << " ] " << std::endl;
-
-            sout << " \n eigenvalues Sigma = [";
-            for (int i = 0; i < 3; i++) {
-                sout << sig_eigen_system.fEigenvalues[i] << " ";
-            }
-
-            sout << " ] " << std::endl;
-
-
-
-            LOGPZ_DEBUG(logger2, sout.str())
-        }
-    }
-#endif
-}
+// template <class YC_t, class ER_t>
+// void TPZPlasticStepPV<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma, TPZFMatrix<REAL> &Dep) {
+//     
+//     TPZTensor<REAL>::TPZDecomposed sig_eigen_system, eps_eigen_system;
+//     TPZTensor<REAL> sigtr;
+// 
+//     TPZTensor<REAL> epsTr, epsPN, epsElaNp1;
+//    //epsPN = fN.m_eps_p;
+// 	epsPN = fN.fEpsP;
+//     epsTr = epsTotal;
+//     epsTr -= epsPN; // Porque soh tem implementado o operator -=
+// 
+//     // Compute and Decomposition of SigTrial
+//     fER.Compute(epsTr, sigtr); // sigma = lambda Tr(E)I + 2 mu E
+//     epsTr.EigenSystem(eps_eigen_system);
+//     //epsTr.ComputeEigenvectors(eps_eigen_system);
+//     sigtr.EigenSystem(sig_eigen_system);
+//     //sigtr.ComputeEigenvectors(sig_eigen_system);
+// 
+//     TPZManVector<REAL, 3> sigtrvec(sig_eigen_system.fEigenvalues), sigprvec(3, 0.);
+// 
+// #ifdef PZ_LOG
+//     if (logger.isDebugEnabled()) {
+//         std::stringstream sout;
+// 		sig_eigen_system.Print(sout);
+//         LOGPZ_DEBUG(logger, sout.str())
+//     }
+//     STATE printPlastic = fN.VolHardening();
+// #endif
+// 
+//     // ReturnMap in the principal values
+//     STATE nextalpha = 0;
+//     TPZFNMatrix<9> GradSigma(3, 3, 0.);
+//   //  fYC.ProjectSigmaDep(sigtrvec, fN.fAlpha, sigprvec, nextalpha, GradSigma);
+// 		TPZTensor<REAL> sigtrtensor;
+//     fYC.ProjectSigmaDep(sigtrvec,sigtrtensor, fN.fAlpha, sigprvec, nextalpha, GradSigma);
+//     fN.fAlpha = nextalpha;
+//  	//cout << "Sig Trial " << sigtrvec << "\nSig Project " << sigprvec << std::endl;
+// #ifdef PZ_LOG
+//     if (logger.isDebugEnabled()) {
+//         std::stringstream sout;
+//         sout << "Sig Trial " << sigtrvec << "\nSig Project " << sigprvec << std::endl;
+//         GradSigma.Print("GradSigma", sout, EMathematicaInput);
+//         LOGPZ_DEBUG(logger, sout.str())
+//     }
+// #endif
+// 
+//     // Reconstruction of sigmaprTensor
+//     sig_eigen_system.fEigenvalues = sigprvec; // updating the projected values used inside TangentOperator method.
+//     sigma = TPZTensor<REAL>(sig_eigen_system);
+//     TangentOperator(GradSigma, eps_eigen_system, sig_eigen_system, Dep);
+// 
+// 	
+//     fER.ComputeDeformation(sigma, epsElaNp1);
+//     fN.fEpsT = epsTotal;
+//     epsPN = epsTotal;
+//     epsPN -= epsElaNp1; // Transforma epsPN em epsPNp1
+//     fN.fEpsP = epsPN;
+// 
+// 
+// #ifdef PZ_LOG
+//     if (logger2.isDebugEnabled()) {
+//         if (fabs(printPlastic - fN.m_hardening) > 1.e-4) {
+//             std::stringstream sout;
+//             TPZVec<STATE> phi;
+//             TPZTensor<STATE> epsElastic(fN.m_eps_t);
+//             epsElastic -= fN.m_eps_p;
+//             Phi(epsElastic, phi);
+//             sout << " \n phi = [";
+//             for (int i = 0; i < phi.size(); i++) {
+//                 sout << phi[i] << " ";
+//             }
+// 
+//             sout << " ] " << std::endl;
+// 
+//             sout << " \n eigenvalues Sigma = [";
+//             for (int i = 0; i < 3; i++) {
+//                 sout << sig_eigen_system.fEigenvalues[i] << " ";
+//             }
+// 
+//             sout << " ] " << std::endl;
+// 
+// 
+// 
+//             LOGPZ_DEBUG(logger2, sout.str())
+//         }
+//     }
+// #endif
+// }
 //template <class YC_t, class ER_t>
 //void TPZPlasticStepPV<YC_t, ER_t>::
 template <class YC_t, class ER_t>
@@ -570,7 +570,7 @@ void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,T
             }///j
         }///i
     }///k
-    Tangent.Print("tanzaquiii");
+    //Tangent.Print("tanzaquiii");
     REAL deigensig = 0., deigeneps = 0.;
     TPZFNMatrix<36> RotCorrection(6,6,0.);
     // Correcao do giro rigido
@@ -602,14 +602,14 @@ void TPZPlasticStepPV<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,T
                     ColCorr = (epsegveFromProj[j](ki,0) * epsegveFromProj[i](kj,0) + epsegveFromProj[j](kj,0) * epsegveFromProj[i](ki,0) ) * factor * tempMat;
                 }
                 ColCorrV = FromMatToVoight(ColCorr);
-				ColCorrV.Print("colCorrV");
+				//ColCorrV.Print("colCorrV");
                 for (int l = 0; l < 6; l++) {
                     RotCorrection(l,k) += ColCorrV(l,0);
                 }
             }
         }
     }
-    RotCorrection.Print("root");
+    //RotCorrection.Print("root");
     Tangent += RotCorrection;
     
     

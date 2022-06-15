@@ -128,6 +128,10 @@ void SolveMultiThread(int a0,int b0, int nthreads,bool gim,string file);
 
 void SolveDeterministic(int porder);
 void SolveDeterministicSRM(int porder);
+
+void ComputeMeanInAReagion();
+REAL ComputeMeanInAReagion(TPZCompMesh *cmesh,int isol);
+
 int main()
 {
     
@@ -166,12 +170,16 @@ int main()
 //	SolveDeterministic(2);
 //	SolveDeterministicSRM(2);
 
+    
+   // TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file);
 		
 	//string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida-flow";
-	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida";
-	bool flow=false;
-	bool gim = false;
-	SolveSerial(751,1000,flow,gim,file);
+ 	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida";
+ 	bool flow=false;
+ 	bool gim = false;
+ 	SolveSerial(7,8,flow,gim,file);
+    
+ //   ComputeMeanInAReagion();
 	
 //0.898321 182
 //	SolveMultiThread(0,1000,1,gim,file);//1:10 hrs
@@ -182,6 +190,90 @@ int main()
     return 0;
 }
 
+void ComputeMeanInAReagion()
+{
+    int samples=1000;
+	
+	int porder=2;
+	
+	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+    string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/test";
+    
+    bool createfield = false;
+
+    TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file,createfield);
+    
+    for(int isol=0;isol<samples;isol++)
+    {
+        cout << " isol " << isol << endl;
+       REAL mean = ComputeMeanInAReagion(vecmesh[1],isol);
+       if(mean<0.26)
+       {
+           cout << " isol " << isol << endl;
+           cout << " mean " << mean << endl;
+       }
+    }
+    
+}
+
+
+REAL ComputeMeanInAReagion(TPZCompMesh *cmesh,int isol) {
+
+
+    TPZGeoMesh * gmesh =  cmesh->Reference();
+    int dim = gmesh->Dimension();
+
+    int nels = cmesh->NElements();
+    REAL summ=0.;
+    
+     int count=0;
+    for ( int iel=0; iel<nels; iel++ ) {
+
+        
+        TPZCompEl *cel = cmesh->Element ( iel );
+        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+        const TPZIntPoints &intpoints = intel->GetIntegrationRule();
+
+        TPZManVector<REAL,3> point ( 3,0. );
+        TPZMaterialData data;
+
+        data.fNeedsSol = true;
+        intel->InitMaterialData ( data );
+
+        REAL weight=0;
+        int nint = intpoints.NPoints();
+        
+        TPZTensor<REAL> epst,epsp;
+    
+        
+        for ( long ip =0; ip<nint; ip++ ) {
+            intpoints.Point ( ip, point, weight );
+            data.intLocPtIndex = ip;
+            intel->ComputeRequiredData ( data, point );
+
+            REAL x =  data.x[0];
+            REAL y =  data.x[1];
+            if( (( 30. <  x  &&  x < 46. ) && (25. < y && y < 40. )))
+            {
+                TPZSolVec sol1;
+                ComputeSolution ( cel,data.phi,sol1 );
+                TPZVec<REAL> var = sol1[isol];
+                //cout << " x  = "<< x     << endl;
+               //cout << " y  = "<< y   << endl;
+               // cout << " cohes  = "<< cohes     << endl;
+                summ+=var[0];
+                count++;
+            }
+
+        }
+        
+        ///cout << "mean " << summ/count<< endl ; 
+
+    }
+    REAL  mean = summ/count ; 
+    cout << " mean " << mean<< endl ; 
+    return mean;
+}
 
 void SolveSerial(int a, int b, bool flow,bool gim,string file)
 {
@@ -264,11 +356,11 @@ TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,int porder,in
 {
 
 	string outco,outphi;
-	outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/v2cohesion-p2-type3-alpha-H10-beta45-lx-40-ly4.txt";
-	outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/v2friction-p2-type3-alpha-H10-beta45-lx-40-ly4.txt";
+	//outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/teste-cohes-field.txt";
+	//outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/teste-phi-field.txt";
 	
-//		outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/v2cohesion-p2-type3-alpha-H10-beta45.txt";
-//	outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/v2friction-p2-type3-alpha-H10-beta45.txt";
+		outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/cohesion-p2-type3-alpha-H10-beta45.txt";
+	outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/friction-p2-type3-alpha-H10-beta45.txt";
 
     TPZFMatrix<REAL> readco,readphi;
 
@@ -695,8 +787,8 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder 
 TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
 {
     int expansionorder=300;
-    REAL Lx=40.;
-    REAL Ly=4.;
+    REAL Lx=20.;
+    REAL Ly=2.;
     REAL Lz=1.;
     int type=3;
 	//int type=1;
@@ -1509,8 +1601,8 @@ void ShearRed ( TPZCompMesh * cmesh )
 #include "tpzsparseblockdiagonalstructmatrix.h"
 #include "TPBSpStructMatrix.h"
 #include "TPZSpStructMatrix.h"
-#include <boost/mpl/void.hpp>
-#include <boost/mpl/void.hpp>
+//#include <boost/mpl/void.hpp>
+//#include <boost/mpl/void.hpp>
 #include <sys/stat.h>
 #include <sys/stat.h>
 #include <sys/stat.h>

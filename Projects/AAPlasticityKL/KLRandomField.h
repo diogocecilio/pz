@@ -30,6 +30,8 @@ public:
     TPZVec<TPZFMatrix<REAL>> CreateNormalRandomField();
 
     TPZVec<TPZFMatrix<REAL>> CreateLogNormalRandomField();
+    
+    TPZVec<TPZFMatrix<REAL>>  CreateLogNormalRandomFieldHandF();
 
 private:
 
