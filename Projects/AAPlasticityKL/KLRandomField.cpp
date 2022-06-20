@@ -61,7 +61,12 @@ TPZVec<TPZFMatrix<REAL>> KLRandomField::CreateLogNormalRandomField()
         }
     }
 
-
+	string outcohesvas="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/outcohesvas.txt";
+	string outphisvas="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/outphisvas.txt";
+	
+	
+	PrintMat(outcohesvas,THETA);
+    PrintMat(outphisvas,THETA2);
 
     TPZFMatrix<REAL>  hhatphi, hhatcoes;
 
@@ -133,8 +138,13 @@ TPZVec<TPZFMatrix<REAL>> KLRandomField::CreateLogNormalRandomFieldHandF()
         }
     }
 
-
-
+	string outcohesvas="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/outcohesvas.txt";
+	string outphisvas="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/outphisvas.txt";
+	
+	
+	PrintMat(outcohesvas,THETA);
+    PrintMat(outphisvas,THETA2);
+    
     TPZFMatrix<REAL>  hhatphi, hhatcoes,fphi,fcoes;
 
     PHIt.Multiply( THETA, hhatcoes );

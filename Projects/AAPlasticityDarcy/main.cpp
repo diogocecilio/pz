@@ -99,7 +99,7 @@ REAL findnodalsol(TPZCompMesh *cmesh);
 int main()
 {
 
-    int porder= 3;
+    int porder= 2;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
 
@@ -109,8 +109,8 @@ int main()
     
     TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
     TPZPostProcAnalysis * postprocdetergim = new TPZPostProcAnalysis();
-    std::string vtkFiled ="vtkfolder/deterministic.vtk";
-    std::string vtkFiledgim ="vtkfolder/deterministicgim.vtk";
+    std::string vtkFiled ="vtkfolder/deterministicflux.vtk";
+    std::string vtkFiledgim ="vtkfolder/deterministicgimflux.vtk";
 
     //Rain Load
     int steps=0;
@@ -120,7 +120,7 @@ int main()
     delta=totalload/steps;
     load=0.;
     //Deterministic
-    bool water=true;
+    bool water=false;
 	for(int iload=0;iload<=steps;iload++)
  	{
         TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
@@ -425,10 +425,11 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
     //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-    string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
+   // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
 	//string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
-
-
+//string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
+//string file ="/home/diogo/projects/pz/data/h10-beta60.msh";
+string file ="/home/diogo/projects/pz/data/h10-beta30.msh";
 
 
     readgidmesh read = readgidmesh ( file );
@@ -470,19 +471,26 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
 
-    a = b;
-    b[0] = 35.;
-    b[1] = 40.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
-    idsvec.push_back ( idsramp );
-// // 	
+//     a = b;
+//     b[0] = 35.;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
+// 	
 // 	a = b;
 //     b[0] = 39.2265;
 //     b[1] = 40.;
 //     read.Line ( a, b, ndivs, pathbottom );
 //     read.FindIdsInPath ( pathbottom, idsramp );
 //     idsvec.push_back ( idsramp );
+	
+		a = b;
+    b[0] = 27.675;
+    b[1] = 40.;
+    read.Line ( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idsramp );
+    idsvec.push_back ( idsramp );
 
     a = b;
     b[0] = 0.;
@@ -606,14 +614,14 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     // Mohr Coulomb data
    // REAL mc_cohesion    = 68;//kpa
     //REAL mc_phi         = ( 50.0*M_PI/180 );
-	REAL mc_cohesion    = 10;//kpa
-    REAL mc_phi         = ( 30.0*M_PI/180 );
+	REAL mc_cohesion    = 50;//kpa
+    REAL mc_phi         = ( 20.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
     // Elastic predictor
     TPZElasticResponse ER;
-    REAL nu = 0.3;
+    REAL nu = 0.49;
     REAL E = 20000.;
 
     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
@@ -793,7 +801,8 @@ void GravityIncrease ( TPZCompMesh * cmesh )
             FS = ( FSmin + FSmax ) / 2.;
 
         } else {
-			uy+=findnodalsol(cmesh);
+			//cout << "|asdadadasd =  " << std::endl;
+			//uy+=findnodalsol(cmesh);
 			outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
             FSmin = FS;
             anal->AcceptSolution();
@@ -801,7 +810,7 @@ void GravityIncrease ( TPZCompMesh * cmesh )
 			displace0 = anal->Solution();
 			//FS+=0.1;
         }
-        
+        cout << "|asdadadasd =  " << std::endl;
         counterout++;
         
     }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
@@ -849,7 +858,7 @@ void ShearRed ( TPZCompMesh * cmesh)
             FSmax = FS;
             FS = ( FSmin + FSmax ) / 2.;
         } else {
-			uy+=findnodalsol(cmesh);
+			//uy+=findnodalsol(cmesh);
 			outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
             displace0 = displace;
             FSmin = FS;

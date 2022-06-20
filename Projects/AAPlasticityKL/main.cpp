@@ -132,6 +132,10 @@ void SolveDeterministicSRM(int porder);
 void ComputeMeanInAReagion();
 REAL ComputeMeanInAReagion(TPZCompMesh *cmesh,int isol);
 
+void SolveDeterministic(TPZCompMesh *cmesh);
+
+REAL ComputeMeanPhiAReagion(TPZCompMesh *cmesh) ;
+
 int main()
 {
     
@@ -173,13 +177,53 @@ int main()
     
    // TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file);
 		
-	//string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida-flow";
- 	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida";
- 	bool flow=false;
- 	bool gim = false;
- 	SolveSerial(7,8,flow,gim,file);
-    
- //   ComputeMeanInAReagion();
+	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/test";
+//   	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida";
+   	bool flow=false;
+   	bool gim = false;
+//   	SolveSerial(947,948,flow,gim,file);
+// //     
+     ComputeMeanInAReagion();
+	// SolveMultiThread(0,1000,4,gim,file);
+	
+// 	string vtkFile0="deterministic-gim.vtk";
+// 
+// 	TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
+// 	
+// 	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+// 
+// 	//create the elastoplastic comp mesh
+// 	TPZCompMesh *cmesh = CreateCMesh ( gmesh,2 );
+// 
+// 	plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+//     LoadingRamp ( body,1. );
+// 
+//     REAL tol2 = 1.e-3;
+//     int NumIter = 30;
+//     bool linesearch = true;
+//     bool checkconv = false;
+//  
+// 
+// 	bool optimize =true;
+// 	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+// 
+// 	anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+// 	
+// 	anal->AcceptSolution();
+// 	
+// 	int samples=1000;
+// 	
+// 	int porder=2;
+// 	
+//     string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/test";
+//     
+//     bool createfield = false;
+// 
+//     TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file,createfield);
+// 	
+// 	SetMaterialParamenters (cmesh,vecmesh,109,1. );
+// 	
+// 	ComputeMeanPhiAReagion(cmesh);
 	
 //0.898321 182
 //	SolveMultiThread(0,1000,1,gim,file);//1:10 hrs
@@ -188,6 +232,27 @@ int main()
 
 	
     return 0;
+}
+
+void SolveDeterministic(TPZCompMesh *cmesh)
+{
+
+	plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+    LoadingRamp ( body,1. );
+
+    REAL tol2 = 1.e-3;
+    int NumIter = 30;
+    bool linesearch = true;
+    bool checkconv = false;
+ 
+
+	bool optimize =true;
+	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+
+	anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+	
+	anal->AcceptSolution();
+	
 }
 
 void ComputeMeanInAReagion()
@@ -202,19 +267,81 @@ void ComputeMeanInAReagion()
     bool createfield = false;
 
     TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file,createfield);
-    
+  
     for(int isol=0;isol<samples;isol++)
     {
-        cout << " isol " << isol << endl;
-       REAL mean = ComputeMeanInAReagion(vecmesh[1],isol);
-       if(mean<0.26)
+        //cout << " isol " << isol << endl;
+	   REAL meancoes = ComputeMeanInAReagion(vecmesh[0],isol);
+       REAL meanphi = ComputeMeanInAReagion(vecmesh[1],isol);
+	   
+       if(meanphi<0.40 && meancoes<10)
        {
            cout << " isol " << isol << endl;
-           cout << " mean " << mean << endl;
+           cout << " meancoes " << meancoes << endl;
+		   cout << " meanphi " << meanphi << endl;
        }
     }
     
 }
+
+REAL ComputeMeanPhiAReagion(TPZCompMesh *cmesh) {
+
+
+    TPZGeoMesh * gmesh =  cmesh->Reference();
+    int dim = gmesh->Dimension();
+
+    int nels = cmesh->NElements();
+    REAL summ=0.;
+//		  EYieldSurface1 = 50,
+//	  EYieldSurface2 = 51,
+//	  EYieldSurface3 = 52,
+    int var=50;
+     int count=0;
+    for ( int iel=0; iel<nels; iel++ ) {
+
+        
+        TPZCompEl *cel = cmesh->Element ( iel );
+        TPZInterpolationSpace *intel = dynamic_cast<TPZInterpolationSpace *> ( cel );
+        const TPZIntPoints &intpoints = intel->GetIntegrationRule();
+
+        TPZManVector<REAL,3> point ( 3,0. );
+        TPZMaterialData data;
+
+        data.fNeedsSol = true;
+        intel->InitMaterialData ( data );
+
+        REAL weight=0;
+        int nint = intpoints.NPoints();
+        
+        TPZTensor<REAL> epst,epsp;
+    
+        
+        for ( long ip =0; ip<nint; ip++ ) {
+            intpoints.Point ( ip, point, weight );
+            data.intLocPtIndex = ip;
+            intel->ComputeRequiredData ( data, point );
+
+            REAL x =  data.x[0];
+            REAL y =  data.x[1];
+            if( (( 30. <  x  &&  x < 46. ) && (25. < y && y < 40. )))
+            {
+
+				TPZVec<REAL> sol;
+				intel->Solution(point,var,sol);
+                summ+=sol[0];
+                count++;
+            }
+
+        }
+        
+        ///cout << "mean " << summ/count<< endl ; 
+
+    }
+    REAL  mean = summ/count ; 
+    cout << " mean " << mean<< endl ; 
+    return mean;
+}
+
 
 
 REAL ComputeMeanInAReagion(TPZCompMesh *cmesh,int isol) {
@@ -271,7 +398,7 @@ REAL ComputeMeanInAReagion(TPZCompMesh *cmesh,int isol) {
 
     }
     REAL  mean = summ/count ; 
-    cout << " mean " << mean<< endl ; 
+    //cout << " mean " << mean<< endl ; 
     return mean;
 }
 
@@ -359,8 +486,8 @@ TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,int porder,in
 	//outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/teste-cohes-field.txt";
 	//outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/teste-phi-field.txt";
 	
-		outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/cohesion-p2-type3-alpha-H10-beta45.txt";
-	outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/friction-p2-type3-alpha-H10-beta45.txt";
+		outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/testeco.txt";
+	outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/testephi.txt";
 
     TPZFMatrix<REAL> readco,readphi;
 

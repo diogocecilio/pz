@@ -32,6 +32,22 @@ public:
     TPZVec<TPZFMatrix<REAL>> CreateLogNormalRandomField();
     
     TPZVec<TPZFMatrix<REAL>>  CreateLogNormalRandomFieldHandF();
+	
+	void PrintMat ( std::string out,TPZFMatrix<REAL> mat )
+	{
+    	std::ofstream print ( out );
+    	int row=mat.Rows();
+    	int cols = mat.Cols();
+
+    	for ( int i=0; i<row; i++ ) {
+        	for ( int j=0; j<cols; j++ ) {
+        	    print << mat ( i,j ) << " ";
+        	}
+        	print<< std::endl;
+    	}
+
+
+	}
 
 private:
 
