@@ -2050,7 +2050,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
     int nels0 = plasticCmesh->NElements();
 
     //incmesh->Solution().Print(std::cout);
-
+cout << "\n adasdasdasdasdasdas = "<<endl;
     TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
     TPZAdmChunkVector<TPZElastoPlasticMem>  &mem = pMatWithMem2->GetMemory();
 
@@ -2059,6 +2059,8 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
     if ( pMatWithMem2 ) {
         pMatWithMem2->SetUpdateMem ( true );
     }
+
+    
 
     int globpt=0;
     for ( int iel=0; iel<nels0; iel++ ) {
@@ -2083,7 +2085,6 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 
 
         const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
-
 
 
         TPZManVector<REAL,3> point ( 3,0. );

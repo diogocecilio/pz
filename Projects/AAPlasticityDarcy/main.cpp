@@ -136,7 +136,7 @@ int main()
             SolveDarcyProlem(darcycompmesh, vtk);
         
             cout << "\n Setting flux in mechanic comp mesh... " << endl;
-            SetFlux(cmeshsrm,darcycompmesh);
+            //SetFlux(cmeshsrm,darcycompmesh);
             SetFlux(cmeshgi,darcycompmesh);
         }
         
@@ -147,12 +147,12 @@ int main()
     	CreatePostProcessingMesh ( postprocdetergim, cmeshgi );
     	Post ( postprocdetergim,vtkFiledgim );
         
-        cout << "\n Strength reduction routine.. " << endl;
-    	ShearRed ( cmeshsrm );
+        //cout << "\n Strength reduction routine.. " << endl;
+    	//ShearRed ( cmeshsrm );
         
-        cout << "\n Post Processing... " << endl;
-    	CreatePostProcessingMesh ( postprocdeter, cmeshsrm );
-    	Post ( postprocdeter,vtkFiled );
+        //cout << "\n Post Processing... " << endl;
+    	//CreatePostProcessingMesh ( postprocdeter, cmeshsrm );
+    	//Post ( postprocdeter,vtkFiled );
         
         load+=delta;
 	}
@@ -269,7 +269,7 @@ void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
         const auto &y=pt[1];
         const auto &z=pt[2];
         REAL atm  = 10.33;//10.33 mca = 1 atm
-        disp[0] = /*kn/m^3*/  ( 40-y )/* m */ ;/* = kn/m^2 = kPa*/
+        disp[0] = /*kn/m^3*/  10*( 40-y )/* m */ ;/* = kn/m^2 = kPa*/
 }
 
 void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
@@ -427,9 +427,10 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
    // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
 	//string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
-string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
+//string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
 //string file ="/home/diogo/projects/pz/data/h10-beta60.msh";
 //string file ="/home/diogo/projects/pz/data/h10-beta30.msh";
+string file ="/home/diogo/projects/pz/data/h10-beta90.msh";
 
 
     readgidmesh read = readgidmesh ( file );
@@ -463,21 +464,34 @@ string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
     read.FindIdsInPath ( pathbottom, idsright );
     idsvec.push_back ( idsright );
 
-
+//para demais
+//     a = b;
+//     b[0] = 45.;
+//     b[1] = 30.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idstoprigth );
+//     idsvec.push_back ( idstoprigth );
+    
+    
+//para 90
     a = b;
-    b[0] = 45.;
+    b[0] = 37.5;
     b[1] = 30.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
+    
 
-    a = b;
-    b[0] = 35.;
-    b[1] = 40.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
-    idsvec.push_back ( idsramp );
+//45
+//     a = b;
+//     b[0] = 35.;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
 // 	
+    
+//60
 // 	a = b;
 //     b[0] = 39.2265;
 //     b[1] = 40.;
@@ -485,6 +499,7 @@ string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
 //     read.FindIdsInPath ( pathbottom, idsramp );
 //     idsvec.push_back ( idsramp );
 	
+//30    
 // 		a = b;
 //     b[0] = 27.675;
 //     b[1] = 40.;
@@ -492,6 +507,17 @@ string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
 //     read.FindIdsInPath ( pathbottom, idsramp );
 //     idsvec.push_back ( idsramp );
 
+//90    
+		a = b;
+    b[0] = 37.5;
+    b[1] = 40.;
+    read.Line ( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idsramp );
+    idsvec.push_back ( idsramp );
+    
+    
+    ///////////////////////
+    
     a = b;
     b[0] = 0.;
     b[1] = 40.;
@@ -614,7 +640,7 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     // Mohr Coulomb data
    // REAL mc_cohesion    = 68;//kpa
     //REAL mc_phi         = ( 50.0*M_PI/180 );
-	REAL mc_cohesion    = 50;//kpa
+	REAL mc_cohesion    = 10;//kpa
     REAL mc_phi         = ( 30.*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
@@ -762,7 +788,7 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
 void GravityIncrease ( TPZCompMesh * cmesh )
 {
 
-    REAL FS=0.1,FSmax=100.,FSmin=0.,tol=0.0001;
+    REAL FS=0.1,FSmax=1000.,FSmin=0.,tol=0.01;
     int neq = cmesh->NEquations();
     int maxcount=100;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
@@ -771,7 +797,7 @@ void GravityIncrease ( TPZCompMesh * cmesh )
 
     REAL norm = 1000.;
     REAL tol2 = 0.1;
-    int NumIter = 30;
+    int NumIter = 50;
     bool linesearch = true;
     bool checkconv = false;
 	std::ofstream outnewton("saida-newton.txt");
@@ -786,7 +812,8 @@ void GravityIncrease ( TPZCompMesh * cmesh )
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
 		chrono::steady_clock sc;
 		auto start = sc.now();
-        anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv );
+        int iters;
+       bool conv = anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv ,iters);
 
 		auto end = sc.now();
 		auto time_span = static_cast<chrono::duration<double>> ( end - start );
@@ -795,29 +822,85 @@ void GravityIncrease ( TPZCompMesh * cmesh )
 
         norm = Norm ( anal->Rhs() );
 
-        if ( norm>= tol2 ) {
+        if ( conv==false) {
             cmesh->LoadSolution(displace0);
+			//cmesh->Solution().Zero();
             FSmax = FS;
             FS = ( FSmin + FSmax ) / 2.;
 
         } else {
-			//cout << "|asdadadasd =  " << std::endl;
-			//uy+=findnodalsol(cmesh);
-			outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
+           // uy+=findnodalsol(cmesh);
+            outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
+			displace0 = anal->Solution();
             FSmin = FS;
             anal->AcceptSolution();
-			FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
-			displace0 = anal->Solution();
-			//FS+=0.1;
+
+			//FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 1.5 );
+            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
         }
-        cout << "|asdadadasd =  " << std::endl;
+       // cout << "|asdadadasd =  " << std::endl;
         counterout++;
         
     }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
 outloadu <<  " }; ListLinePlot[plot,PlotRange->All]" << endl;
+	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,true );
+	anal->AcceptSolution();
 }
+void ShearRed ( TPZCompMesh * cmesh )
+{
+	//plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+    LoadingRamp ( cmesh,1. );
 
+    REAL FS=0.1,FSmax=10000.,FSmin=0.,tol=1.e-3;
+    int neq = cmesh->NEquations();
 
+    TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
+
+    int counterout = 0;
+
+    plasticmat *material = dynamic_cast<plasticmat *> ( cmesh->MaterialVec() [1] );
+    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC = material->GetPlasticity();
+    TPZElasticResponse ER = LEMC.fER;
+    REAL phi0 = LEMC.fYC.Phi();
+    REAL cohesion0 = LEMC.fYC.Cohesion();
+    REAL phi,psi,c;
+    REAL norm = 1000.;
+    REAL tol2 = 1.e-3;
+    int NumIter = 30;
+    bool linesearch = true;
+    bool checkconv = false;
+    do {
+
+        bool optimize =true;
+        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+
+        anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+        norm = Norm ( anal->Rhs() );
+
+        //std::cout << "| Load step = " << counterout << " | Rhs norm = " << norm << "| delta displacement norm = "<< unorm << std::endl;
+        if ( norm>= tol2 ) {
+            displace = displace0;
+            FSmax = FS;
+            FS = ( FSmin + FSmax ) / 2.;
+        } else {
+            displace0 = displace;
+            FSmin = FS;
+            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+        }
+        std::cout << "FS = " << FS << std::endl;
+        c=cohesion0/FS;
+        phi=atan ( tan ( phi0 ) /FS );
+        psi=phi;
+        LEMC.fYC.SetUp ( phi, psi, c, ER );
+        material->SetPlasticity ( LEMC );
+        counterout++;
+    }  while ( ( FSmax - FSmin ) / FS > tol );
+    bool optimize =false;
+    TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+    anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv );
+    anal->AcceptSolution();
+}
+/*
 void ShearRed ( TPZCompMesh * cmesh)
 {
     LoadingRamp ( cmesh,1. );
@@ -849,7 +932,8 @@ void ShearRed ( TPZCompMesh * cmesh)
         bool optimize =true;
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
 
-        anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv );
+        int iters;
+        anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv,iters );
         norm = Norm ( anal->Rhs() );
 
         std::cout << "FS = " << FS << " | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
@@ -858,13 +942,13 @@ void ShearRed ( TPZCompMesh * cmesh)
             FSmax = FS;
             FS = ( FSmin + FSmax ) / 2.;
         } else {
-			//uy+=findnodalsol(cmesh);
+			uy+=findnodalsol(cmesh);
 			outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
             displace0 = displace;
             FSmin = FS;
             FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
         }
-        //std::cout << "FS = " << FS << std::endl;
+        std::cout << "FS = " << FS << std::endl;
         c=cohesion0/FS;
         phi=atan ( tan ( phi0 ) /FS );
         psi=phi;
@@ -877,7 +961,7 @@ void ShearRed ( TPZCompMesh * cmesh)
 	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
     anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv );
     anal->AcceptSolution();
-}
+}*/
 #include "TPZFrontMatrix.h"
 #include "TPZParFrontStructMatrix.h"
 #include "TPZFrontStructMatrix.h"
@@ -921,7 +1005,7 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 {
 
-    int nels0 = plasticCmesh->NElements();
+    int nels0 = incmesh->NElements();
     
     //incmesh->Solution().Print(std::cout);
 
@@ -937,20 +1021,23 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
     int globpt=0;
     for ( int iel=0; iel<nels0; iel++ ) {
 
-        
+        //cout << "\n out1.. " << endl;
         TPZCompEl *celplastic = plasticCmesh->Element ( iel );
         TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
 
+        
         TPZGeoEl *gelplastic = celplastic->Reference();
         
         TPZCompEl *celdarcy = incmesh->Element ( iel );
+       // cout << "\n out2.. " << endl;
+        //if(!celdarcy)continue;
         
         TPZGeoEl *geldarcy = celdarcy->Reference();
+        //if(!geldarcy)continue;
         
         int indexdarcy = geldarcy->Index();
         
         int indexplastic = gelplastic->Index();
-        
         
         
         TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celdarcy );
@@ -960,6 +1047,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 
 
 
+        
         TPZManVector<REAL,3> point ( 3,0. );
 
         TPZMaterialData data,data1;
@@ -971,6 +1059,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
         REAL weight=0;
         int nint = intpoints.NPoints();
 
+        
         if(celplastic->Material()->Id()!=1 || celdarcy->Material()->Id()!=1)
         {
            // cout << "\n Boundary El "<<endl;
@@ -993,9 +1082,11 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
             cout << "\n celdarcy->Material()->Id() = "<< celdarcy->Material()->Id()<<endl;
             DebugStop();
         }
+       
 
         TPZTensor<REAL> epst,epsp;
         for ( long ip =0; ip<nint; ip++ ) {
+            
             intpoints.Point ( ip, point, weight );
             data.intLocPtIndex = ip;
             
@@ -1030,6 +1121,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
                 DebugStop();
             }
 
+            
             data.intGlobPtIndex = globpt;
             
             mem[globpt].fPlasticState.fflux.Resize ( 2 );
@@ -1040,11 +1132,13 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
             mem[globpt].fPlasticState.fpressure=pressure[0];
             
             globpt++;
-
+            
         }
 
+        
         //pMatWithMem2->SetUpdateMem ( false );
     }
+    
     pMatWithMem2->SetUpdateMem ( false );
 
     plasticCmesh->Solution().Zero();
