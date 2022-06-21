@@ -120,7 +120,7 @@ int main()
     delta=totalload/steps;
     load=0.;
     //Deterministic
-    bool water=false;
+    bool water=true;
 	for(int iload=0;iload<=steps;iload++)
  	{
         TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
@@ -427,9 +427,9 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
    // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
 	//string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
-//string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
+string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
 //string file ="/home/diogo/projects/pz/data/h10-beta60.msh";
-string file ="/home/diogo/projects/pz/data/h10-beta30.msh";
+//string file ="/home/diogo/projects/pz/data/h10-beta30.msh";
 
 
     readgidmesh read = readgidmesh ( file );
@@ -471,12 +471,12 @@ string file ="/home/diogo/projects/pz/data/h10-beta30.msh";
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
 
-//     a = b;
-//     b[0] = 35.;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
+    a = b;
+    b[0] = 35.;
+    b[1] = 40.;
+    read.Line ( a, b, ndivs, pathbottom );
+    read.FindIdsInPath ( pathbottom, idsramp );
+    idsvec.push_back ( idsramp );
 // 	
 // 	a = b;
 //     b[0] = 39.2265;
@@ -485,12 +485,12 @@ string file ="/home/diogo/projects/pz/data/h10-beta30.msh";
 //     read.FindIdsInPath ( pathbottom, idsramp );
 //     idsvec.push_back ( idsramp );
 	
-		a = b;
-    b[0] = 27.675;
-    b[1] = 40.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
-    idsvec.push_back ( idsramp );
+// 		a = b;
+//     b[0] = 27.675;
+//     b[1] = 40.;
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp );
+//     idsvec.push_back ( idsramp );
 
     a = b;
     b[0] = 0.;
@@ -615,7 +615,7 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
    // REAL mc_cohesion    = 68;//kpa
     //REAL mc_phi         = ( 50.0*M_PI/180 );
 	REAL mc_cohesion    = 50;//kpa
-    REAL mc_phi         = ( 20.0*M_PI/180 );
+    REAL mc_phi         = ( 30.*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
