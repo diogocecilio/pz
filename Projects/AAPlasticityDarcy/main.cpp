@@ -96,6 +96,8 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 
 REAL findnodalsol(TPZCompMesh *cmesh);
 
+int beta=90;
+
 int main()
 {
 
@@ -110,7 +112,7 @@ int main()
     TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
     TPZPostProcAnalysis * postprocdetergim = new TPZPostProcAnalysis();
     std::string vtkFiled ="vtkfolder/deterministicflux.vtk";
-    std::string vtkFiledgim ="vtkfolder/deterministicgimflux.vtk";
+    std::string vtkFiledgim ="vtkfolder/outvtk.vtk";
 
     //Rain Load
     int steps=0;
@@ -163,6 +165,53 @@ int main()
 
     return 0;
 }
+void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
+		const auto &x=pt[0];
+        const auto &y=pt[1];
+        const auto &z=pt[2];
+        REAL yy=40-y;
+        REAL hw=0.;
+        REAL H = 10.;
+        REAL gamma =10.;
+        REAL val=0.;
+        if(yy<hw)
+        {
+            //cout << " yy = "<< yy << endl;
+            disp[0]  =   gamma * yy ;
+        }
+        else{
+            disp[0]  = hw*gamma;
+        }
+        //cout << " disp[0] = "<< disp[0] << endl;
+        
+        
+
+}
+// void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
+// 		const auto &x=pt[0];
+//         const auto &y=pt[1];
+//         const auto &z=pt[2];
+//         REAL yy=40-y;
+//         REAL hw=10.;
+//         REAL H = 10.;
+//         REAL gamma =10.;
+//         REAL val=0.;
+//         if(yy<(H-hw))
+//         {
+//             //cout << " yy = "<< yy << endl;
+//             disp[0]  =   gamma * hw/(H-hw)* yy ;
+//             val=disp[0];
+//             
+//         }
+//         else{
+//             disp[0]  = hw*gamma;
+//         }
+//         //cout << " disp[0] = "<< disp[0] << endl;
+//         
+//         
+// 
+// }
+
 REAL findnodalsol(TPZCompMesh *cmesh){
  
     //b[0] = 39.2265;
@@ -264,13 +313,15 @@ void PostDarcy(TPZAnalysis * analysis,string vtk)
 }
 
 
-void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
-		const auto &x=pt[0];
-        const auto &y=pt[1];
-        const auto &z=pt[2];
-        REAL atm  = 10.33;//10.33 mca = 1 atm
-        disp[0] = /*kn/m^3*/  10*( 40-y )/* m */ ;/* = kn/m^2 = kPa*/
-}
+// void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
+// 		const auto &x=pt[0];
+//         const auto &y=pt[1];
+//         const auto &z=pt[2];
+//         REAL atm  = 10.33;//10.33 mca = 1 atm
+//         disp[0] = /*kn/m^3*/  10*( 40-y )/* m */ ;/* = kn/m^2 = kPa*/
+// }
+
+
 
 void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
 		const auto &x=pt[0];
@@ -420,17 +471,25 @@ void Post ( TPZPostProcAnalysis * postproc,std::string vtkFile )
 TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
+    string file;
+ 
+    if(beta==30)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta30.msh";
+    }
+    if(beta==45)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta45.msh";
+    }
+    if(beta==60)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta60.msh";
+    }
+    if(beta==90)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta90.msh";
+    }
 
-
-    // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
-    //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
-    //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-   // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-	//string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
-//string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
-//string file ="/home/diogo/projects/pz/data/h10-beta60.msh";
-//string file ="/home/diogo/projects/pz/data/h10-beta30.msh";
-string file ="/home/diogo/projects/pz/data/h10-beta90.msh";
 
 
     readgidmesh read = readgidmesh ( file );
@@ -465,58 +524,66 @@ string file ="/home/diogo/projects/pz/data/h10-beta90.msh";
     idsvec.push_back ( idsright );
 
 //para demais
-//     a = b;
-//     b[0] = 45.;
-//     b[1] = 30.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idstoprigth );
-//     idsvec.push_back ( idstoprigth );
-    
-    
-//para 90
-    a = b;
-    b[0] = 37.5;
-    b[1] = 30.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth );
-    idsvec.push_back ( idstoprigth );
-    
+    if(beta==30 || beta==45 || beta ==60)
+    {
+        a = b;
+        b[0] = 45.;
+        b[1] = 30.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idstoprigth );
+        idsvec.push_back ( idstoprigth );
+    }else{
+        
+        a = b;
+        b[0] = 37.5;
+        b[1] = 30.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idstoprigth );
+        idsvec.push_back ( idstoprigth );
+        
+    }
 
-//45
-//     a = b;
-//     b[0] = 35.;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
-// 	
     
-//60
-// 	a = b;
-//     b[0] = 39.2265;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
-	
-//30    
-// 		a = b;
-//     b[0] = 27.675;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
+    
+    if(beta==30)
+    {
+        a = b;
+        b[0] = 27.675;
+        b[1] = 40.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idsramp );
+        idsvec.push_back ( idsramp );
+    }
+    if(beta==45)
+    {
+        a = b;
+        b[0] = 35.;
+        b[1] = 40.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idsramp );
+        idsvec.push_back ( idsramp );
+    }
+    
+    if(beta==60)
+    {
+        a = b;
+        b[0] = 39.2265;
+        b[1] = 40.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idsramp );
+        idsvec.push_back ( idsramp );
+    }
+    
+    if(beta==90)
+    {
+        a = b;
+        b[0] = 37.5;
+        b[1] = 40.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idsramp );
+        idsvec.push_back ( idsramp );
+    } 
 
-//90    
-		a = b;
-    b[0] = 37.5;
-    b[1] = 40.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
-    idsvec.push_back ( idsramp );
-    
-    
-    ///////////////////////
     
     a = b;
     b[0] = 0.;
@@ -1006,6 +1073,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 {
 
     int nels0 = incmesh->NElements();
+    //int nels0 = plasticCmesh->NElements();
     
     //incmesh->Solution().Print(std::cout);
 
