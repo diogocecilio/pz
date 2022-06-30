@@ -29,7 +29,12 @@
 #include "TPZYCMohrCoulombPV.h"
 #include "pzelastoplastic2D.h"
 #include "pzelastoplastic.h"
-
+#include "pzgeotetrahedra.h"
+#include "pzfmatrix.h"
+#include "pzgeoel.h"
+#include "pzquad.h"
+#include "pzshapetetra.h"
+#include "tpzgeoelrefpattern.h"
 #include "TPZDarcyFlow.h"
 using namespace std;
 
@@ -126,168 +131,88 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     TPZVec<double> constcoorddata(3,0.);
     TPZVec<int> constcoord(3);
     std::vector<int> ids1,ids2,ids3,ids4,ids5,ids6,ids7;
+	std::vector<std::vector<int>> idsvec;
     
     
     //face -1 (plano x=0 zy)
     constcoorddata[0]=0;constcoorddata[1]=20;constcoorddata[2]=20;
     constcoord[0]=1;constcoord[1]=0;constcoord[2]=0;//direceo x fixa
-    read.FindIds ( constcoorddata,constcoord, ids1 );
-    
+    read.FindElements ( constcoorddata,constcoord, ids1 );
+    idsvec.push_back(ids1);
     //face -2 (plano x=50 zy)
     constcoorddata[0]=50;constcoorddata[1]=20;constcoorddata[2]=20;
     constcoord[0]=1;constcoord[1]=0;constcoord[2]=0;//direceo x fixa
-    read.FindIds ( constcoorddata,constcoord, ids2 );
-    
+    read.FindElements ( constcoorddata,constcoord, ids2 );
+    idsvec.push_back(ids2);
     //face -3 (plano y=0 zx)
     constcoorddata[0]=25;constcoorddata[1]=0;constcoorddata[2]=20;
     constcoord[0]=0;constcoord[1]=1;constcoord[2]=0;//direceo y fixa
-    read.FindIds ( constcoorddata,constcoord, ids3 );
-    
+    read.FindElements ( constcoorddata,constcoord, ids3 );
+    idsvec.push_back(ids3);
     //face -4 (plano y=40 zx)
     constcoorddata[0]=25;constcoorddata[1]=40;constcoorddata[2]=20;
     constcoord[0]=0;constcoord[1]=1;constcoord[2]=0;//direceo y fixa
-    read.FindIds ( constcoorddata,constcoord, ids4 );
-    
+    read.FindElements ( constcoorddata,constcoord, ids4 );
+    idsvec.push_back(ids4);
     //face -5 (plano z=0 xy)
     constcoorddata[0]=25;constcoorddata[1]=20;constcoorddata[2]=0;
     constcoord[0]=0;constcoord[1]=0;constcoord[2]=1;//direceo z fixa
-    read.FindIds ( constcoorddata,constcoord, ids5 );
-    
+    read.FindElements ( constcoorddata,constcoord, ids5 );
+    idsvec.push_back(ids5);
     //face -6 (plano z=40 xy)
     constcoorddata[0]=25;constcoorddata[1]=20;constcoorddata[2]=40;
     constcoord[0]=0;constcoord[1]=0;constcoord[2]=1;//direceo z fixa
-    read.FindIds ( constcoorddata,constcoord, ids6 );
-    
+    read.FindElements ( constcoorddata,constcoord, ids6 );
+    idsvec.push_back(ids6);
     //face -7 (plano x=10 yz)
     constcoorddata[0]=20;constcoorddata[1]=20;constcoorddata[2]=40;
     constcoord[0]=1;constcoord[1]=0;constcoord[2]=0;//direceo x fixa
-    read.FindIds ( constcoorddata,constcoord, ids7 );
-    
-    
-    for(int i=0;i<ids7.size();i++)cout<< ids7[i]+1 << "[ "<< meshcoords(ids7[i],0) << " ,"<< meshcoords(ids7[i],1) << " ,"<< meshcoords(ids7[i],2) <<" ] "<<endl;
-    
-/*
-    int ndivs = 10000;
-    TPZFMatrix<REAL> pathbottom, pathleft, pathright, pathdisplace;
-    std::vector<int>  idsbottom, idsleft, idsright, idstoprigth,idsramp,idstopleft;
-
-    std::vector<std::vector<int>> idsvec;
-
-
-    TPZManVector<REAL,2> a ( 2 ), b ( 2 );
-
-
-    a[0] = 0.;
-    a[1] = 0.;
-    b[0] = 75.;
-    b[1] = 0.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom );
-    idsvec.push_back ( idsbottom );
-
-    a = b;
-    b[0] = 75.;
-    b[1] = 30.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright );
-    idsvec.push_back ( idsright );
-
-//para demais
-    if(beta==30 || beta==45 || beta ==60)
-    {
-        a = b;
-        b[0] = 45.;
-        b[1] = 30.;
-        read.Line ( a, b, ndivs, pathbottom );
-        read.FindIdsInPath ( pathbottom, idstoprigth );
-        idsvec.push_back ( idstoprigth );
-    }else{
-        
-        a = b;
-        b[0] = 37.5;
-        b[1] = 30.;
-        read.Line ( a, b, ndivs, pathbottom );
-        read.FindIdsInPath ( pathbottom, idstoprigth );
-        idsvec.push_back ( idstoprigth );
-        
-    }
-
-    
-    
-    if(beta==30)
-    {
-        a = b;
-        b[0] = 27.675;
-        b[1] = 40.;
-        read.Line ( a, b, ndivs, pathbottom );
-        read.FindIdsInPath ( pathbottom, idsramp );
-        idsvec.push_back ( idsramp );
-    }
-    if(beta==45)
-    {
-        a = b;
-        b[0] = 35.;
-        b[1] = 40.;
-        read.Line ( a, b, ndivs, pathbottom );
-        read.FindIdsInPath ( pathbottom, idsramp );
-        idsvec.push_back ( idsramp );
-    }
-    
-    if(beta==60)
-    {
-        a = b;
-        b[0] = 39.2265;
-        b[1] = 40.;
-        read.Line ( a, b, ndivs, pathbottom );
-        read.FindIdsInPath ( pathbottom, idsramp );
-        idsvec.push_back ( idsramp );
-    }
-    
-    if(beta==90)
-    {
-        a = b;
-        b[0] = 37.5;
-        b[1] = 40.;
-        read.Line ( a, b, ndivs, pathbottom );
-        read.FindIdsInPath ( pathbottom, idsramp );
-        idsvec.push_back ( idsramp );
-    } 
-
-    
-    a = b;
-    b[0] = 0.;
-    b[1] = 40.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft );
-    idsvec.push_back ( idstopleft );
-
-    a = b;
-    b[0] = 0.;
-    b[1] = 0.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft );
-    idsvec.push_back ( idsleft );
+    read.FindElements ( constcoorddata,constcoord, ids7 );
+    idsvec.push_back(ids7);
+        //for(int i=0;i<ids7.size();i++)cout<< ids7[i]  <<endl;
+		for(int i=0;i<ids7.size();i++)cout<< ids7[i] << " " <<  meshtopology(ids7[i],0) << " "<< meshtopology(ids7[i],1) << " "<< meshtopology(ids7[i],2)  <<endl;
+		/*
+		for(int i=0;i<ids7.size();i++)
+		{
+			
+			cout <<" Triangle id = " << ids7[i] << endl;
+			
+			cout <<" Node 1  " << endl;
+			cout<<   meshcoords (meshtopology (ids7[i],0) ,0) <<endl;
+			cout<<   meshcoords (meshtopology (ids7[i],0) ,1) <<endl;
+			cout<<   meshcoords (meshtopology (ids7[i],0) ,2) <<endl;
+			
+			cout <<" Node 2  " << endl;
+			cout<<   meshcoords (meshtopology (ids7[i],1) ,0) <<endl;
+			cout<<   meshcoords (meshtopology (ids7[i],1) ,1) <<endl;
+			cout<<   meshcoords (meshtopology (ids7[i],1) ,2) <<endl;
+			
+			cout <<" Node 3  " << endl;
+			cout<<   meshcoords (meshtopology (ids7[i],2) ,0) <<endl;
+			cout<<   meshcoords (meshtopology (ids7[i],2) ,1) <<endl;
+			cout<<   meshcoords (meshtopology (ids7[i],2) ,2) <<endl;
+		}
+		*/
 
 
-    // for(int i=0;i<idsbottom.size();i++)cout << idsvec[3][i] << endl;
-
-    const std::string name ( "Slope Problem " );
+    const std::string name ( "Tunnel Problem " );
 
     TPZGeoMesh *gmesh  =  new TPZGeoMesh();
 
     gmesh->SetName ( name );
-    gmesh->SetDimension ( 2 );
+    gmesh->SetDimension ( 3 );
 
-    TPZVec<REAL> coord ( 2 );
+    TPZVec<REAL> coord ( 3 );
 
     vector<vector<double>> co;
 
     int ncoords = meshcoords.Rows();
     co.resize ( ncoords );
     for ( int i=0; i<ncoords; i++ ) {
-        co[i].resize ( 2 );
+        co[i].resize ( 3 );
         co[i][0]=meshcoords ( i,0 );
         co[i][1]=meshcoords ( i,1 );
+		co[i][2]=meshcoords ( i,2 );
     }
     vector<vector<int>> topol;
 
@@ -306,44 +231,74 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     for ( int inode=0; inode<co.size(); inode++ ) {
         coord[0] = co[inode][0];
         coord[1] = co[inode][1];
+		coord[2] = co[inode][2];
         gmesh->NodeVec() [inode] = TPZGeoNode ( inode, coord, *gmesh );
     }
-    if ( meshtopology.Cols() ==4 ) {
+    
+
+    	int el=0;
+        for ( int iel=0; iel<topol.size(); iel++ ) {
+			if ( meshtopology(iel,3) ==-1 ) {
+				
+			}else{
+			TPZVec <long> TopoTetra ( 4 );
+            TopoTetra[0] =topol[iel][0];
+            TopoTetra[1] =topol[iel][1];
+            TopoTetra[2] =topol[iel][2];
+			TopoTetra[3] =topol[iel][3];
+            new TPZGeoElRefPattern< pzgeom::TPZGeoTetrahedra> ( el, TopoTetra, 1,*gmesh );
+			el++;
+			}
+        }
+
+//         //int bcid=-1;
+// 		for ( int ivec=0; ivec<idsvec.size(); ivec++ ) {
+// 		TPZVec <long> TopoTri ( 3 );
+// 		TopoTri[0] =idsvec[ivec][0];
+// 		TopoTri[1] =idsvec[ivec][1];
+// 		TopoTri[2] =idsvec[ivec][2];
+// 		new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( el, TopoTri, - ( ivec+1 ),*gmesh );
+// 		//new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, - ( ivec+1 ), *gmesh );
+// 		//bcid--;
+// 		el++;
+// 		}
+        
+		int bcid=-1;
         TPZVec <long> TopoQuad ( 4 );
         for ( int iel=0; iel<topol.size(); iel++ ) {
-            TopoQuad[0] = topol[iel][0];
-            TopoQuad[1] = topol[iel][1];
-            TopoQuad[2] = topol[iel][2];
-            TopoQuad[3] = topol[iel][3];
-            new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( iel, TopoQuad, 1,*gmesh );
-        }
-    }
-
-    if ( meshtopology.Cols() ==3 ) {
-        TPZVec <long> TopoTri ( 3 );
-        for ( int iel=0; iel<topol.size(); iel++ ) {
+			if ( meshtopology(iel,3) ==-1 ) {
+			TPZVec <long> TopoTri ( 3 );
             TopoTri[0] =topol[iel][0];
             TopoTri[1] =topol[iel][1];
             TopoTri[2] =topol[iel][2];
-            new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( iel, TopoTri, 1,*gmesh );
-        }
-    }
+			new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( iel, TopoTri, bcid,*gmesh );
 
-    if ( meshtopology.Cols() !=3 && meshtopology.Cols() !=4 ) {
-        DebugStop();
-    }
-    TPZVec <long> TopoLine ( 2 );
-    int id = topol.size();
-    id++;
-
-    for ( int ivec=0; ivec<idsvec.size(); ivec++ ) {
-        int nodes = idsvec[ivec].size();
-        for ( int inode=0; inode<nodes-1; inode++ ) {
-            TopoLine[0] = idsvec[ivec][inode];
-            TopoLine[1] = idsvec[ivec][inode+1];
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, - ( ivec+1 ), *gmesh );
+			}else{
+			TPZVec <long> TopoTetra ( 4 );
+            TopoTetra[0] =topol[iel][0];
+            TopoTetra[1] =topol[iel][1];
+            TopoTetra[2] =topol[iel][2];
+			TopoTetra[3] =topol[iel][3];
+            new TPZGeoElRefPattern< pzgeom::TPZGeoTetrahedra> ( iel, TopoTetra, 1,*gmesh );
+			}
         }
-    }
+
+    
+//     if ( meshtopology.Cols() !=3 && meshtopology.Cols() !=4 ) {
+//         DebugStop();
+//     }
+//     TPZVec <long> TopoLine ( 2 );
+//     int id = topol.size();
+//     id++;
+
+//     for ( int ivec=0; ivec<idsvec.size(); ivec++ ) {
+//         int nodes = idsvec[ivec].size();
+//         for ( int inode=0; inode<nodes-1; inode++ ) {
+//             TopoLine[0] = idsvec[ivec][inode];
+//             TopoLine[1] = idsvec[ivec][inode+1];
+//             new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, - ( ivec+1 ), *gmesh );
+//         }
+//     }
 
 
     gmesh->BuildConnectivity();
@@ -359,7 +314,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     std::ofstream files ( "ge.vtk" );
     TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
 
-    return gmesh;*/
+    return gmesh;
 }
 
 void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){

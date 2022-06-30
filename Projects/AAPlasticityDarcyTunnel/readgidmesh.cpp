@@ -79,30 +79,36 @@ void readgidmesh::ReadMesh (  )
     } else std::cout << "Unable to open file";
 
 	int els = topol.size();
+	cout << "els = "<<els<<endl;
 	int elnodes = topol[0].size()-1;
+	cout << "elnodes = "<<elnodes<<endl;
 	fmeshtopology.Resize(els,elnodes);
 	for(int iel=0;iel<els;iel++){
 		for(int elnode=0;elnode<elnodes;elnode++)
 		{
+			if((topol[iel][elnode+1]-1)>800000000){
+				fmeshtopology(iel,elnode)=-1;
+			}else{
 			fmeshtopology(iel,elnode)=topol[iel][elnode+1]-1;
+			}
 		}
 	}
-   // fmeshtopology.Print();
-	
+    fmeshtopology.Print(cout);
+	//cout << "sda = "<<fmeshtopology(19318,3) << endl;
 	std::vector<double> temp33 ( 3 );
     for ( int i = 0; i < fmeshtopology.Rows(); i++ ) {
         std::vector< std::vector<double> > temp22;
         for ( int j = 0; j < fmeshtopology.Cols(); j++ ) {
             int top = fmeshtopology(i,j);
+			//cout << "i = " << i << " j = "<<j << " top = "<<top << endl;
+			if(top!=-1){
             temp33[0] = fmeshcoords(top,0);
             temp33[1] = fmeshcoords(top,1);
             temp33[2] = fmeshcoords(top,2);
             temp22.push_back ( temp33 );
+			}
         }
         fallcoords.push_back ( temp22 );
     }
-    elnodes=topol[0].size()-1;
-
-    fOrder=1;
 
 }

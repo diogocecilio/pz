@@ -63,6 +63,42 @@ public:
     void ReadMesh ( );
 	
 
+	void FindElements(TPZVec<double> constcoorddata,TPZVec<int> constcoord, std::vector<int>& ids)
+	{
+		REAL tol = 1.e-12;
+		//constcoorddata vector containig info about face to search id. It must contain any coodinate locate in the in the face
+        TPZFMatrix<REAL> elcoords;
+		std::vector<double> elcoodsvec;
+        int nels = fallcoords.size();
+        GetElCoords (  0, elcoords );
+        
+        int sum=0;
+
+        std::vector<int> dirs;
+        for ( int iconst=0; iconst<constcoord.size(); iconst++ ) {
+            sum+=constcoord[iconst];
+            if ( constcoord[iconst]==1 ) {
+                dirs.push_back ( iconst );
+            }
+
+        }
+        for ( int iel = 0; iel < nels; iel++ ) {
+            GetElCoords (  iel, elcoords );
+			int nnodes = elcoords.Rows();
+			if(nnodes==4)continue;//warning this only works for 3D tetrahedrom and triangle
+            for ( int inode = 0; inode < nnodes; inode++ ) {
+                if ( sum!=1 )DebugStop();
+				if ( fabs ( elcoords(0,dirs[0]) - constcoorddata[dirs[0]] ) <tol  && fabs ( elcoords(1,dirs[0]) - constcoorddata[dirs[0]] ) <tol && fabs ( elcoords(2,dirs[0]) - constcoorddata[dirs[0]] ) <tol) {
+					ids.push_back ( iel );
+				}
+            }
+
+
+        }
+
+        sort ( ids.begin(), ids.end() );
+        ids.erase ( unique ( ids.begin(), ids.end() ), ids.end() );
+	}
     
     void  FindIds ( TPZVec<double> constcoorddata,TPZVec<int> constcoord, std::vector<int>& ids )
     {
@@ -72,7 +108,7 @@ public:
 		std::vector<double> elcoodsvec;
         int nels = fallcoords.size();
         GetElCoords (  0, elcoords );
-        int nnodes = elcoords.Rows();
+        
         int sum=0;
         //constcoord.size() = 1 face
         //constcoord.size() = 2 linha
@@ -88,7 +124,7 @@ public:
         }
         for ( int iel = 0; iel < nels; iel++ ) {
             GetElCoords (  iel, elcoords );
-
+			int nnodes = elcoords.Rows();
             for ( int inode = 0; inode < nnodes; inode++ ) {
 
                 if ( sum==1 ) {
