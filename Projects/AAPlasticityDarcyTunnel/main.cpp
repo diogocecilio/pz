@@ -111,13 +111,20 @@ int main()
     TPZGeoMesh * gmesh =  CreateGMeshGid ( 0 );
 
     TPZCompMesh*cmesh = CreateCMeshDarcy(gmesh,order);
-    string vtk  = "darcy.vtk";
+    string vtk  = "darcy2.vtk";
+    std::string vtkplasticity ="plasticity.vtk";
     SolveDarcyProlem(cmesh,vtk);
     
     TPZCompMesh *cmeshgi = CreateCMesh ( gmesh,order );
     
+    cout << "\n Gravity Increase routine.. " << endl;
     GravityIncrease ( cmeshgi );
     
+    TPZPostProcAnalysis * postprocdetergim = new TPZPostProcAnalysis();
+    
+    cout << "\n Post Processing gravity increase... " << endl;
+    CreatePostProcessingMesh ( postprocdetergim, cmeshgi );
+    Post ( postprocdetergim,vtkplasticity );
     std::cout << "FINISHED!" << std::endl;
 
 
@@ -130,7 +137,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 
     string file;
 
-    file ="/home/diogo/projects/pz/data/tunnel.msh";
+    //file ="/home/diogo/projects/pz/data/tunnel.msh";
+    file ="/home/diogo/projects/pz/data/tunnel-fine.msh";
 
     readgidmesh read = readgidmesh ( file );
     read.ReadMesh();
@@ -490,7 +498,7 @@ void Forcing(const TPZVec<REAL> &pt, TPZVec<STATE> &disp) {
     const auto &y=pt[1];
     const auto &z=pt[2];
     REAL gamma=10;
-    disp[0] = -y*gamma ;
+    disp[0] = -(40-y)*gamma ;
 }
 
 
@@ -628,7 +636,7 @@ void Post ( TPZPostProcAnalysis * postproc,std::string vtkFile )
 
     PostProcessVariables ( scalNames, vecNames );
 
-    postproc->DefineGraphMesh ( 2,scalNames,vecNames,vtkFile );
+    postproc->DefineGraphMesh ( 3,scalNames,vecNames,vtkFile );
 
     postproc->PostProcess ( 0 );
 }
@@ -654,7 +662,7 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     /// ElastoPlastic Material using Mohr Coulomb
     // Elastic predictor
     TPZElasticResponse ER;
-    REAL nu = 0.49;
+    REAL nu = 0.3;
     REAL E = 20000.;
 
     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
@@ -689,11 +697,11 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     val2 ( 0,0 ) = 0;
     val2 ( 1,0 ) = 0;
     val2 ( 2,0 ) = 1;
-    auto * bc4 = material->CreateBC ( material, -4, directionadirichlet, val1, val2 );//plano xy z=0
+    auto * bc4 = material->CreateBC ( material, -5, directionadirichlet, val1, val2 );//plano xy z=0
     val2 ( 0,0 ) = 0;
     val2 ( 1,0 ) = 0;
     val2 ( 2,0 ) = 1;
-    auto * bc5 = material->CreateBC ( material, -5, directionadirichlet, val1, val2 );//plano xy z=40
+    auto * bc5 = material->CreateBC ( material, -6, directionadirichlet, val1, val2 );//plano xy z=40
 
     cmesh->InsertMaterialObject ( bc1 );
     cmesh->InsertMaterialObject ( bc2 );
@@ -755,54 +763,16 @@ void  CreatePostProcessingMesh ( TPZPostProcAnalysis * PostProcess,TPZCompMesh *
 /// Get the post processing variables
 void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames )
 {
-    scalNames.Push ( "StrainVol" );
-    scalNames.Push ( "StrainXX" );
-    scalNames.Push ( "StrainYY" );
-    scalNames.Push ( "StrainZZ" );
-    scalNames.Push ( "StrainXY" );
-    scalNames.Push ( "StrainXZ" );
-    scalNames.Push ( "StrainYZ" );
-
-    scalNames.Push ( "ElStrainVol" );
-    scalNames.Push ( "ElStrainXX" );
-    scalNames.Push ( "ElStrainYY" );
-    scalNames.Push ( "ElStrainZZ" );
-    scalNames.Push ( "ElStrainXY" );
-    scalNames.Push ( "ElStrainXZ" );
-    scalNames.Push ( "ElStrainYZ" );
-
-    scalNames.Push ( "PlStrainVol" );
-    scalNames.Push ( "PlStrainXX" );
-    scalNames.Push ( "PlStrainYY" );
-    scalNames.Push ( "PlStrainZZ" );
-    scalNames.Push ( "PlStrainXY" );
-    scalNames.Push ( "PlStrainXZ" );
-    scalNames.Push ( "PlStrainYZ" );
-
-    scalNames.Push ( "PlStrainSqJ2" );
-    scalNames.Push ( "PlStrainSqJ2El" );
-    scalNames.Push ( "PlAlpha" );
-
-    scalNames.Push ( "DisplacementX" );
-    scalNames.Push ( "DisplacementY" );
-    scalNames.Push ( "DisplacementZ" );
-    vecNames.Push ( "DisplacementTotal" );
-
-
-    scalNames.Push ( "YieldSurface1" );
-    scalNames.Push ( "YieldSurface2" );
-    scalNames.Push ( "YieldSurface3" );
-
-    scalNames.Push ( "POrder" );
-    scalNames.Push ( "NSteps" );
-    scalNames.Push ( "Cohesion" );
-    scalNames.Push ( "FrictionAngle" );
-    scalNames.Push ( "FluxX" );
-    scalNames.Push ( "FluxY" );
-    vecNames.Push ( "Flux" );
-    vecNames.Push ( "PrincipalStress" );
-    scalNames.Push ( "Pressure" );
-
+    
+  scalNames.Push ("StrainVol");
+  scalNames.Push ("StrainXX");
+  scalNames.Push ("StrainYY");
+  scalNames.Push ("StrainZZ");
+  scalNames.Push ("StrainXY");
+  scalNames.Push ("StrainXZ");
+  scalNames.Push ("StrainYZ");
+  scalNames.Push ("PlStrainSqJ2");
+  vecNames.Push ( "DisplacementTotal" );
 }
 
 void GravityIncrease ( TPZCompMesh * cmesh )
@@ -810,19 +780,17 @@ void GravityIncrease ( TPZCompMesh * cmesh )
 
     REAL FS=0.1,FSmax=1000.,FSmin=0.,tol=0.01;
     int neq = cmesh->NEquations();
-    int maxcount=100;
+    int maxcount=10;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
 
     int counterout = 0;
 
     REAL norm = 1000.;
-    REAL tol2 = 1;
-    int NumIter = 50;
+    REAL tol2 = 0.001;
+    int NumIter = 30;
     bool linesearch = true;
     bool checkconv = false;
 
-    REAL uy=0.;
-    //outloadu << "plot = {";
     do {
 
         std::cout << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;

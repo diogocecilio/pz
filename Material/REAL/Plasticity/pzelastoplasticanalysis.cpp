@@ -778,6 +778,8 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 	int iter = 0;
 	REAL error = 1.e10,error2=1.e10;
 	int numeq = fCompMesh->NEquations();
+    
+    cout << "number of eqautions = " << numeq <<endl;
 	
 	TPZFMatrix<STATE> prevsol(fSolution);
 	if(prevsol.Rows() != numeq) prevsol.Redim(numeq,1);
@@ -788,12 +790,15 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		CheckConvergence(*this,fSolution,range,coefs);
 	}
      bool a=true,b=true,c=true;
+     Assemble();
+     Solve();
+     REAL norm0 =Norm(fRhs);
+     REAL unorm0 =Norm(fSolution);
+     cout << "norm 0 = " << norm0 << endl;
      while( a && b && c  )  {
 		
 //        fSolution.Redim(0,0);
 		Assemble();
-		
-		
 		
 		chrono::steady_clock sc;
         auto start = sc.now();
@@ -831,19 +836,19 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		}
 		
 		prevsol -= fSolution;
-		REAL normDeltaSol = Norm(prevsol);
+		REAL normDeltaSol = Norm(prevsol)/unorm0;
 		prevsol = fSolution;
 		this->LoadSolution(fSolution);
 		this->AssembleResidual();
 		double NormResLambda = Norm(fRhs);
-		double norm = NormResLambda;
-		cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)| : " << normDeltaSol << " / " << NormResLambda << " | tol = "<<tol << " num iter = " << numiter<< endl;
+		double norm = NormResLambda/norm0;
+		cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)/u0| e |Delta(rhs)/rhs0| : " << normDeltaSol << " / " << norm << " | tol = "<<tol << " norm0 = " << norm0<< endl;
 		a = iter < numiter ;
 		b =error2 > tol*1.e-3;
 		c= error > tol;
 		
 		//if( normDeltaSol>100 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9) ) {
-        if(iter >=numiter  ||(NormResLambda - error) > 1.e-3) {
+        if((iter >=numiter  ||(norm - error) > 1.e-3)&& iter>3) {
 			cout << "\nDivergent Method\n";
 			return false;
 		}
