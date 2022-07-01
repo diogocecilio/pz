@@ -93,7 +93,7 @@ void readgidmesh::ReadMesh (  )
 			}
 		}
 	}
-    fmeshtopology.Print(cout);
+    //fmeshtopology.Print(cout);
 	//cout << "sda = "<<fmeshtopology(19318,3) << endl;
 	std::vector<double> temp33 ( 3 );
     for ( int i = 0; i < fmeshtopology.Rows(); i++ ) {
