@@ -412,12 +412,14 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
         TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop.Resize ( 2 );
         TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop[0]=0.;
         TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop[1]=0.;
+		//TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fmatprop[2]=0.;
     }
     int sz2= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.size();
     if ( sz2==0 ) {
-        TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.Resize ( 2 );
+        TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.Resize ( 3 );
         TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0]=0.;
         TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1]=0.;
+		TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[2]=0.;
     }
 	
   switch (var) {
@@ -505,7 +507,7 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
       Solout[0] = TPZMatWithMem<TMEM>::fMemory[intPt].fDisplacement[1];
       break;
     case EDisplacementZ:
-      Solout[0] = 0.; //DUVIDA
+      Solout[0] = TPZMatWithMem<TMEM>::fMemory[intPt].fDisplacement[2];
       break;
     case EDisplacementTotal:
           Solout[0] = ux;
@@ -545,6 +547,7 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
     	case EFlux:
 		Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
         Solout[1] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+		Solout[2] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[2];
 	break;
         case EFluxX:
 		Solout[0] =TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
@@ -852,26 +855,45 @@ void TPZMatElastoPlastic<T,TMEM>::Contribute(TPZMaterialData &data, REAL weight,
 		this->fForcingFunction->Execute(data.x,ForceLoc);
 	}	
 	
+  REAL fac= -ForceLoc[1]/20;
+  
+	int intPt = data.intGlobPtIndex;
+    int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.size();
+    REAL fluxx,fluxy,fluxz,pressure;
+    if(sz==0)
+    {
+           fluxx = 0.;
+           fluxy = 0.;
+		   fluxz = 0.;
+		   pressure=0.;
+    }else{
+           fluxx = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
+           fluxy = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+		   fluxz = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[2];
+		   pressure = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fpressure;
+    }
+  
+
   int in;
   for(in = 0; in < phr; in++) { //in: test function index
 	
 	// fForce represents the gravity acceleration
 	//First equation: fb and fk
-	val  =  ForceLoc[0] * phi(in,0); // fb
+	val  =  ForceLoc[0] * phi(in,0)+ fluxx*phi(in,0)*fac; // fb
 	val -= Stress(_XX_,0) * dphiXYZ(0,in); // |
 	val -= Stress(_XY_,0) * dphiXYZ(1,in); // fk
 	val -= Stress(_XZ_,0) * dphiXYZ(2,in); // |
 	ef(in*nstate+0,0) += weight * val;
 	  
 	//Second equation: fb and fk
-	val  =  ForceLoc[1] * phi(in,0); // fb
+	val  =  ForceLoc[1] * phi(in,0)+ fluxy*phi(in,0)*fac; // fb
 	val -= Stress(_XY_,0) * dphiXYZ(0,in); // |
 	val -= Stress(_YY_,0) * dphiXYZ(1,in); // fk
 	val -= Stress(_YZ_,0) * dphiXYZ(2,in); // |
 	ef(in*nstate+1,0) += weight * val;
 
 	//third equation: fb and fk
-	val  =  ForceLoc[2] * phi(in,0); // fb
+	val  =  ForceLoc[2] * phi(in,0)+ fluxz*phi(in,0)*fac; ; // fb
 	val -= Stress(_XZ_,0) * dphiXYZ(0,in); // |
 	val -= Stress(_YZ_,0) * dphiXYZ(1,in); // fk
 	val -= Stress(_ZZ_,0) * dphiXYZ(2,in); // |
@@ -1181,9 +1203,10 @@ void TPZMatElastoPlastic<T,TMEM>::Contribute(TPZMaterialData &data, REAL weight,
      cout << endl << dphiXYZ;
      cout << endl << axes;
      */
+	TPZVec<STATE> ForceLoc(this->fForce);
     const int phr = phi.Rows();
     if(this->fForcingFunction)
-        this->fForcingFunction->Execute(x,this->fForce);
+        this->fForcingFunction->Execute(x,ForceLoc);
     
     //this matrix will store {{dvdx*dudx, dvdx*dudy, dvdx*dudz},
     //{dvdy*dudx, dvdy*dudy, dvdy*dudz},
@@ -1201,26 +1224,45 @@ void TPZMatElastoPlastic<T,TMEM>::Contribute(TPZMaterialData &data, REAL weight,
     int nstate = NStateVariables();
     REAL val;
     
+	  
+  
+	int intPt = data.intGlobPtIndex;
+    int sz= TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux.size();
+    REAL fluxx,fluxy,fluxz,pressure;
+    if(sz==0)
+    {
+           fluxx = 0.;
+           fluxy = 0.;
+		   fluxz = 0.;
+		   pressure=0.;
+    }else{
+           fluxx = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[0];
+           fluxy = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1];
+		   fluxz = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[2];
+		   pressure = TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fpressure;
+    }
+	REAL fac= -ForceLoc[1]/20;
+	
     int in;
     for(in = 0; in < phr; in++) { //in: test function index
         
         // fForce represents the gravity acceleration
         //First equation: fb and fk
-        val  = fForce[0] * phi(in,0); // fb
+        val  = ForceLoc[0] * phi(in,0)+ fluxx*phi(in,0)*fac ; // fb
         val -= Stress(_XX_,0) * dphiXYZ(0,in); // |
         val -= Stress(_XY_,0) * dphiXYZ(1,in); // fk
         val -= Stress(_XZ_,0) * dphiXYZ(2,in); // |
         ef(in*nstate+0,0) += weight * val;
         
         //Second equation: fb and fk
-        val  =  fForce[1] * phi(in,0); // fb
+        val  =  ForceLoc[1] * phi(in,0)+ fluxy*phi(in,0)*fac ; // fb
         val -= Stress(_XY_,0) * dphiXYZ(0,in); // |
         val -= Stress(_YY_,0) * dphiXYZ(1,in); // fk
         val -= Stress(_YZ_,0) * dphiXYZ(2,in); // |
         ef(in*nstate+1,0) += weight * val;
         
         //third equation: fb and fk
-        val  =  fForce[2] * phi(in,0); // fb
+        val  =  ForceLoc[2] * phi(in,0)+ fluxz*phi(in,0)*fac ;// fb
         val -= Stress(_XZ_,0) * dphiXYZ(0,in); // |
         val -= Stress(_YZ_,0) * dphiXYZ(1,in); // fk
         val -= Stress(_ZZ_,0) * dphiXYZ(2,in); // |

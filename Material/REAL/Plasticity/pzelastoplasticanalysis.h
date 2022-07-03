@@ -175,7 +175,8 @@ inline void SolveEigenSparse ( int type, TPZAutoPointer<TPZMatrix<REAL> > A, TPZ
     std::vector<T> tripletList;
     int sz=A->Rows();
 
-    tripletList.reserve ( sz*100 );
+	type=2;
+    tripletList.reserve ( sz*2000 );
     // tripletList.reserve(80000);
 
     x.Resize ( sz, 1);
@@ -219,6 +220,20 @@ inline void SolveEigenSparse ( int type, TPZAutoPointer<TPZMatrix<REAL> > A, TPZ
         solver.factorize ( AA );
 		xx = solver.solve ( bbb );
     }
+    else if(type ==4)
+	{
+		PartialPivLU<SparseMatrix<double> > solver3;
+		//solver3.analyzePattern ( AA );
+        //solver3.factorize ( AA );
+		xx = solver3.solve ( bbb );
+	}
+	else if(type==5)
+ 	{
+  		BiCGSTAB<SparseMatrix<double> > solver4;
+		solver4.analyzePattern ( AA );
+  		solver4.compute(AA);
+  		xx = solver4.solve(bbb);
+	}
     for ( int i=0; i<sz; i++ ) {
         x(i,0)=xx ( i );
     }

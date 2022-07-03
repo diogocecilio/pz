@@ -106,8 +106,11 @@ REAL findnodalsol(TPZCompMesh *cmesh);
 int main()
 {
 
+	chrono::steady_clock sc;
+	auto start = sc.now();
 
-    int order=1;
+
+    int order=2;
     TPZGeoMesh * gmesh =  CreateGMeshGid ( 0 );
 
     TPZCompMesh*cmesh = CreateCMeshDarcy(gmesh,order);
@@ -116,6 +119,12 @@ int main()
     SolveDarcyProlem(cmesh,vtk);
     
     TPZCompMesh *cmeshgi = CreateCMesh ( gmesh,order );
+	
+	
+	cout << "\n Setting flux in mechanic comp mesh... " << endl;
+	//SetFlux(cmeshsrm,darcycompmesh);
+	SetFlux(cmeshgi,cmesh);
+	
     
     cout << "\n Gravity Increase routine.. " << endl;
     GravityIncrease ( cmeshgi );
@@ -127,7 +136,9 @@ int main()
     Post ( postprocdetergim,vtkplasticity );
     std::cout << "FINISHED!" << std::endl;
 
-
+	auto end = sc.now();
+	auto time_span = static_cast<chrono::duration<double>> ( end - start );
+	cout << "| total time taken =  " << time_span.count()<< std::endl;
     return 0;
 }
 
@@ -137,7 +148,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 
     string file;
 
-    //file ="/home/diogo/projects/pz/data/tunnel.msh";
+   // file ="/home/diogo/projects/pz/data/tunnel.msh";
     file ="/home/diogo/projects/pz/data/tunnel-fine.msh";
 
     readgidmesh read = readgidmesh ( file );
@@ -522,7 +533,7 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     material->SetConstantPermeability ( permeability );
     material->SetId(1);
     TPZAutoPointer<TPZFunction<STATE> > rhs = new TPZDummyFunction<STATE>(Forcing);
-    material->SetForcingFunction(rhs);
+    //material->SetForcingFunction(rhs);
 
     cmesh->InsertMaterialObject ( material );
 
@@ -537,22 +548,29 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     //material->SetForcingFunction(rhs);
 
 //     REAL big = TPZMaterial::gBigNumber;
-    TPZMaterial * BCond0 = material->CreateBC ( material, -4, 0, val1, val2 );//tr
+    
+	
+	//TPZMaterial * BCond3 = material->CreateBC ( material, -3, 1, val1, val2 );//tr
     //TPZMaterial * BCond1 = material->CreateBC ( material, 1, 0, val1, val2 );//tr
     //BCond0->SetForcingFunction(pressure);
 
-    //TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
-    //BCond1->SetForcingFunction(pressure);
 
-    //val2(0,0)=-1;
-    //TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
-    //BCond2->SetForcingFunction(pressure);
-
-
-
-
-
-    cmesh->InsertMaterialObject(BCond0);
+	TPZMaterial * BCond1 = material->CreateBC ( material, -1, 0, val1, val2 );//tr
+	TPZMaterial * BCond2 = material->CreateBC ( material, -2, 0, val1, val2 );//tr
+	TPZMaterial * BCond3 = material->CreateBC ( material, -4, 0, val1, val2 );//tr
+	TPZMaterial * BCond4 = material->CreateBC ( material, -5, 0, val1, val2 );//tr
+	TPZMaterial * BCond7 = material->CreateBC ( material, -7, 0, val1, val2 );//tr
+	
+	BCond1->SetForcingFunction(rhs);
+	BCond2->SetForcingFunction(rhs);
+	BCond3->SetForcingFunction(rhs);
+	BCond4->SetForcingFunction(rhs);
+	
+    cmesh->InsertMaterialObject(BCond1);
+	cmesh->InsertMaterialObject(BCond2);
+	cmesh->InsertMaterialObject(BCond3);
+	cmesh->InsertMaterialObject(BCond4);
+	cmesh->InsertMaterialObject(BCond7);
     //cmesh->InsertMaterialObject(BCond1);
     //cmesh->InsertMaterialObject(BCond2);
 
@@ -772,7 +790,9 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
   scalNames.Push ("StrainXZ");
   scalNames.Push ("StrainYZ");
   scalNames.Push ("PlStrainSqJ2");
+  scalNames.Push ("Pressure");
   vecNames.Push ( "DisplacementTotal" );
+  vecNames.Push ( "Flux" );
 }
 
 void GravityIncrease ( TPZCompMesh * cmesh )
@@ -786,7 +806,7 @@ void GravityIncrease ( TPZCompMesh * cmesh )
     int counterout = 0;
 
     REAL norm = 1000.;
-    REAL tol2 = 0.001;
+    REAL tol2 = 0.1;
     int NumIter = 30;
     bool linesearch = true;
     bool checkconv = false;
@@ -953,7 +973,7 @@ void ShearRed ( TPZCompMesh * cmesh)
 #include "TPZSpStructMatrix.h"
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
-    int numthreads=16;
+    int numthreads=8;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
@@ -988,8 +1008,8 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 {
 
-    //int nels0 = incmesh->NElements();
-    int nels0 = plasticCmesh->NElements();
+    int nels0 = incmesh->NElements();
+    //int nels0 = plasticCmesh->NElements();
 
     //incmesh->Solution().Print(std::cout);
 
@@ -1108,11 +1128,12 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 
             data.intGlobPtIndex = globpt;
 
-            mem[globpt].fPlasticState.fflux.Resize ( 2 );
+            mem[globpt].fPlasticState.fflux.Resize ( 3 );
             //mem[globpt].fPlasticState.fflux[0]=data1.dsol[0][0];
             //mem[globpt].fPlasticState.fflux[1]=data1.dsol[0][1];
             mem[globpt].fPlasticState.fflux[0]=flux[0];
             mem[globpt].fPlasticState.fflux[1]=flux[1];
+			mem[globpt].fPlasticState.fflux[2]=flux[2];
             mem[globpt].fPlasticState.fpressure=pressure[0];
 
             globpt++;

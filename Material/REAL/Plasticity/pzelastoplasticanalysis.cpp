@@ -779,7 +779,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 	REAL error = 1.e10,error2=1.e10;
 	int numeq = fCompMesh->NEquations();
     
-    cout << "number of eqautions = " << numeq <<endl;
+    cout << "number of equations = " << numeq <<endl;
 	
 	TPZFMatrix<STATE> prevsol(fSolution);
 	if(prevsol.Rows() != numeq) prevsol.Redim(numeq,1);
@@ -790,11 +790,20 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		CheckConvergence(*this,fSolution,range,coefs);
 	}
      bool a=true,b=true,c=true;
-     Assemble();
-     Solve();
-     REAL norm0 =Norm(fRhs);
-     REAL unorm0 =Norm(fSolution);
-     cout << "norm 0 = " << norm0 << endl;
+     //Assemble();
+	// TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
+	//TPZFMatrix<STATE> rhs =fRhs;
+	//TPZFMatrix<STATE> du;
+	//chrono::steady_clock sc1;
+	//auto start = sc1.now();
+	//SolveEigenSparse(0, K, rhs, du );
+	//auto end = sc1.now();
+	//auto time_span = static_cast<chrono::duration<double>> ( end - start );
+	//cout << "| total time taken to solve eigen=  " << time_span.count()<< std::endl;
+	//fSolution=du;
+    // REAL norm0 =Norm(fRhs);
+    // REAL unorm0 =Norm(fSolution);
+    // cout << "norm 0 = " << norm0 << endl;
      while( a && b && c  )  {
 		
 //        fSolution.Redim(0,0);
@@ -802,8 +811,12 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		
 		chrono::steady_clock sc;
         auto start = sc.now();
-        if(false)
+        if(true)
         {
+			initParallel();
+			int n=12;
+			//omp_set_num_threads(n);
+			setNbThreads(n);
             TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
             TPZFMatrix<STATE> rhs =fRhs;
             TPZFMatrix<STATE> du;
@@ -819,7 +832,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
             //cout <<  "aaaaaaaaaa" << endl;
             auto end = sc.now();
             auto time_span = static_cast<chrono::duration<double>> ( end - start );
-           // cout << "| total time taken to solve PZ=  " << time_span.count()<< std::endl;
+            cout << "| total time taken to solve PZ=  " << time_span.count()<< std::endl;
         }
 		
 		
@@ -836,13 +849,15 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		}
 		
 		prevsol -= fSolution;
-		REAL normDeltaSol = Norm(prevsol)/unorm0;
+		//REAL normDeltaSol = Norm(prevsol)/unorm0;
+		REAL normDeltaSol = Norm(prevsol);
 		prevsol = fSolution;
 		this->LoadSolution(fSolution);
 		this->AssembleResidual();
 		double NormResLambda = Norm(fRhs);
-		double norm = NormResLambda/norm0;
-		cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)/u0| e |Delta(rhs)/rhs0| : " << normDeltaSol << " / " << norm << " | tol = "<<tol << " norm0 = " << norm0<< endl;
+		//double norm = NormResLambda/norm0;
+		double norm = NormResLambda ;
+		cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)/u0| e |Delta(rhs)/rhs0| : " << normDeltaSol << " / " << norm << " | tol = "<<tol << " norm0 = " << norm<< endl;
 		a = iter < numiter ;
 		b =error2 > tol*1.e-3;
 		c= error > tol;
