@@ -284,18 +284,13 @@ void TPZElastoPlasticAnalysis::UpdatePrecond()
         pBlock->BuildFromMatrix(*pMatrix);
     }
 }
-
+#include <pzskylstrmatrix.h> 
 void TPZElastoPlasticAnalysis::SetBiCGStab(int numiter, REAL tol)
 {
-#ifdef LOG4CXX
-    {
-        std::stringstream sout;
-        sout << ">>> TPZElastoPlasticAnalysis::SetBiCGStab() *** numiter = " << numiter << " and tol=" << tol;
-        LOGPZ_INFO(EPAnalysisLogger,sout.str().c_str());
-    }
-#endif
 
-    TPZSpStructMatrix StrMatrix(Mesh());
+    //TPZSpStructMatrix StrMatrix(Mesh());
+	TPZSkylineStructMatrix StrMatrix(Mesh());
+	StrMatrix.SetNumThreads ( 12 );
     this->SetStructuralMatrix(StrMatrix);
     TPZMatrix<REAL> * mat = StrMatrix.Create();
 
@@ -303,46 +298,23 @@ void TPZElastoPlasticAnalysis::SetBiCGStab(int numiter, REAL tol)
     TPZStepSolver<REAL> Pre;
     TPZBlockDiagonal<REAL> * block = new TPZBlockDiagonal<REAL>();
 
-#ifdef LOG4CXX
-    {
-        std::stringstream sout;
-        sout << "*** TPZElastoPlasticAnalysis::SetBiCGStab() *** Assembling Block Diagonal Preconditioning matrix\n";
-        LOGPZ_INFO(EPAnalysisLogger,sout.str().c_str());
-    }
-#endif
-
     strBlockDiag.AssembleBlockDiagonal(*block); // just to initialize structure
     Pre.SetMatrix(block);
-    Pre.SetDirect(ELU);
+   // Pre.SetDirect(ELU);
+	Pre.SetDirect(ELDLt);
     TPZStepSolver<REAL> Solver;
     Solver.SetBiCGStab(numiter, Pre, tol, 0);
     Solver.SetMatrix(mat);
     this->SetSolver(Solver);
     this->SetPrecond(Pre);
-
-#ifdef LOG4CXX
-    {
-        std::stringstream sout;
-        sout << "<<< TPZElastoPlasticAnalysis::SetBiCGStab() *** Exiting\n";
-        LOGPZ_INFO(EPAnalysisLogger,sout.str().c_str());
-    }
-#endif
 
 }
 
 
 void TPZElastoPlasticAnalysis::SetBiCGStab_Jacobi(int numiter, REAL tol)
 {
-#ifdef LOG4CXX
-    {
-        std::stringstream sout;
-        sout << ">>> TPZElastoPlasticAnalysis::SetBiCGStab_Jacobi() *** numiter = " << numiter << " and tol=" << tol;
-        LOGPZ_INFO(EPAnalysisLogger,sout.str().c_str());
-    }
-#endif
-
     TPZSpStructMatrix StrMatrix(Mesh());
-//	TPZFStructMatrix StrMatrix(Mesh());
+
     this->SetStructuralMatrix(StrMatrix);
     TPZMatrix<REAL> * mat = StrMatrix.Create();
 
@@ -350,32 +322,16 @@ void TPZElastoPlasticAnalysis::SetBiCGStab_Jacobi(int numiter, REAL tol)
     TPZStepSolver<REAL> Pre;
     TPZBlockDiagonal<REAL> * block = new TPZBlockDiagonal<REAL>();
 
-#ifdef LOG4CXX
-    {
-        std::stringstream sout;
-        sout << "*** TPZElastoPlasticAnalysis::SetBiCGStab_Jacobi() *** Assembling Block Diagonal Preconditioning matrix\n";
-        LOGPZ_INFO(EPAnalysisLogger,sout.str().c_str());
-    }
-#endif
-
     strBlockDiag.AssembleBlockDiagonal(*block); // just to initialize structure
     Pre.SetMatrix(block);
     //    Pre.SetDirect(ELU);
-    //Pre.SetDirect(ELDLt);
-    Pre.SetJacobi(numiter, tol, 0);
+    Pre.SetDirect(ELDLt);
+    //Pre.SetJacobi(numiter, tol, 0);
     TPZStepSolver<REAL> Solver;
     Solver.SetBiCGStab(numiter, Pre, tol, 0);
     Solver.SetMatrix(mat);
     this->SetSolver(Solver);
     this->SetPrecond(Pre);
-
-#ifdef LOG4CXX
-    {
-        std::stringstream sout;
-        sout << "<<< TPZElastoPlasticAnalysis::SetBiCGStab_Jacobi() *** Exiting\n";
-        LOGPZ_INFO(EPAnalysisLogger,sout.str().c_str());
-    }
-#endif
 }
 
 void TPZElastoPlasticAnalysis::SetLU()
@@ -813,15 +769,18 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         auto start = sc.now();
         if(true)
         {
-			initParallel();
-			int n=12;
+			Eigen::initParallel();
+			int n=20;
 			//omp_set_num_threads(n);
 			setNbThreads(n);
+			int type=0;
+			type = 5;//ConjugateGradient
+			//type = 5;//BiCGSTAB
             TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
             TPZFMatrix<STATE> rhs =fRhs;
             TPZFMatrix<STATE> du;
             //SolveEigen ( K, rhs, du );
-            SolveEigenSparse(0, K, rhs, du );
+            SolveEigenSparse(type, K, rhs, du );
             fSolution=du;
             auto end = sc.now();
             auto time_span = static_cast<chrono::duration<double>> ( end - start );
@@ -859,11 +818,11 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 		double norm = NormResLambda ;
 		cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)/u0| e |Delta(rhs)/rhs0| : " << normDeltaSol << " / " << norm << " | tol = "<<tol << " norm0 = " << norm<< endl;
 		a = iter < numiter ;
-		b =error2 > tol*1.e-3;
+		b =error2 > tol *1.e-3;
 		c= error > tol;
 		
 		//if( normDeltaSol>100 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9) ) {
-        if((iter >=numiter  ||(norm - error) > 1.e-3)&& iter>3) {
+        if((iter >=numiter  ||(normDeltaSol - error2) > 1.e-3)&& iter>3) {
 			cout << "\nDivergent Method\n";
 			return false;
 		}

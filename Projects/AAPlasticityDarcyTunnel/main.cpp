@@ -54,7 +54,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref );
 TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder );
 
 void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor );
-
+void SetSuportPressure ( TPZCompMesh * cmesh,  REAL factor );
 
 void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::string> &vecNames );
 
@@ -101,10 +101,13 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 
 REAL findnodalsol(TPZCompMesh *cmesh);
 
-
+void IncrementalSolution();
 
 int main()
 {
+	IncrementalSolution();
+	
+	
 
 	chrono::steady_clock sc;
 	auto start = sc.now();
@@ -116,14 +119,14 @@ int main()
     TPZCompMesh*cmesh = CreateCMeshDarcy(gmesh,order);
     string vtk  = "darcy2.vtk";
     std::string vtkplasticity ="plasticity.vtk";
-    SolveDarcyProlem(cmesh,vtk);
+    //SolveDarcyProlem(cmesh,vtk);
     
     TPZCompMesh *cmeshgi = CreateCMesh ( gmesh,order );
 	
 	
 	cout << "\n Setting flux in mechanic comp mesh... " << endl;
 	//SetFlux(cmeshsrm,darcycompmesh);
-	SetFlux(cmeshgi,cmesh);
+	//SetFlux(cmeshgi,cmesh);
 	
     
     cout << "\n Gravity Increase routine.. " << endl;
@@ -142,17 +145,77 @@ int main()
     return 0;
 }
 
+void IncrementalSolution()
+{
+
+	int porder =2;
+
+	cout << "aqui "<<endl;
+ 	TPZGeoMesh *gmesh = CreateGMeshGid (0);
+	
+    TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
+
+	
+	int maxiter=100;
+	REAL tol=1;
+	bool linesearch=true;
+	bool checkconv=false;
+	int steps=4;
+	REAL finalload = 0.25;
+	std::string vtkFile ="tunnelbodyload.vtk";
+	std::ofstream outloadu("loadvu.nb");
+	outloadu << "plot = {";
+	TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
+	
+	REAL uy=0;
+	for(int iloadstep=0;iloadstep<=0;iloadstep++)
+ 	{
+		
+		TPZElastoPlasticAnalysis  * analysis =  CreateAnal(cmesh,porder);
+
+		
+		REAL load = iloadstep*finalload/steps;
+		cout << " \n --------- iloadstep  = "<< iloadstep << endl;
+		
+		cout << " \n --------- load  = "<< load << endl;
+		
+		//LoadingRamp(cmesh,load);
+		int iters;
+		bool conv = analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv,iters);
+		uy+=findnodalsol(cmesh);
+		TPZFMatrix<REAL> sol = analysis->Solution();
+		
+		//cmesh->Solution().Print(cout);
+		cout << " sol "<<-uy << " | load = " << load <<    endl;
+		analysis->AcceptSolution();
+		
+		outloadu << "{ "<<-uy << ", " << load << " } ," << endl;
+		
+					postproc->SetCompMesh(0);
+		CreatePostProcessingMesh( postproc, cmesh);
+		
+		Post(postproc,vtkFile);
+
+
+	}
+	outloadu <<  " }; ListLinePlot[plot,PlotRange->All]" << endl;
+
+}
+
 
 TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
     string file;
 
-   // file ="/home/diogo/projects/pz/data/tunnel.msh";
-    file ="/home/diogo/projects/pz/data/tunnel-fine.msh";
+    //file ="/home/diogo/projects/pz/data/tunnel.msh";
+	file ="/home/diogo/projects/pz/data/tunnel-medium.msh";
+    //file ="/home/diogo/projects/pz/data/tunnel-fine.msh";
 
     readgidmesh read = readgidmesh ( file );
+	
     read.ReadMesh();
+	
     TPZFMatrix<int> meshtopology = read.GetTopology();
     TPZFMatrix<REAL> meshcoords = read.GetCoords();
     std::vector<std::vector< std::vector<double > > > allcoords = read.GetAllCoords();
@@ -401,8 +464,9 @@ REAL findnodalsol(TPZCompMesh *cmesh) {
     TPZVec<REAL> xd(dim,0.);
     TPZVec<REAL> mpt(dim,0.);
 // xd[0] =39.2265; xd[1] = 40.;
-    xd[0] =35.;
-    xd[1] = 40.;
+    xd[0] =20.;
+    xd[1] = 25.;
+	xd[2]=40.;
     int id;
     int nels = gmesh->NElements();
     for(int iel=0; iel<nels; iel++) {
@@ -673,14 +737,14 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDefaultOrder ( porder );
     cmesh->SetDimModel ( dim );
 
-    REAL mc_cohesion    = 10;//kpa
+    REAL mc_cohesion    = 20;//kpa
     REAL mc_phi         = ( 30.*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
     // Elastic predictor
     TPZElasticResponse ER;
-    REAL nu = 0.3;
+    REAL nu = 0.49;
     REAL E = 20000.;
 
     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
@@ -699,7 +763,7 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
 
     TPZFMatrix<STATE> val1 ( 3,3,0. );
     TPZFMatrix<STATE>  val2 ( 3,1,0. );
-    int directionadirichlet =3;
+    int directionadirichlet =3,newmann=1;
     val2 ( 0,0 ) = 1;
     val2 ( 1,0 ) = 0;
     val2 ( 2,0 ) = 0;
@@ -715,17 +779,29 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     val2 ( 0,0 ) = 0;
     val2 ( 1,0 ) = 0;
     val2 ( 2,0 ) = 1;
-    auto * bc4 = material->CreateBC ( material, -5, directionadirichlet, val1, val2 );//plano xy z=0
+    auto * bc5 = material->CreateBC ( material, -5, directionadirichlet, val1, val2 );//plano xy z=0
     val2 ( 0,0 ) = 0;
     val2 ( 1,0 ) = 0;
     val2 ( 2,0 ) = 1;
-    auto * bc5 = material->CreateBC ( material, -6, directionadirichlet, val1, val2 );//plano xy z=40
+    auto * bc6 = material->CreateBC ( material, -6, directionadirichlet, val1, val2 );//plano xy z=40
+	
+	val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = -10;
+    val2 ( 2,0 ) = 0;
+    auto * bc4 = material->CreateBC ( material, -4, newmann, val1, val2 );//plano xy z=40
+	
+	val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    val2 ( 2,0 ) = 0;
+    auto * bc7 = material->CreateBC ( material, -7, newmann, val1, val2 );//plano xy z=40
 
     cmesh->InsertMaterialObject ( bc1 );
     cmesh->InsertMaterialObject ( bc2 );
     cmesh->InsertMaterialObject ( bc3 );
     cmesh->InsertMaterialObject ( bc4 );
     cmesh->InsertMaterialObject ( bc5 );
+	cmesh->InsertMaterialObject ( bc6 );
+	cmesh->InsertMaterialObject ( bc7 );
 
     //cmesh->InsertMaterialObject ( top );
     cmesh->SetAllCreateFunctionsContinuousWithMem();
@@ -744,6 +820,7 @@ void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor )
     body->SetBodyForce ( force );
 
 }
+
 
 
 
@@ -795,6 +872,18 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
   vecNames.Push ( "Flux" );
 }
 
+void SetSuportPressure ( TPZCompMesh * cmesh,  REAL factor )
+{
+    auto * matbc= dynamic_cast<TPZBndCond *> ( cmesh->FindMaterial ( -7 ) );
+	TPZFMatrix<STATE> val1 ( 3,3,0. );
+    TPZFMatrix<STATE>  val2 ( 3,1,0. );
+
+//bc.Val2()(0,0);
+	REAL sigma0=-10;//(kPa)
+	matbc->Val2()(0,0) = sigma0 * factor;
+	
+
+}
 void GravityIncrease ( TPZCompMesh * cmesh )
 {
 
@@ -804,24 +893,25 @@ void GravityIncrease ( TPZCompMesh * cmesh )
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
 
     int counterout = 0;
-
+	//LoadingRamp ( cmesh,0.1 );
     REAL norm = 1000.;
-    REAL tol2 = 0.1;
-    int NumIter = 30;
+    REAL tol2 = 1.e-2;
+    int NumIter = 10;
     bool linesearch = true;
     bool checkconv = false;
 
     do {
 
         std::cout << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
-        LoadingRamp ( cmesh,FS );
+        //LoadingRamp ( cmesh,FS );
+		//SetSuportPressure(cmesh,FS);
         bool optimize =true;
         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
         chrono::steady_clock sc;
         auto start = sc.now();
         int iters;
         bool conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters);
-
+		//bool conv =anal->IterativeProcess(cout, tol2, NumIter,linesearch,checkconv);
         auto end = sc.now();
         auto time_span = static_cast<chrono::duration<double>> ( end - start );
         cout << "| total time in iterative process =  " << time_span.count()<< std::endl;
@@ -971,36 +1061,49 @@ void ShearRed ( TPZCompMesh * cmesh)
 #include "tpzsparseblockdiagonalstructmatrix.h"
 #include "TPBSpStructMatrix.h"
 #include "TPZSpStructMatrix.h"
+//#include "TPZStepSolver.h"
+#include "bicgstab.h"
+//#include <bicgstab.h>
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
     int numthreads=8;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
-    TPZSkylineStructMatrix matskl ( cmesh );
-    // TPZFStructMatrix matskl ( cmesh );
+//     TPZSkylineStructMatrix matskl ( cmesh );
+//     // TPZFStructMatrix matskl ( cmesh );
+// 
+//     matskl.SetNumThreads ( numthreads );
+// 
+//     analysis->SetStructuralMatrix ( matskl );
+// 
+//     ///Setting a direct solver
+//     TPZStepSolver<STATE> step;
 
-    matskl.SetNumThreads ( numthreads );
 
-    analysis->SetStructuralMatrix ( matskl );
-
-    ///Setting a direct solver
-    TPZStepSolver<STATE> step;
-    step.SetDirect ( ELDLt );
+	//void SetBiCGStab(const long numiterations, const TPZMatrixSolver<TVar> &pre, const REAL tol, const long FromCurrent);
+	//step.SetBiCGStab(100,matskl,1.e-3,1);
+	
+	//step.SetBiCGStab();
+	
+	//step.SetDirect ( EBICGSTAB );
+	//step.SetDirect ( E );
+    //step.SetDirect ( ELDLt );
     //step.SetDirect ( ENoDecompose );
     // step.SetDirect ( ECholesky );
-    analysis->SetSolver ( step );
+    //analysis->SetSolver ( step );
 
-    long neq = cmesh->NEquations();
-    TPZVec<long> activeEquations;
-    analysis->GetActiveEquations ( activeEquations );
-    TPZEquationFilter filter ( neq );
-    filter.SetActiveEquations ( activeEquations );
-    matskl.EquationFilter() = filter;
-    analysis->SetStructuralMatrix ( matskl );
+	analysis->SetBiCGStab(200, 1.e-3);
+//     long neq = cmesh->NEquations();
+//     TPZVec<long> activeEquations;
+//     analysis->GetActiveEquations ( activeEquations );
+//     TPZEquationFilter filter ( neq );
+//     filter.SetActiveEquations ( activeEquations );
+//     matskl.EquationFilter() = filter;
+//     analysis->SetStructuralMatrix ( matskl );
 
     //step.SetDirect(ECholesky);
-    analysis->SetSolver ( step );
+    //analysis->SetSolver ( step );
 
 
     return analysis;

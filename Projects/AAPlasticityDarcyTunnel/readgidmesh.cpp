@@ -78,22 +78,55 @@ void readgidmesh::ReadMesh (  )
         myfile.close();
     } else std::cout << "Unable to open file";
 
-	int els = topol.size();
-	cout << "els = "<<els<<endl;
-	int elnodes = topol[0].size()-1;
-	cout << "elnodes = "<<elnodes<<endl;
-	fmeshtopology.Resize(els,elnodes);
-	for(int iel=0;iel<els;iel++){
-		for(int elnode=0;elnode<elnodes;elnode++)
+	
+	//cout << "topol.size()" << topol.size() << endl;
+		fmeshtopology.Resize(topol.size(),4);
+		for(int iel=0;iel<topol.size();iel++){
+		for(int elnode=0;elnode<4;elnode++)
 		{
-			if((topol[iel][elnode+1]-1)>800000000){
-				fmeshtopology(iel,elnode)=-1;
+			//cout << topol[iel][elnode+1]<< " ";
+			if((topol[iel][elnode+1]-1)>80000000){
+			fmeshtopology(iel,elnode)=-1;
 			}else{
-			fmeshtopology(iel,elnode)=topol[iel][elnode+1]-1;
+				fmeshtopology(iel,elnode)=topol[iel][elnode+1]-1;
 			}
 		}
+		//fmeshtopology(iel,0)=topol[iel][1]-1;
+		//fmeshtopology(iel,1)=topol[iel][2]-1;
+		//fmeshtopology(iel,2)=topol[iel][3]-1;
+		//fmeshtopology(iel,3)=topol[iel][4]-1;
+		//cout  << endl;
 	}
-    //fmeshtopology.Print(cout);
+	
+// 	int els = topol.size();
+// 	cout << "els = "<<els<<endl;
+// 	int elnodes = topol[0].size();
+// 	cout << "elnodes = "<<elnodes<<endl;
+// 	fmeshtopology.Resize(els,elnodes-1);
+// 	for(int iel=0;iel<els;iel++){
+// 		for(int elnode=1;elnode<elnodes;elnode++)
+// 		{
+// 			if((topol[iel][elnode]-1)>800000000){
+// 				fmeshtopology(iel,elnode-1)=-1;
+// 			}else{
+// 				fmeshtopology(iel,elnode-1)=topol[iel][elnode]-1;
+// 			}
+// 		}
+// 	}
+/*	
+	int els = topol.size();
+	int elnodes = topol[0].size();
+	fmeshtopology.Resize(els,elnodes);
+	for(int iel=0;iel<els;iel++){
+		elnodes = topol[iel].size();
+		for(int elnode=0;elnode<elnodes;elnode++)
+		{
+			fmeshtopology(iel,elnode)=topol[iel][elnode+1];
+		}
+	}
+*/	
+	//cout << "saiu = "<<endl;
+   // fmeshtopology.Print(cout);
 	//cout << "sda = "<<fmeshtopology(19318,3) << endl;
 	std::vector<double> temp33 ( 3 );
     for ( int i = 0; i < fmeshtopology.Rows(); i++ ) {

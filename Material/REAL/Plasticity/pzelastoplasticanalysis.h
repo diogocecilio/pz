@@ -175,8 +175,8 @@ inline void SolveEigenSparse ( int type, TPZAutoPointer<TPZMatrix<REAL> > A, TPZ
     std::vector<T> tripletList;
     int sz=A->Rows();
 
-	type=2;
-    tripletList.reserve ( sz*2000 );
+
+    tripletList.reserve ( sz*10000 );
     // tripletList.reserve(80000);
 
     x.Resize ( sz, 1);
@@ -209,10 +209,11 @@ inline void SolveEigenSparse ( int type, TPZAutoPointer<TPZMatrix<REAL> > A, TPZ
         xx = solver2.solve ( bbb );
     } else if ( type==2 ) {
         ConjugateGradient<SparseMatrix<double>, Lower|Upper> cg;
+		cg.analyzePattern ( AA );
         cg.compute ( AA );
         xx = cg.solve ( bbb );
-        std::cout << "#iterations:     " << cg.iterations() << std::endl;
-        std::cout << "estimated error: " << cg.error()      << std::endl;
+        //std::cout << "#iterations:     " << cg.iterations() << std::endl;
+        //std::cout << "estimated error: " << cg.error()      << std::endl;
     }
     else if ( type==3 ) {
         SimplicialLDLT<SparseMatrix<double> > solver;

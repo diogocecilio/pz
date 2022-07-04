@@ -337,7 +337,7 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var)
   if(var == TPZMatElastoPlastic<T,TMEM>::EMatPoisson)		 return 1;
     if(var == TPZMatElastoPlastic<T,TMEM>::ECohes)			 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EFric)		 return 1;
-  if(var == TPZMatElastoPlastic<T,TMEM>::EFlux)		 return 2;
+  if(var == TPZMatElastoPlastic<T,TMEM>::EFlux)		 return 3;
   if(var == TPZMatElastoPlastic<T,TMEM>::EFluxX)		 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EFluxY)		 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EPressure)		 return 1;
