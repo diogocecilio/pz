@@ -35,7 +35,10 @@
 #include "pzquad.h"
 #include "pzshapetetra.h"
 #include "tpzgeoelrefpattern.h"
-#include "TPZDarcyFlow.h"
+
+#include "TPZDarcyFlowIsoPerm.h"
+//#include "TPZDarcyFlow.h"
+
 using namespace std;
 
 
@@ -105,10 +108,12 @@ void IncrementalSolution();
 
 int main()
 {
-	IncrementalSolution();
+	//IncrementalSolution();
 	
 	
 
+    //return 0;
+    
 	chrono::steady_clock sc;
 	auto start = sc.now();
 
@@ -588,12 +593,16 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     // Create the material:
     // TPZDarcyFlow *material = new TPZDarcyFlow(m_matID,m_dim);
     int matid=1,dim=3;
-    auto *material = new TPZDarcyFlow ( matid,dim );
+    auto *material = new TPZDarcyFlowIsoPerm ( matid,dim );
     //Bet Degan loamy sand
     //STATE permeability = 0.0063 ;//cm/s
     //STATE permeability = 0.000063;//m/s
     //STATE permeability = 0.1;//m/s
-    STATE permeability = 1.;//m/s
+    //STATE permeability = 1.;//m/s
+    TPZManVector<REAL,3> permeability(3);
+    permeability[0]=1.;
+    permeability[1]=1.;
+    permeability[2]=1.;
     material->SetConstantPermeability ( permeability );
     material->SetId(1);
     TPZAutoPointer<TPZFunction<STATE> > rhs = new TPZDummyFunction<STATE>(Forcing);

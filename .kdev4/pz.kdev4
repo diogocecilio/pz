@@ -4,6 +4,7 @@ BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x
 [CMake]
 Build Directory Count=2
 Current Build Directory Index-Host System=1
+Temporary Build Directory Index=1
 
 [CMake][CMake Build Directory 0]
 Build Directory Path=/home/diogo/projects/pz-build-debug
@@ -31,7 +32,7 @@ Launch Configurations=Launch Configuration 0,Launch Configuration 1
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=tunnel-debug
+Name=darcy-siotropic-debug
 Type=Native Application
 
 [Launch][Launch Configuration 0][Data]
@@ -39,7 +40,7 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/pz-build-debug/Projects/AAPlasticityDarcyTunnel/AAPlasticityDarcyTunnel
+Executable=file:///home/diogo/projects/pz-build-debug/Projects/DarcyIsotropic/DarcyIsotropic
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Project Target=pz,Projects,AADarcy,AADarcy
 Use External Terminal=false
@@ -49,7 +50,7 @@ isExecutable=true
 [Launch][Launch Configuration 1]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=tunnel-release
+Name=release-isotropic-darcy
 Type=Native Application
 
 [Launch][Launch Configuration 1][Data]
@@ -57,7 +58,7 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/pz-build-release/Projects/AAPlasticityDarcyTunnel/AAPlasticityDarcyTunnel
+Executable=file:///home/diogo/projects/pz-build-release/Projects/DarcyIsotropic/DarcyIsotropic
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Project Target=pz,Projects,AADarcy,AADarcy
 Use External Terminal=false

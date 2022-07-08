@@ -2,23 +2,22 @@
 // Created by Gustavo Batistela on 5/13/21.
 //
 
-#include "TPZDarcyFlow.h"
+#include "TPZDarcyFlowIsoPerm.h"
 #include "pzaxestools.h"
 #include <pzbndcond.h>
 
 //class TPZIsotropicPermeabilityBC;
 
-TPZDarcyFlow::TPZDarcyFlow() :  fDim(-1) {}
+TPZDarcyFlowIsoPerm::TPZDarcyFlowIsoPerm() :  fDim(-1) {}
 
-TPZDarcyFlow::TPZDarcyFlow(int id, int dim) : fDim(dim) {}
+TPZDarcyFlowIsoPerm::TPZDarcyFlowIsoPerm(int id, int dim) : fDim(dim) {}
 
-void TPZDarcyFlow::SetDimension(int dim) {
+void TPZDarcyFlowIsoPerm::SetDimension(int dim) {
     if (dim > 3 || dim < 1) DebugStop();
     fDim = dim;
-    
 }
 
-void TPZDarcyFlow::Contribute( TPZMaterialData &data, STATE weight, TPZFMatrix<STATE> &ek,
+void TPZDarcyFlowIsoPerm::Contribute( TPZMaterialData &data, STATE weight, TPZFMatrix<STATE> &ek,
                               TPZFMatrix<STATE> &ef) {
 
     const TPZFMatrix<REAL> &phi = data.phi;
@@ -32,7 +31,7 @@ void TPZDarcyFlow::Contribute( TPZMaterialData &data, STATE weight, TPZFMatrix<S
 	//STATE perm = GetPermeability(data.x);
 
 	//std:: cout << "perm "<< perm<<std::endl;
-	REAL perm = fConstPermeability;
+	TPZManVector<REAL,3> perm = fConstPermeability;
 
 	
     STATE source_term = 0;
@@ -48,13 +47,13 @@ void TPZDarcyFlow::Contribute( TPZMaterialData &data, STATE weight, TPZFMatrix<S
         ef(in, 0) -= weight * source_term * (phi.Get(in, 0));
         for (int jn = 0; jn < phr; jn++) {
             for (int kd = 0; kd < fDim; kd++) {
-                ek(in, jn) += weight * (dphi.Get(kd, in) * perm* dphi.Get(kd, jn));
+                ek(in, jn) += weight * (dphi.Get(kd, in) * perm[kd]* dphi.Get(kd, jn));
             }
         }
     }
 }
 
-void TPZDarcyFlow::ContributeBC( TPZMaterialData &data, STATE weight, TPZFMatrix<STATE> &ek,
+void TPZDarcyFlowIsoPerm::ContributeBC( TPZMaterialData &data, STATE weight, TPZFMatrix<STATE> &ek,
                                 TPZFMatrix<STATE> &ef, TPZBndCond &bc) {
 
     const TPZFMatrix<REAL> &phi = data.phi;
@@ -105,7 +104,7 @@ void TPZDarcyFlow::ContributeBC( TPZMaterialData &data, STATE weight, TPZFMatrix
     }
 }
 
-int TPZDarcyFlow::VariableIndex(const std::string &name)  {
+int TPZDarcyFlowIsoPerm::VariableIndex(const std::string &name)  {
 
     if (!strcmp("Solution", name.c_str())) return 1;
     if (!strcmp("Pressure", name.c_str())) return 1;
@@ -130,7 +129,7 @@ int TPZDarcyFlow::VariableIndex(const std::string &name)  {
     return TPZMaterial::VariableIndex(name);
 }
 
-int TPZDarcyFlow::NSolutionVariables(int var)  {
+int TPZDarcyFlowIsoPerm::NSolutionVariables(int var)  {
 
     if (var == 1) return 1;      // Solution/Pressure
     if (var == 2) return fDim;   // Derivative/GradU
@@ -150,7 +149,7 @@ int TPZDarcyFlow::NSolutionVariables(int var)  {
     return TPZMaterial::NSolutionVariables(var);
 }
 
-void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solOut) {
+void TPZDarcyFlowIsoPerm::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solOut) {
 
     switch (var) {
         case 1: {
@@ -173,8 +172,8 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             TPZFNMatrix<9, STATE> dsoldx;
             TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
             //const STATE perm = GetPermeability(data.x);
-			REAL perm = fConstPermeability;
-            solOut[0] = perm * dsoldx(0, 0);
+			TPZManVector<REAL,3>  perm = fConstPermeability;
+            solOut[0] = perm[0] * dsoldx(0, 0);
             return;
         }
         case 4: {
@@ -182,8 +181,8 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             TPZFNMatrix<9, STATE> dsoldx;
             TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
             //const STATE perm = GetPermeability(data.x);
-			REAL perm = fConstPermeability;
-            solOut[0] = perm * dsoldx(1, 0);
+			TPZManVector<REAL,3>  perm = fConstPermeability;
+            solOut[0] = perm[1] * dsoldx(1, 0);
             return;
         }
         case 5: {
@@ -191,8 +190,8 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             TPZFNMatrix<9, STATE> dsoldx;
             TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
             //const STATE perm = GetPermeability(data.x);
-			REAL perm = fConstPermeability;
-            solOut[0] = perm * dsoldx(2, 0);
+			TPZManVector<REAL,3>  perm = fConstPermeability;
+            solOut[0] = perm[2] * dsoldx(2, 0);
             return;
         }
         case 6: {
@@ -201,10 +200,10 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
 
             //const STATE perm = GetPermeability(data.x);
-			REAL perm = fConstPermeability;
+			TPZManVector<REAL,3> perm = fConstPermeability;
             STATE res = 0;
             for (int id = 0; id < fDim; id++) {
-                res += perm * dsoldx(id, 0) * perm * dsoldx(id, 0);
+                res += perm[id] * dsoldx(id, 0) * perm[id] * dsoldx(id, 0);
             }
             solOut[0] = sqrt(res);
             return;
@@ -214,10 +213,10 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             TPZFNMatrix<9, STATE> dsoldx;
             TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
             //const STATE perm = GetPermeability(data.x);
-			REAL perm = fConstPermeability;
+			TPZManVector<REAL,3> perm = fConstPermeability;
             solOut.resize(fDim);
             for (int id = 0; id < fDim; id++) {
-                solOut[id] =  perm * dsoldx(id, 0);
+                solOut[id] =  perm[id] * dsoldx(id, 0);
             }
             return;
         }
@@ -245,16 +244,8 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
             return;
         }
         case 11: {
-            // Div/Divergence
-            TPZFNMatrix<9, STATE> dsoldx;
-            TPZAxesTools<STATE>::Axes2XYZ(data.dsol[0], dsoldx, data.axes);
-            //const STATE perm = GetPermeability(data.x);
-			REAL perm = fConstPermeability;
-            STATE res = 0;
-            for (int id = 0; id < fDim; id++) {
-                res += - perm * dsoldx(id, 0);
-            }
-            solOut[0] = res;
+
+            solOut[0] = 0;
             return;
         }
         case 12: {
@@ -278,13 +269,13 @@ void TPZDarcyFlow::Solution( TPZMaterialData &data, int var, TPZVec<STATE> &solO
     }
 }
 
-void TPZDarcyFlow::GetSolDimensions(uint64_t &u_len, uint64_t &du_row, uint64_t &du_col) const {
+void TPZDarcyFlowIsoPerm::GetSolDimensions(uint64_t &u_len, uint64_t &du_row, uint64_t &du_col) const {
     u_len=1;
     du_row=fDim;
     du_col=1;
 }
 
-void TPZDarcyFlow::Errors( TPZMaterialData &data,
+void TPZDarcyFlowIsoPerm::Errors( TPZMaterialData &data,
                           TPZVec<REAL> &errors) {
     const TPZVec<REAL> &x = data.x;
     const TPZVec<STATE> &sol = data.sol[0];
@@ -314,7 +305,7 @@ void TPZDarcyFlow::Errors( TPZMaterialData &data,
 
     // errors[2] - H1 semi-norm: |H1| = K*(grad[u] - grad[u_exact])
      //STATE perm = GetPermeability(data.x);
-	REAL perm = fConstPermeability;
+	TPZManVector<REAL,3>  perm = fConstPermeability;
 
     TPZVec<REAL> graduDiff(fDim, 0);
     for (int id = 0; id < fDim; id++) {
@@ -322,7 +313,7 @@ void TPZDarcyFlow::Errors( TPZMaterialData &data,
     }
     diff = 0;
     for (int id = 0; id < fDim; id++) {
-        diff += perm * graduDiff[id];
+        diff += perm[id] * graduDiff[id];
     }
     errors[2] += abs(diff * diff);
 
@@ -337,7 +328,7 @@ void TPZDarcyFlow::Errors( TPZMaterialData &data,
     TPZAxesTools<STATE>::Axes2XYZ(dsol, dsoldx, axes);
     TPZManVector<STATE, 3> flux_sol(fDim, 0);
     for (int id = 0; id < fDim; id++) {
-        flux_sol[id] = - perm * dsoldx(id, 0);
+        flux_sol[id] = - perm[id] * dsoldx(id, 0);
     }
 
     for (int id = 0; id < fDim; id++) {
@@ -346,26 +337,26 @@ void TPZDarcyFlow::Errors( TPZMaterialData &data,
     }
 }
 
-int TPZDarcyFlow::ClassId() const {
-    return -999992;
+int TPZDarcyFlowIsoPerm::ClassId() const {
+    return -999993;
 }
 
 // TPZMaterial *TPZDarcyFlow::NewMaterial() const {
 //     return new TPZDarcyFlow(*this);
 // }
 
-void TPZDarcyFlow::Print(std::ostream &out) const {
+void TPZDarcyFlowIsoPerm::Print(std::ostream &out) const {
     out << "Material Name: " << this->Name() << "\n";
     out << "Material Id: " << this->Id() << "\n";
     out << "Dimension: " << this->Dimension() << "\n\n";
 }
 
-void TPZDarcyFlow::FillDataRequirements(TPZMaterialData &data) const {
+void TPZDarcyFlowIsoPerm::FillDataRequirements(TPZMaterialData &data) const {
     data.SetAllRequirements(false);
 }
 
 
-void TPZDarcyFlow::FillBoundaryConditionDataRequirements(int type, TPZMaterialData &data) const {
+void TPZDarcyFlowIsoPerm::FillBoundaryConditionDataRequirements(int type, TPZMaterialData &data) const {
 
     data.SetAllRequirements(false);
     if (type == 50) {

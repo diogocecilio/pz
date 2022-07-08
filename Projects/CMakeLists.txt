@@ -182,6 +182,7 @@ add_subdirectory(proDG)
 			add_subdirectory(AAPlasticityKL)
 			add_subdirectory(AAPlasticityDarcy)
 			add_subdirectory(AAPlasticityDarcyTunnel)
+			add_subdirectory(DarcyIsotropic)
 			#Projeto Denise
 			#add_subdirectory(HdivPressureTeste)
 			#add_subdirectory(HpAdaptivity)

@@ -138,8 +138,6 @@ REAL ComputeMeanPhiAReagion(TPZCompMesh *cmesh) ;
 
 int main()
 {
-    
-
 //   float x = 1.5,y=0.5;
 // 
 //   //TinyFad<2,float> x1(x),x2(y), y1;

@@ -773,9 +773,9 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 			int n=20;
 			//omp_set_num_threads(n);
 			setNbThreads(n);
+            //ConjugateGradient = 2 //BiCGSTAB =5
 			int type=0;
-			type = 5;//ConjugateGradient
-			//type = 5;//BiCGSTAB
+			type = 5;
             TPZAutoPointer<TPZMatrix<REAL> > K = this->fSolver->Matrix();
             TPZFMatrix<STATE> rhs =fRhs;
             TPZFMatrix<STATE> du;
