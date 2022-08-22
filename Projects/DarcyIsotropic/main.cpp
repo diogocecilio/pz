@@ -70,9 +70,9 @@ int beta=45;
 
 int main()
 {
-    int porder=4;
+    int porder=3;
     
-    TPZGeoMesh* gmesh = CreateGMeshGid(1);
+    TPZGeoMesh* gmesh = CreateGMeshGid(0);
     
     std::ofstream files ( "gmesh.vtk" );
     
@@ -89,129 +89,6 @@ int main()
     return 0;
 }
 
-TPZGeoMesh *  CreateGMesh ( int ref )
-{
-    const std::string name ( "Slope Problem " );
-
-    TPZGeoMesh *gmesh  =  new TPZGeoMesh();
-
-    gmesh->SetName ( name );
-    gmesh->SetDimension ( 2 );
-
-    TPZVec<REAL> coord ( 2 );
-
-    vector<vector<double>> co= {{0., 0.}, {75., 0.}, {75., 30.}, {45., 30.}, {35., 40.}, {0.,40.},
-	
-	{35./3., 40.},{2 * 35/3., 40.}, {30., 40.},
-	
-	{30., 30.}, {60.,30.},
-	
-	{2* 35./3.,2* 35/3.}, {45., 2* 35/3.},
-	
-	 {35./3., 35/3.}, {60., 35./3.}
-
-    };
-    vector<vector<int>> topol = {
-		{0,  1,  14, 13},
-		{1,  2,  10, 14}, 
-		{14, 10, 3,  12}, 
-		{13, 14, 12, 11},
-		{11, 12, 3,  9}, 
-		{9,  3,  4,  8},
-		{11, 9,  8,  7},
-		{13, 11, 7, 6},
-		{0, 13,  6, 5}
-    };
-
-
-    gmesh->NodeVec().Resize ( co.size() );
-
-    for ( int inode=0; inode<co.size(); inode++ ) {
-        coord[0] = co[inode][0];
-        coord[1] = co[inode][1];
-        gmesh->NodeVec() [inode] = TPZGeoNode ( inode, coord, *gmesh );
-    }
-    TPZVec <long> TopoQuad ( 4 );
-    for ( int iel=0; iel<topol.size(); iel++ ) {
-        TopoQuad[0] = topol[iel][0];
-        TopoQuad[1] = topol[iel][1];
-        TopoQuad[2] =	topol[iel][2];
-        TopoQuad[3] = topol[iel][3];
-        new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( iel, TopoQuad, 1,*gmesh );
-    }
-    int id = topol.size();
-    TPZVec <long> TopoLine ( 2 );
-    TopoLine[0] = 0;
-    TopoLine[1] = 1;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -1, *gmesh );//bottom
-
-    id++;
-    TopoLine[0] = 1;
-    TopoLine[1] = 2;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -2, *gmesh );//rigth
-	
-	{
-        id++;
-        TopoLine[0] = 3;
-        TopoLine[1] = 10;
-        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh ); // top rigth
-        
-        id++;
-        TopoLine[0] = 10;
-        TopoLine[1] = 2;
-        new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -3, *gmesh ); // top rigth
-    }
-
-	id++;
-    TopoLine[0] = 3;
-    TopoLine[1] = 4;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -4, *gmesh );//ramp
-	
-
-
-    {
-            id++;
-            TopoLine[0] = 5;
-            TopoLine[1] = 6;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
-            
-            id++;
-            TopoLine[0] = 6;
-            TopoLine[1] = 7;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
-            
-            id++;
-            TopoLine[0] = 7;
-            TopoLine[1] = 8;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
-            
-            id++;
-            TopoLine[0] = 8;
-            TopoLine[1] = 4;
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -5, *gmesh ); //top left
-    }
-
-
-
-
-    id++;
-    TopoLine[0] = 0;
-    TopoLine[1] = 5;
-    new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, -6, *gmesh );//left
-
-
-    gmesh->BuildConnectivity();
-    for ( int d = 0; d<ref; d++ ) {
-        int nel = gmesh->NElements();
-        TPZManVector<TPZGeoEl *> subels;
-        for ( int iel = 0; iel<nel; iel++ ) {
-            TPZGeoEl *gel = gmesh->ElementVec() [iel];
-            gel->Divide ( subels );
-        }
-    }
-
-    return gmesh;
-}
 
 TPZGeoMesh * CreateGMeshGid ( int ref )
 {
@@ -454,13 +331,13 @@ TPZCompMesh * CreateCMesh( TPZGeoMesh *gmesh, int pOrder )
 	//STATE permeability = 6.3e-5;//m/s
 	TPZManVector<REAL,3> permeability(3);//m/s
 
-    permeability[0]=2.;permeability[1]=1;permeability[2]=1.;
+    permeability[0]=1.;permeability[1]=1;permeability[2]=1.;
     material->SetConstantPermeability ( permeability );
 	material->SetId(1);
     
     TPZAutoPointer<TPZFunction<STATE> > sourceterm  = new TPZDummyFunction<STATE>(ForcingSource);
 
-    material->SetForcingFunction(sourceterm);
+    //material->SetForcingFunction(sourceterm);
     
     cmesh->InsertMaterialObject ( material );
 
@@ -474,24 +351,24 @@ TPZCompMesh * CreateCMesh( TPZGeoMesh *gmesh, int pOrder )
     //material->SetForcingFunction(rhs);
     
 
-    TPZMaterial * BCondn1 = material->CreateBC ( material, -1, 0, val1, val2 );//tr
+    //TPZMaterial * BCondn1 = material->CreateBC ( material, -1, 0, val1, val2 );//tr
     
-    TPZMaterial * BCondn2 = material->CreateBC ( material, -2, 0, val1, val2 );//tr
+    //TPZMaterial * BCondn2 = material->CreateBC ( material, -2, 0, val1, val2 );//tr
     
-    TPZMaterial * BCondn6 = material->CreateBC ( material, -6, 0, val1, val2 );//tr
+   // TPZMaterial * BCondn6 = material->CreateBC ( material, -6, 0, val1, val2 );//tr
     
 	TPZMaterial * BCond0 = material->CreateBC ( material, -3, 0, val1, val2 );//tr
-	//BCond0->SetForcingFunction(pressure);
+	BCond0->SetForcingFunction(pressure);
 
 	TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
-	//BCond1->SetForcingFunction(pressure);
+	BCond1->SetForcingFunction(pressure);
      
 	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
-    //BCond2->SetForcingFunction(pressure);
+    BCond2->SetForcingFunction(pressure);
 
-    cmesh->InsertMaterialObject(BCondn1);
-    cmesh->InsertMaterialObject(BCondn2);
-    cmesh->InsertMaterialObject(BCondn6);
+    //cmesh->InsertMaterialObject(BCondn1);
+    //cmesh->InsertMaterialObject(BCondn2);
+    //cmesh->InsertMaterialObject(BCondn6);
     
     cmesh->InsertMaterialObject(BCond0);
     cmesh->InsertMaterialObject(BCond1);

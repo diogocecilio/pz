@@ -170,6 +170,7 @@ int TPZMaterial::NSolutionVariables(int index) {
 	if (index == 109) return 1;
 	if (index == 110) return 1;
 	if (index == 111) return 1;
+    //if (index == 66) return 1;
 	PZError << "TPZMaterial::NSolutionVariables called index = " << index << "\n";
     DebugStop();
 	return 0;

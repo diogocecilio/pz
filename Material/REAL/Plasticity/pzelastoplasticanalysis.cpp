@@ -770,7 +770,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         if(true)
         {
 			Eigen::initParallel();
-			int n=20;
+			int n=5;
 			//omp_set_num_threads(n);
 			setNbThreads(n);
             //ConjugateGradient = 2 //BiCGSTAB =5
@@ -780,6 +780,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
             TPZFMatrix<STATE> rhs =fRhs;
             TPZFMatrix<STATE> du;
             //SolveEigen ( K, rhs, du );
+            cout << "solving... "<< std::endl;
             SolveEigenSparse(type, K, rhs, du );
             fSolution=du;
             auto end = sc.now();

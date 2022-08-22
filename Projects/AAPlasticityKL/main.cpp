@@ -149,23 +149,23 @@ int main()
 // 
 //   cout << "Fad     : " << y1 << endl;
 //  return 0;
-// 	string namefolderx = "test-folder";
-// 	char* cstr = new char[namefolderx.length() + 1];
-//     strcpy ( cstr, namefolderx.c_str() );
-//     int check = mkdir ( cstr, 777 );
+	string namefolderx = "test-folder";
+	char* cstr = new char[namefolderx.length() + 1];
+    strcpy ( cstr, namefolderx.c_str() );
+    int check = mkdir ( cstr, 777 );
 	
-// 	int samples=1000;
-// 	
-// 	int porder=2;
-// 	
-// 	string namefolder;
-// 	
-// 	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
-// 		
-// 
-// 	TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder,true);
-// 		
-// 	return 0;
+	int samples=1000;
+	
+	int porder=2;
+	
+	string namefolder;
+	
+	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+		
+
+	TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder,true);
+		
+	return 0;
 // 		
 //
 
@@ -175,13 +175,13 @@ int main()
     
    // TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,file);
 		
-	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/test";
+//	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/test";
 //   	string file = "/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/saida";
-   	bool flow=false;
-   	bool gim = false;
+ //  	bool flow=false;
+ //  	bool gim = false;
 //   	SolveSerial(947,948,flow,gim,file);
 // //     
-     ComputeMeanInAReagion();
+ //    ComputeMeanInAReagion();
 	// SolveMultiThread(0,1000,4,gim,file);
 	
 // 	string vtkFile0="deterministic-gim.vtk";
@@ -484,7 +484,7 @@ TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,int porder,in
 	//outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/teste-cohes-field.txt";
 	//outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/teste-phi-field.txt";
 	
-		outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/testeco.txt";
+    outco="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/testeco.txt";
 	outphi="/home/diogo/Dropbox/Projeto-Landslides/MonteCarlo/rffolder/testephi.txt";
 
     TPZFMatrix<REAL> readco,readphi;

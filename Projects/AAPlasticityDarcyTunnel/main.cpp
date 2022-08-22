@@ -824,9 +824,11 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
 void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor )
 {
     plasticmat3d * body= dynamic_cast<plasticmat3d *> ( cmesh->FindMaterial ( 1 ) );
+    plasticmat3d * body2= dynamic_cast<plasticmat3d *> ( cmesh->FindMaterial ( 2 ) );
     TPZManVector<REAL, 3> force ( 3,0. );
     force[1]=-factor*20.;
     body->SetBodyForce ( force );
+    body2->SetBodyForce ( force );
 
 }
 

@@ -232,6 +232,7 @@ int TPZMatElastoPlastic<T,TMEM>::VariableIndex(const std::string &name)
   if(!strcmp("FluxX",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFluxX;
   if(!strcmp("FluxY",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EFluxY;
   if(!strcmp("Pressure",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EPressure;
+  if(!strcmp("EEnergy",			name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EEnergy;
   if(!strcmp("PrincipalStress",          name.c_str()))  return TPZMatElastoPlastic<T,TMEM>::EPrincipalStress;
   //return TPZMatWithMem<TMEM>::VariableIndex(name);
   PZError << "TPZMatElastoPlastic::VariableIndex Error\n";
@@ -340,6 +341,7 @@ int TPZMatElastoPlastic<T,TMEM>::NSolutionVariables(int var)
   if(var == TPZMatElastoPlastic<T,TMEM>::EFlux)		 return 3;
   if(var == TPZMatElastoPlastic<T,TMEM>::EFluxX)		 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EFluxY)		 return 1;
+  if(var == TPZMatElastoPlastic<T,TMEM>::EEnergy)		 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EPressure)		 return 1;
   if(var == TPZMatElastoPlastic<T,TMEM>::EPrincipalStress)           return 3;
   if(var == 100) return 1;
@@ -421,6 +423,19 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
         TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[1]=0.;
 		TPZMatWithMem<TMEM>::fMemory[intPt].fPlasticState.fflux[2]=0.;
     }
+            REAL exx = elasticStrain.XX();
+        REAL exy = elasticStrain.XY();
+        REAL exz = elasticStrain.XZ();
+        REAL eyy = elasticStrain.YY();
+        REAL eyz = elasticStrain.YZ();
+        REAL ezz = elasticStrain.ZZ();
+            
+        REAL sxx = totalStress.XX();
+        REAL sxy = totalStress.XY();
+        REAL sxz = totalStress.XZ();
+        REAL syy = totalStress.YY();
+        REAL syz = totalStress.YZ();
+        REAL szz = totalStress.ZZ();
 	
   switch (var) {
     // Total Strain
@@ -563,6 +578,10 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
          Solout[0]= eigenvals[0];
          Solout[1]= eigenvals[1];
          Solout[2]= eigenvals[2];
+	break;
+        case EEnergy:
+        Solout[0] =(exx*sxx + 2*exy*sxy + 2*exz*sxz + eyy*syy + 2*eyz*syz + ezz*szz)/2.;
+        
 	break;
     default:
       DebugStop();

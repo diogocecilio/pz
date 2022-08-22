@@ -96,7 +96,7 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 
 REAL findnodalsol(TPZCompMesh *cmesh);
 
-int beta=90;
+int beta=45;
 
 int main()
 {

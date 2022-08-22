@@ -153,6 +153,8 @@ public:
 	{
 		fConstPermeability =  perm;
 	}
+	
+	TPZManVector<REAL,3> GetPermeability(TPZVec<REAL> x);
 
 protected:
     /**
