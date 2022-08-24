@@ -175,8 +175,8 @@ inline void SolveEigenSparse ( int type, TPZAutoPointer<TPZMatrix<REAL> > A, TPZ
     std::vector<T> tripletList;
     int sz=A->Rows();
 
-    cout << "here1 " <<endl;
-    tripletList.reserve ( sz*2000 );
+    //cout << "here1 " <<endl;
+    tripletList.reserve ( sz*20000 );
     // tripletList.reserve(80000);
 
     x.Resize ( sz, 1);
@@ -191,7 +191,7 @@ inline void SolveEigenSparse ( int type, TPZAutoPointer<TPZMatrix<REAL> > A, TPZ
         bbb ( i ) = b(i,0);
     }
 
-    cout << "here2 " <<endl;
+    //cout << "here2 " <<endl;
     AA.setFromTriplets ( tripletList.begin(), tripletList.end() );
 
     AA.makeCompressed();

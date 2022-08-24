@@ -84,10 +84,14 @@ void FadTest();
 
 STATE ComputeBCWork(TPZCompMesh &cmesh);
 
+TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh );
+
+void SolveRamp(TPZCompMesh * cmesh);
+
 int main()
 {
 
-    int porder =3;
+    int porder =2;
 
     TPZGeoMesh *gmeshtwo = CreateGMeshGidTwoMatsTailings ( 0 );
 
@@ -102,6 +106,8 @@ int main()
         TPZElastoPlasticAnalysis  * analysis1 =  CreateAnal(cmesh);
 
         ShearRed(cmesh);
+       // GravityIncrease ( cmesh );
+       // SolveRamp(cmesh);
 
         analysis1->AcceptSolution();
 
@@ -109,7 +115,7 @@ int main()
 
         postproc1->SetCompMesh(0);
 
-        CreatePostProcessingMeshTwoMats( postproc1, cmesh);
+        CreatePostProcessingMesh( postproc1, cmesh);
 
         std::string vtkFile1 ="shearred-nilo.vtk";
         Post(postproc1,vtkFile1);
@@ -209,7 +215,105 @@ int main()
     return 0;
 }
 
+void SolveRamp(TPZCompMesh * cmesh)
+{
+    int maxiter=100;
+    REAL tol=10;
+    bool linesearch=true;
+    bool checkconv=false;
+    int steps=40;
+    REAL finalload = 5.;
+    std::string vtkFile ="slopx.vtk";
+    TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
 
+    for(int iloadstep=0; iloadstep<=steps; iloadstep++)
+    {
+
+
+
+        TPZElastoPlasticAnalysis  * analysis =  CreateAnal(cmesh);
+        REAL load = iloadstep*finalload/steps;
+        cout << " \n --------- iloadstep  = "<< iloadstep  << " |  load  = "<< load <<endl;
+        LoadingRamp(cmesh,load);
+        int iters;
+        analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv,iters);
+        TPZFMatrix<REAL> sol = analysis->Solution();
+        analysis->AcceptSolution();
+        //postproc->SetCompMesh(0);
+        //CreatePostProcessingMeshTwoMats( postproc, cmesh);
+       // Post(postproc,vtkFile);
+    }
+
+
+}
+
+TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
+{
+
+	TPZManVector<REAL,10> output(10,0.);
+    REAL FS=1.,FSmax=50.,FSmin=0.,tol=0.01;
+    int neq = cmesh->NEquations();
+    int maxcount=50;
+    TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
+
+    int counterout = 0;
+
+    REAL norm = 1000.;
+     REAL tol2 = 1;
+    int NumIter = 30;
+    bool linesearch = true;
+    bool checkconv = false;
+	std::ofstream outloadu("outloadu.nb");
+    
+
+    do {
+
+
+        cout << "\n  FS = " << FS  <<" | Load step = " << counterout;
+        LoadingRamp ( cmesh,FS );
+		//LoadingRamp ( body,0.0000001 );
+        bool optimize =true;
+        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
+        chrono::steady_clock sc;
+        auto start = sc.now();
+		int iters;
+        bool conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv ,iters);
+
+        auto end = sc.now();
+        auto time_span = static_cast<chrono::duration<double>> ( end - start );
+        cout << " | total time in iterative process =  " << time_span.count()<< std::endl;
+        //anal->IterativeProcess ( outnewton, tol2, NumIter);
+
+        norm = Norm ( anal->Rhs() );
+
+        if ( conv==false ) {
+            cmesh->LoadSolution(displace0);
+			//cmesh->Solution().Zero();
+            FSmax = FS;
+            FS = ( FSmin + FSmax ) / 2.;
+
+        } else {
+            
+			displace0 = anal->Solution();
+            FSmin = FS;
+            anal->AcceptSolution();
+
+			FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+
+        }
+        
+        counterout++;
+		delete anal;
+    }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
+
+    
+	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
+	anal->AcceptSolution();
+	output[0]=FS;
+	output[1]=counterout;
+	output[2]=norm;
+    return output;
+}
 
 void MaterialPointMohrCoulomb() {
 
@@ -1073,26 +1177,41 @@ void ShearRed ( TPZCompMesh * cmesh)
     do {
 
         TPZElastoPlasticAnalysis  * anal = CreateAnal(cmesh);
+                
         REAL norm = 1000.;
-        REAL tol2 = 1.e-3;
-        int NumIter = 30;
+        REAL tol2 = 50;
+        int NumIter = 60;
         bool linesearch = true;
         bool checkconv = false;
         int iters;
-        anal->IterativeProcess ( std::cout, tol2, NumIter,linesearch,checkconv);
-        norm = Norm(anal->Rhs());
+        
+        
+        
+        chrono::steady_clock sc;
+        auto start = sc.now();
 
-        //std::cout << "| Load step = " << counterout << " | Rhs norm = " << norm << "| delta displacement norm = "<< unorm << std::endl;
-        if ( norm>= tol2) {
-            displace = displace0;
+        bool conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters );
+        norm = Norm ( anal->Rhs() );
+
+
+        //anal->AcceptSolution();
+
+
+        auto end = sc.now();
+        auto time_span = static_cast<chrono::duration<double>> ( end - start );
+
+        std::cout << "FS "<< FS <<  "| step = " << counterout << " | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
+
+        if ( conv==false ) {
+			cmesh->Solution().Zero();
             FSmax = FS;
             FS = ( FSmin + FSmax ) / 2.;
         } else {
-            displace0 = displace;
+			cmesh->Solution().Zero();
             FSmin = FS;
-            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+			FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
         }
-        std::cout << "FS = " << FS << std::endl;
+        
         c=cohesion0/FS;
         phi=atan ( tan ( phi0 ) /FS );
         psi=phi;
@@ -1298,15 +1417,8 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
 
-
-    // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
-    //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
-    //string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-    // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-//string file ="/home/diogo/projects/pz/data/gid-tri-880-sessenta.msh";
-//string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
-    string file ="/home/diogo/projects/pz/data/tailings300-45.msh";
-//string file ="/home/diogo/projects/pz/data/gid-tri-two-mats.msh";
+    //string file ="/home/diogo/projects/pz/data/tailings300-45.msh";
+    string file ="/home/diogo/projects/pz/data/tailings100-45.msh";
 
 
 
@@ -1316,7 +1428,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     TPZFMatrix<REAL> meshcoords = read.GetCoords();
     std::vector<std::vector< std::vector<double > > > allcoords = read.GetAllCoords();
 
-    int ndivs = 10000;
+    int ndivs = 100000;
     TPZFMatrix<REAL> pathbottom, pathleft, pathright, pathdisplace;
     std::vector<int>  idsbottom, idsleft, idsright, idstoprigth,idsramp,idstopleft;
 
@@ -1326,45 +1438,55 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     TPZManVector<REAL,2> a ( 2 ), b ( 2 );
 
 
+//     a[0] = 0.;
+//     a[1] = 0.;
+//     b[0] = 2250.;
+//     b[1] = 0.;
     a[0] = 0.;
     a[1] = 0.;
-    b[0] = 2000.;
+    b[0] = 750.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsbottom );
     idsvec.push_back ( idsbottom );
 
-    a = b;
-    b[0] = 2000.;
-    b[1] = 1000.;
+//     a = b;
+//     b[0] = 2250.;
+//     b[1] = 900.;
+        a = b;
+    b[0] = 750.;
+    b[1] = 300.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsright );
     idsvec.push_back ( idsright );
 
 
-    a = b;
-    b[0] = 1250.;
-    b[1] = 1000.;
+//     a = b;
+//     b[0] = 1350.;
+//     b[1] = 900.;
+        a = b;
+    b[0] = 450.;
+    b[1] = 300.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idstoprigth );
     idsvec.push_back ( idstoprigth );
 
-    a = b;
-    b[0] = 950.;
-    b[1] = 1300.;
+//     a = b;
+//     b[0] = 1050.;
+//     b[1] = 1200.;
+        a = b;
+    b[0] = 350.;
+    b[1] = 400.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsramp );
     idsvec.push_back ( idsramp );
-// 	a = b;
-//     b[0] = 39.2265;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
 
-    a = b;
+//     a = b;
+//     b[0] = 0.;
+//     b[1] = 1200.;
+        a = b;
     b[0] = 0.;
-    b[1] = 1300.;
+    b[1] = 400.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idstopleft );
     idsvec.push_back ( idstopleft );
@@ -1763,13 +1885,13 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
 
     // Mohr Coulomb data
     REAL mc_cohesion    = 50.;
-    REAL mc_phi         = ( 20.*M_PI/180 );
+    REAL mc_phi         = ( 40.*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
     // Elastic predictor
     TPZElasticResponse ER;
-    REAL nu = 0.49;
+    REAL nu = 0.3;
     REAL E = 20000.;
 
     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;

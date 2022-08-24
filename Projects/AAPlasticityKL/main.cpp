@@ -1625,7 +1625,7 @@ TPZManVector<REAL,10> ShearRed ( TPZCompMesh * cmesh,int isample,TPZManVector<TP
         norm = Norm ( anal->Rhs() );
 
 
-        //anal->AcceptSolution();
+        //anal->Ac\ceptSolution();
 
 
         auto end = sc.now();
