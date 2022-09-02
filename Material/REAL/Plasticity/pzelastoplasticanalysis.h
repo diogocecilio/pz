@@ -176,7 +176,7 @@ inline void SolveEigenSparse ( int type, TPZAutoPointer<TPZMatrix<REAL> > A, TPZ
     int sz=A->Rows();
 
     //cout << "here1 " <<endl;
-    tripletList.reserve ( sz*20000 );
+    tripletList.reserve ( sz*10000 );
     // tripletList.reserve(80000);
 
     x.Resize ( sz, 1);

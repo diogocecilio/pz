@@ -757,9 +757,8 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 // 	//auto time_span = static_cast<chrono::duration<double>> ( end - start );
 // 	//cout << "| total time taken to solve eigen=  " << time_span.count()<< std::endl;
 // 	 fSolution=du;
-//    AssembleResidual();
-    REAL normrhs0;
-    REAL unorm0;
+    AssembleResidual();
+    REAL normrhs0 = Norm(fRhs);
      cout << "normrhs0 = " << normrhs0 << endl;
     while( a && b && c  )  {
 
@@ -798,15 +797,12 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
             cout << "| total time taken to solve PZ=  " << time_span.count()<< std::endl;
         }
 
-
-                if(iter==0){
-            normrhs0=Norm(fRhs);
-            unorm0 = Norm(fSolution); 
-        }
+ 
         
         if (linesearch) {
             TPZFMatrix<STATE> nextSol;
-            REAL LineSearchTol = 1e-3 * Norm(fSolution);
+            //REAL LineSearchTol = 1e-3 * Norm(fSolution);
+            REAL LineSearchTol = 0.001 * Norm(fSolution);
             const int niter = 10;
             this->LineSearch(prevsol, fSolution, nextSol, LineSearchTol, niter);
             fSolution = nextSol;
@@ -824,14 +820,15 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         this->LoadSolution(fSolution);
         this->AssembleResidual();
         REAL normf  = Norm(fRhs);
-        cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)/u0| e |Delta(rhs)/rhs0| : " << normu << " / " << normf << " | tol = "<<tol << " norm0 = " << normf<< endl;
+        cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " << normf << " | tol = "<<tol << " norm0 = " << normf<< endl;
         a = iter < numiter ;
         b =error2 > tol *1.e-3;
         c= error > tol;
 
         //if( normDeltaSol>100 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9) ) {
        // if((normu>100 || iter >=numiter  ||(normu - error2) > 1.e-3)&& iter>5) {
-         if((normu>1 && iter>5 && (normu - error2) > 1.e-3)|| iter >=numiter) {
+        // if((normu>1 && iter>5 && (normu - error2) > 1.e-3)|| iter >=numiter) {
+        if(  ( iter >=numiter || ( iter>5 && normu > 2 ) ) ) {
             cout << "\nDivergent Method\n";
             return false;
         }

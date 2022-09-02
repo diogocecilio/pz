@@ -197,7 +197,7 @@ void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath )
                 REAL copathx = path.Get(ipath,0);
                 REAL copathy = path.Get(ipath,1);
 
-                if ( fabs ( x - copathx ) < 10.e-2 && fabs ( y - copathy ) < 10.e-2 ) {
+                if ( fabs ( x - copathx ) < 10.e-6 && fabs ( y - copathy ) < 10.e-6 ) {
                     idpath.push_back ( fmeshtopology(iel,inode) );
                     ipath = path.Rows();
                 }
