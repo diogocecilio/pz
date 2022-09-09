@@ -42,7 +42,7 @@ TPZVec<REAL> fPlasticDeformSqJ2;
 TPZGeoMesh * CreateGMesh ( int ref );
 TPZGeoMesh * CreateGMeshGidTwoMats ( int ref );
 TPZGeoMesh * CreateGMeshGidTwoMatsTailings ( int ref );
-TPZGeoMesh * CreateGMeshGid ( int ref );
+TPZGeoMesh * CreateGMeshGid ( int ref, TPZFMatrix<REAL> pts ,string gridname,REAL delta);
 
 TPZCompMesh * CreateCMesh(TPZGeoMesh * gmesh,int porder);
 
@@ -99,21 +99,39 @@ int main()
     int porder =2;
 
 
-
     {
+        bool quatrocinco = false;
+        TPZFMatrix<REAL> pts(6,2);
+        string gridname;
+        REAL delta=0.5;
+        if(quatrocinco==true)
+        {
+            gridname ="/home/diogo/projects/pz/data/beta-45-h-100.msh";
+            pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=450.;pts(4,0)=350.;pts(5,0)=0.;
+            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;pts(4,1)=400.;pts(5,1)=400.;
+        }
+        if(quatrocinco==false)
+        {
+            gridname ="/home/diogo/projects/pz/data/beta-30-h-100.msh";
+            pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=461.602;pts(4,0)=288.398;pts(5,0)=0.;
+            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;   pts(4,1)=400.000;pts(5,1)=400.;
+        }
 
-        //TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
-        TPZGeoMesh *gmesh = CreateGMeshCentrifuga ( 0 );
+
+        
+
+        TPZGeoMesh *gmesh = CreateGMeshGid ( 0 ,pts, gridname,delta);
+       // TPZGeoMesh *gmesh = CreateGMeshCentrifuga ( 0 );
        // TPZGeoMesh *gmesh = CreateGMesh ( 5 );
 
-        //TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
-        TPZCompMesh *cmesh = CreateCMeshCentrifuga( gmesh, porder );
+        TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
+        //TPZCompMesh *cmesh = CreateCMeshCentrifuga( gmesh, porder );
 
         TPZElastoPlasticAnalysis  * analysis1 =  CreateAnal(cmesh);
 
-        //ShearRed(cmesh);
-        //GravityIncrease ( cmesh );
-       SolveRamp(cmesh);
+      //  ShearRed(cmesh);
+        GravityIncrease ( cmesh );
+       //SolveRamp(cmesh);
 
         analysis1->AcceptSolution();
 
@@ -286,7 +304,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 {
 
 	TPZManVector<REAL,10> output(10,0.);
-    REAL FS=0.1,FSmax=50.,FSmin=0.,tol=0.01;
+    REAL FS=0.1,FSmax=1000.,FSmin=0.,tol=0.001;
     int neq = cmesh->NEquations();
     int maxcount=50;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
@@ -295,7 +313,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 
     REAL norm = 1000.;
      REAL tol2 = 1.e-2;
-    int NumIter = 30;
+    int NumIter = 50;
     bool linesearch = true;
     bool checkconv = false;
 	std::ofstream outloadu("outloadu.nb");
@@ -1373,11 +1391,48 @@ void PostProcessVariables(TPZStack<std::string> &scalNames, TPZStack<std::string
 
 }
 
+
+
+
+
+// TPZManVector<REAL,10> output(10,0.);
+//     REAL FS=0.1,FSmax=50.,FSmin=0.,tol=0.01;
+//     int neq = cmesh->NEquations();
+//     int maxcount=50;
+//     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
+// 
+//     int counterout = 0;
+// 
+//     REAL norm = 1000.;
+//      REAL tol2 = 1.e-2;
+//     int NumIter = 50;
+//     bool linesearch = true;
+//     bool checkconv = false;
+// 	std::ofstream outloadu("outloadu.nb");
+//     
+// 
+//     do {
+// 
+// 
+//         cout << "\n  FS = " << FS  <<" | Load step = " << counterout;
+//         LoadingRamp ( cmesh,FS );
+// 		//LoadingRamp ( body,0.0000001 );
+//         bool optimize =true;
+//         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
+//         chrono::steady_clock sc;
+//         auto start = sc.now();
+// 		int iters;
+//         bool conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv ,iters);
+// 
+
+
+
 void ShearRed ( TPZCompMesh * cmesh)
 {
+    
     LoadingRamp(cmesh,1.);
 
-    REAL FS=1,FSmax=5.,FSmin=0.,tol=1.e-3;
+    REAL FS=1.,FSmax=5.,FSmin=0.,tol=1.e-3;
     int neq = cmesh->NEquations();
 
     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
@@ -1392,11 +1447,12 @@ void ShearRed ( TPZCompMesh * cmesh)
     REAL phi,psi,c;
     do {
 
+        std::cout << "FS "<< FS <<  "| step = " << counterout  <<std::endl;
         TPZElastoPlasticAnalysis  * anal = CreateAnal(cmesh);
                 
         REAL norm = 1000.;
         REAL tol2 = 0.01;
-        int NumIter = 60;
+        int NumIter = 100;
         bool linesearch = true;
         bool checkconv = false;
         int iters;
@@ -1416,7 +1472,7 @@ void ShearRed ( TPZCompMesh * cmesh)
         auto end = sc.now();
         auto time_span = static_cast<chrono::duration<double>> ( end - start );
 
-        std::cout << "FS "<< FS <<  "| step = " << counterout << " | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
+        std::cout <<" | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
 
         if ( conv==false ) {
 			cmesh->Solution().Zero();
@@ -1629,15 +1685,17 @@ void ComputeElementDeformation(TPZCompMesh * fcmesh)
 
     fcmesh->SetElementSolution(0, fPlasticDeformSqJ2);
 }
-TPZGeoMesh * CreateGMeshGid ( int ref )
+TPZGeoMesh * CreateGMeshGid ( int ref ,TPZFMatrix<REAL> pts, string gridname, REAL delta)
 {
 
 
     //string file ="/home/diogo/projects/pz/data/tailings300-45.msh";
     //string file ="/home/diogo/projects/pz/data/tailings100-45.msh";
     //string file ="/home/diogo/projects/pz/data/tailings1000-45.msh";
-    string file ="/home/diogo/projects/pz/data/beta-45-h-100.msh";
-
+   // string file ="/home/diogo/projects/pz/data/beta-45-h-100.msh";
+   // string file ="/home/diogo/projects/pz/data/beta-30-h-100.msh";
+    
+    string file = gridname;
 
     readgidmesh read = readgidmesh ( file );
     read.ReadMesh();
@@ -1655,80 +1713,48 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     TPZManVector<REAL,2> a ( 2 ), b ( 2 );
 
 
-//     a[0] = 0.;
-//     a[1] = 0.;
-//     b[0] = 2250.;
-    b[1] = 0.;
-    a[0] = 0.;
-    a[1] = 0.;
-    b[0] = 750.;
-    b[1] = 0.;
-//     a[0] = 0.;
-//     a[1] = 0.;
-//     b[0] = 7500.;
-//     b[1] = 0.;
+    a[0] = pts(0,0);
+    a[1] = pts(0,1);
+    b[0] = pts(1,0);
+    b[1] = pts(1,1);
+
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom );
+    read.FindIdsInPath ( pathbottom, idsbottom,delta );
     idsvec.push_back ( idsbottom );
 
-//     a = b;
-//     b[0] = 2250.;
-//     b[1] = 900.;
-        a = b;
-    b[0] = 750.;
-    b[1] = 300.;
-//             a = b;
-//     b[0] = 7500.;
-//     b[1] = 3000.;
+    a = b;
+    b[0] = pts(2,0);
+    b[1] = pts(2,1);
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright );
+    read.FindIdsInPath ( pathbottom, idsright,delta );
     idsvec.push_back ( idsright );
 
-
-//     a = b;
-//     b[0] = 1350.;
-//     b[1] = 900.;
-        a = b;
-    b[0] = 450.;
-    b[1] = 300.;
-//             a = b;
-//     b[0] = 4500.;
-//     b[1] = 3000.;
+    a = b;
+    b[0] = pts(3,0);
+    b[1] = pts(3,1);
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth );
+    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
     idsvec.push_back ( idstoprigth );
 
-//     a = b;
-//     b[0] = 1050.;
-//     b[1] = 1200.;
-        a = b;
-    b[0] = 350.;
-    b[1] = 400.;
-//             a = b;
-//     b[0] = 3500.;
-//     b[1] = 4000.;
+    a = b;
+    b[0] = pts(4,0);
+    b[1] = pts(4,1);
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
+    read.FindIdsInPath ( pathbottom, idsramp,delta );
     idsvec.push_back ( idsramp );
 
-//     a = b;
-//     b[0] = 0.;
-//     b[1] = 1200.;
-        a = b;
-    b[0] = 0.;
-    b[1] = 400.;
-//             a = b;
-//     b[0] = 0.;
-//     b[1] = 4000.;
+    a = b;
+    b[0] = pts(5,0);
+    b[1] = pts(5,1);
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft );
+    read.FindIdsInPath ( pathbottom, idstopleft,delta );
     idsvec.push_back ( idstopleft );
 
     a = b;
-    b[0] = 0.;
-    b[1] = 0.;
+    b[0] = pts(0,0);
+    b[1] = pts(0,1);
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft );
+    read.FindIdsInPath ( pathbottom, idsleft,delta );
     idsvec.push_back ( idsleft );
 
 
@@ -1830,6 +1856,7 @@ TPZGeoMesh * CreateGMeshCentrifuga ( int ref )
 
     string file ="/home/diogo/projects/pz/data/gi.msh";
 
+    REAL delta =1.e-6;
 
     readgidmesh read = readgidmesh ( file );
     read.ReadMesh();
@@ -1853,42 +1880,42 @@ TPZGeoMesh * CreateGMeshCentrifuga ( int ref )
     b[0] = 0.300;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom );
+    read.FindIdsInPath ( pathbottom, idsbottom,delta );
     idsvec.push_back ( idsbottom );
 
     a = b;
     b[0] = 0.300;
     b[1] = 0.300;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright );
+    read.FindIdsInPath ( pathbottom, idsright,delta );
     idsvec.push_back ( idsright );
 
     a = b;
     b[0] = 0.121;
     b[1] = 0.300;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth );
+    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
     idsvec.push_back ( idstoprigth );
 
     a = b;
     b[0] = 0.100;
     b[1] = 0.060;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
+    read.FindIdsInPath ( pathbottom, idsramp,delta );
     idsvec.push_back ( idsramp );
 
     a = b;
     b[0] = 0.;
     b[1] = 0.060;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft );
+    read.FindIdsInPath ( pathbottom, idstopleft,delta );
     idsvec.push_back ( idstopleft );
 
     a = b;
     b[0] = 0.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft );
+    read.FindIdsInPath ( pathbottom, idsleft,delta );
     idsvec.push_back ( idsleft );
 
 
@@ -1990,6 +2017,7 @@ TPZGeoMesh * CreateGMeshCentrifuga ( int ref )
 TPZGeoMesh * CreateGMeshGidTwoMats ( int ref )
 {
 
+    REAL delta =1.e-6;
 
     string file ="/home/diogo/projects/pz/data/gid-tri-two-mats.msh";
 
@@ -2016,14 +2044,14 @@ TPZGeoMesh * CreateGMeshGidTwoMats ( int ref )
     b[0] = 75.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom );
+    read.FindIdsInPath ( pathbottom, idsbottom,delta );
     idsvec.push_back ( idsbottom );
 
     a = b;
     b[0] = 75.;
     b[1] = 30.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright );
+    read.FindIdsInPath ( pathbottom, idsright,delta );
     idsvec.push_back ( idsright );
 
 
@@ -2031,14 +2059,14 @@ TPZGeoMesh * CreateGMeshGidTwoMats ( int ref )
     b[0] = 45.;
     b[1] = 30.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth );
+    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
     idsvec.push_back ( idstoprigth );
 ////h10-beta 45
     a = b;
     b[0] = 35.;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
+    read.FindIdsInPath ( pathbottom, idsramp ,delta);
     idsvec.push_back ( idsramp );
 
 //h10-beta 30
@@ -2061,14 +2089,14 @@ TPZGeoMesh * CreateGMeshGidTwoMats ( int ref )
     b[0] = 0.;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft );
+    read.FindIdsInPath ( pathbottom, idstopleft,delta );
     idsvec.push_back ( idstopleft );
 
     a = b;
     b[0] = 0.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft );
+    read.FindIdsInPath ( pathbottom, idsleft,delta );
     idsvec.push_back ( idsleft );
 
 
@@ -2401,6 +2429,7 @@ TPZGeoMesh * CreateGMeshGidTwoMatsTailings ( int ref )
     //string file ="/home/diogo/projects/pz/data/gid-tailings2.msh";
     string file ="/home/diogo/projects/pz/data/gid-tailings3.msh";
 
+     REAL delta = 1.e-6;
 
     readgidmesh read = readgidmesh ( file );
     read.ReadMesh();
@@ -2423,14 +2452,14 @@ TPZGeoMesh * CreateGMeshGidTwoMatsTailings ( int ref )
     b[0] = 375.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom );
+    read.FindIdsInPath ( pathbottom, idsbottom,delta );
     idsvec.push_back ( idsbottom );
 
     a = b;
     b[0] = 375.;
     b[1] = 150.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright );
+    read.FindIdsInPath ( pathbottom, idsright ,delta);
     idsvec.push_back ( idsright );
 
 
@@ -2438,14 +2467,14 @@ TPZGeoMesh * CreateGMeshGidTwoMatsTailings ( int ref )
     b[0] = 225.;
     b[1] = 150.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth );
+    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
     idsvec.push_back ( idstoprigth );
 ////h10-beta 45
     a = b;
     b[0] = 175.;
     b[1] = 200.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
+    read.FindIdsInPath ( pathbottom, idsramp ,delta);
     idsvec.push_back ( idsramp );
 
 //h10-beta 30
@@ -2463,19 +2492,20 @@ TPZGeoMesh * CreateGMeshGidTwoMatsTailings ( int ref )
 //     read.FindIdsInPath ( pathbottom, idsramp );
 //     idsvec.push_back ( idsramp );
 
+   
 
     a = b;
     b[0] = 0.;
     b[1] = 200.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft );
+    read.FindIdsInPath ( pathbottom, idstopleft,delta );
     idsvec.push_back ( idstopleft );
 
     a = b;
     b[0] = 0.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft );
+    read.FindIdsInPath ( pathbottom, idsleft,delta );
     idsvec.push_back ( idsleft );
 
 

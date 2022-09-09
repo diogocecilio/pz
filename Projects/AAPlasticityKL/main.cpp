@@ -955,6 +955,7 @@ TPZGeoMesh * CreateGMeshGid2 ( int ref )
 
 	string file ="/home/diogo/projects/pz/data/h10-beta45-287.msh";
 
+    REAL delta= 1.e-6;
 
 
     readgidmesh read = readgidmesh ( file );
@@ -978,14 +979,14 @@ TPZGeoMesh * CreateGMeshGid2 ( int ref )
     b[0] = 50.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom );
+    read.FindIdsInPath ( pathbottom, idsbottom ,delta);
     idsvec.push_back ( idsbottom );
 
     a = b;
     b[0] = 50.;
     b[1] = 10.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright );
+    read.FindIdsInPath ( pathbottom, idsright ,delta);
     idsvec.push_back ( idsright );
 
 
@@ -993,14 +994,14 @@ TPZGeoMesh * CreateGMeshGid2 ( int ref )
     b[0] = 30.;
     b[1] = 10.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth );
+    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
     idsvec.push_back ( idstoprigth );
 ////h10-beta 45
     a = b;
     b[0] = 20.;
     b[1] = 20.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
+    read.FindIdsInPath ( pathbottom, idsramp,delta );
     idsvec.push_back ( idsramp );
  
 	
@@ -1009,14 +1010,14 @@ TPZGeoMesh * CreateGMeshGid2 ( int ref )
     b[0] = 0.;
     b[1] = 20.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft );
+    read.FindIdsInPath ( pathbottom, idstopleft,delta );
     idsvec.push_back ( idstopleft );
 
     a = b;
     b[0] = 0.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft );
+    read.FindIdsInPath ( pathbottom, idsleft ,delta);
     idsvec.push_back ( idsleft );
 
 
@@ -1128,6 +1129,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
 //string file ="/home/diogo/projects/pz/data/h10-beta60.msh";
 
+    REAL delta = 10.e-6;
 
     readgidmesh read = readgidmesh ( file );
     read.ReadMesh();
@@ -1150,14 +1152,14 @@ string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
     b[0] = 75.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom );
+    read.FindIdsInPath ( pathbottom, idsbottom,delta );
     idsvec.push_back ( idsbottom );
 
     a = b;
     b[0] = 75.;
     b[1] = 30.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright );
+    read.FindIdsInPath ( pathbottom, idsright,delta );
     idsvec.push_back ( idsright );
 
 
@@ -1165,14 +1167,14 @@ string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
     b[0] = 45.;
     b[1] = 30.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth );
+    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
     idsvec.push_back ( idstoprigth );
 ////h10-beta 45
     a = b;
     b[0] = 35.;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp );
+    read.FindIdsInPath ( pathbottom, idsramp,delta );
     idsvec.push_back ( idsramp );
 
 //h10-beta 30
@@ -1195,14 +1197,14 @@ string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
     b[0] = 0.;
     b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft );
+    read.FindIdsInPath ( pathbottom, idstopleft, delta);
     idsvec.push_back ( idstopleft );
 
     a = b;
     b[0] = 0.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft );
+    read.FindIdsInPath ( pathbottom, idsleft ,delta);
     idsvec.push_back ( idsleft );
 
 

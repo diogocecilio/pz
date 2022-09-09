@@ -181,7 +181,7 @@ void  ToMatInt ( std::vector<std::vector<int>> in, TPZFMatrix<int> & out )
 }
 	
 	
-void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath )
+void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath, REAL delta )
 {
     TPZFMatrix<REAL> elcoords;
     int nels = fallcoords.size();
@@ -197,7 +197,7 @@ void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath )
                 REAL copathx = path.Get(ipath,0);
                 REAL copathy = path.Get(ipath,1);
 
-                if ( fabs ( x - copathx ) < 10.e-6 && fabs ( y - copathy ) < 10.e-6 ) {
+                if ( fabs ( x - copathx ) < delta && fabs ( y - copathy ) <delta ) {
                     idpath.push_back ( fmeshtopology(iel,inode) );
                     ipath = path.Rows();
                 }

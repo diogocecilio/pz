@@ -820,7 +820,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         this->LoadSolution(fSolution);
         this->AssembleResidual();
         REAL normf  = Norm(fRhs);
-        cout << "Iteracao n : " << (iter+1) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " << normf << " | tol = "<<tol << " norm0 = " << normf<< endl;
+        cout << "Iteracao n : " << (iter) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " << normf << " | tol = "<<tol << endl;
         a = iter < numiter ;
         b =error2 > tol *1.e-3;
         c= error > tol;
@@ -828,7 +828,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         //if( normDeltaSol>100 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9) ) {
        // if((normu>100 || iter >=numiter  ||(normu - error2) > 1.e-3)&& iter>5) {
         // if((normu>1 && iter>5 && (normu - error2) > 1.e-3)|| iter >=numiter) {
-        if(  ( iter >=numiter || ( iter>5 && normu > 2 ) ) ) {
+        if(  ( iter >=numiter || ( iter>3 && normu > 2 ) ) ) {
             cout << "\nDivergent Method\n";
             return false;
         }
