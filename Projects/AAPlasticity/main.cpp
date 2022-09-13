@@ -44,7 +44,8 @@ TPZGeoMesh * CreateGMeshGidTwoMats ( int ref );
 TPZGeoMesh * CreateGMeshGidTwoMatsTailings ( int ref );
 TPZGeoMesh * CreateGMeshGid ( int ref, TPZFMatrix<REAL> pts ,string gridname,REAL delta);
 
-TPZCompMesh * CreateCMesh(TPZGeoMesh * gmesh,int porder);
+//TPZCompMesh * CreateCMesh(TPZGeoMesh * gmesh,int porder);
+TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder, REAL c, REAL phi, REAL poisson, REAL young );
 
 TPZCompMesh * CreateCMeshTwoMats(TPZGeoMesh * gmesh,int porder);
 
@@ -99,22 +100,61 @@ int main()
     int porder =2;
 
 
+    int var=1;
+    enum mesh { trinta = 0, quarenta = 1, quarentacinco = 2 ,sessenta=3};
     {
-        bool quatrocinco = false;
         TPZFMatrix<REAL> pts(6,2);
         string gridname;
         REAL delta=0.5;
-        if(quatrocinco==true)
+
+        
+//         if(mesh::trinta==var)
+//         {
+//             gridname ="/home/diogo/projects/pz/data/beta-30-h-100.msh";
+//             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=461.602;pts(4,0)=288.398;pts(5,0)=0.;
+//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;   pts(4,1)=400.000;pts(5,1)=400.;
+//         }
+//         if(mesh::quarenta==var)
+//         {
+//             gridname ="/home/diogo/projects/pz/data/beta-40-h-100.msh";
+//             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=434.588;pts(4,0)=315.412;pts(5,0)=0.;
+//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;   pts(4,1)=400.000;pts(5,1)=400.;
+//         }
+//         if(mesh::quarentacinco==var)
+//         {
+//             gridname ="/home/diogo/projects/pz/data/beta-45-h-100.msh";
+//             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=450.;pts(4,0)=350.;pts(5,0)=0.;
+//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;pts(4,1)=400.;pts(5,1)=400.;
+//         }
+//         if(mesh::sessenta==var)
+//         {
+//             gridname ="/home/diogo/projects/pz/data/beta-60-h-100.msh";
+//             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=403.868;pts(4,0)=346.133;pts(5,0)=0.;
+//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;pts(4,1)=400.;pts(5,1)=400.;
+//         }
+        if(mesh::trinta==var)
         {
-            gridname ="/home/diogo/projects/pz/data/beta-45-h-100.msh";
-            pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=450.;pts(4,0)=350.;pts(5,0)=0.;
-            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;pts(4,1)=400.;pts(5,1)=400.;
+            gridname ="/home/diogo/projects/pz/data/beta-30-h-300.msh";
+            pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=759.808;pts(4,0)=240.192;pts(5,0)=0.;
+            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
         }
-        if(quatrocinco==false)
+        if(mesh::quarenta==var)
         {
-            gridname ="/home/diogo/projects/pz/data/beta-30-h-100.msh";
-            pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=461.602;pts(4,0)=288.398;pts(5,0)=0.;
-            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;   pts(4,1)=400.000;pts(5,1)=400.;
+            gridname ="/home/diogo/projects/pz/data/beta-40-h-300.msh";
+            pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=678.763;pts(4,0)=321.237;pts(5,0)=0.;
+            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
+        }
+        if(mesh::quarentacinco==var)
+        {
+            gridname ="/home/diogo/projects/pz/data/beta-45-h-300.msh";
+            pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=650;pts(4,0)=350;pts(5,0)=0.;
+            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
+        }
+        if(mesh::sessenta==var)
+        {
+            gridname ="/home/diogo/projects/pz/data/beta-60-h-300.msh";
+            pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=586.603;pts(4,0)=413.397;pts(5,0)=0.;
+            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
         }
 
 
@@ -123,14 +163,18 @@ int main()
         TPZGeoMesh *gmesh = CreateGMeshGid ( 0 ,pts, gridname,delta);
        // TPZGeoMesh *gmesh = CreateGMeshCentrifuga ( 0 );
        // TPZGeoMesh *gmesh = CreateGMesh ( 5 );
-
-        TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
+        REAL c =150.;
+        REAL phi = 34.1;
+        REAL poisson=0.49;
+        REAL young = 20000000.;
+        TPZCompMesh *cmesh =   CreateCMesh ( gmesh, porder,  c,  phi,  poisson,  young );
+        //TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
         //TPZCompMesh *cmesh = CreateCMeshCentrifuga( gmesh, porder );
 
         TPZElastoPlasticAnalysis  * analysis1 =  CreateAnal(cmesh);
 
-      //  ShearRed(cmesh);
-        GravityIncrease ( cmesh );
+        ShearRed(cmesh);
+       // GravityIncrease ( cmesh );
        //SolveRamp(cmesh);
 
         analysis1->AcceptSolution();
@@ -2359,7 +2403,7 @@ TPZCompMesh * CreateCMeshCentrifuga ( TPZGeoMesh * gmesh,int porder )
 
 
 /// create the computational mesh
-TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
+TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder, REAL c, REAL phi, REAL poisson, REAL young )
 {
     unsigned int dim  = 2;
     const std::string name ( "ElastoPlastic COMP MESH Footing Problem " );
@@ -2370,15 +2414,15 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     cmesh->SetDimModel ( dim );
 
     // Mohr Coulomb data
-    REAL mc_cohesion    = 10.;
-    REAL mc_phi         = ( 34.1*M_PI/180 );
+    REAL mc_cohesion    = c;
+    REAL mc_phi         = (phi*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
     // Elastic predictor
     TPZElasticResponse ER;
-    REAL nu = 0.49;
-    REAL E = 200000.; // 2 000 000 kPa = 2 GPa, concreto tem aprox 30 Gpa
+    REAL nu = poisson;
+    REAL E = young; // 2 000 000 kPa = 2 GPa, concreto tem aprox 30 Gpa
 
     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
     ER.SetUp ( E, nu );
