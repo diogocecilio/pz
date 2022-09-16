@@ -42,7 +42,7 @@ TPZVec<REAL> fPlasticDeformSqJ2;
 TPZGeoMesh * CreateGMesh ( int ref );
 TPZGeoMesh * CreateGMeshGidTwoMats ( int ref );
 TPZGeoMesh * CreateGMeshGidTwoMatsTailings ( int ref );
-TPZGeoMesh * CreateGMeshGid ( int ref, TPZFMatrix<REAL> pts ,string gridname,REAL delta);
+TPZGeoMesh * CreateGMeshGid ( int ref, TPZFMatrix<REAL> pts ,string gridname);
 
 //TPZCompMesh * CreateCMesh(TPZGeoMesh * gmesh,int porder);
 TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder, REAL c, REAL phi, REAL poisson, REAL young );
@@ -90,201 +90,291 @@ void SolveRamp(TPZCompMesh * cmesh);
 TPZGeoMesh * CreateGMeshCentrifuga ( int ref );
 
 TPZCompMesh * CreateCMeshCentrifuga(TPZGeoMesh * gmesh,int porder);
+std::vector<std::vector<double>> ReadMeshPoints(std::string file);
+std::vector<std::vector<double>> ReadMeshPoints(std::string file)
+{
+    ifstream myfile ( file );
+    std::vector<std::vector<double>> coords;
+    string line,temp;
+    double temp2;
+    
+    if ( myfile.is_open() ) {
+        while ( getline ( myfile, line ) ) {
+            std::vector<double> tokens;
+            istringstream iss ( line );
+            while ( iss >> temp2 )tokens.push_back ( temp2 );
+            coords.push_back ( tokens );
+
+        }
+    } else std::cout << "Unable to open file";
+
+    return coords;
+}
 
 void LoadingRamp (TPZCompMesh * cmesh,  REAL factor,REAL gamma);
 
+
+
 int main()
 {
-    
-    
-    int porder =2;
-
-
-    int var=1;
-    enum mesh { trinta = 0, quarenta = 1, quarentacinco = 2 ,sessenta=3};
+    int porder=2;
+    string file = "/home/diogo/Dropbox/Limit-Equilibrium-Pyton/pts-h89.9299-beta45.dat";
+   std::vector<std::vector<double>> coords = ReadMeshPoints(file);
+   int rows=coords.size();
+   int cols = coords[0].size();
+   TPZFMatrix<REAL> pts(rows,cols);
+    for(int it=0;it<coords.size();it++)
     {
-        TPZFMatrix<REAL> pts(6,2);
-        string gridname;
-        REAL delta=0.5;
-
-        
-//         if(mesh::trinta==var)
-//         {
-//             gridname ="/home/diogo/projects/pz/data/beta-30-h-100.msh";
-//             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=461.602;pts(4,0)=288.398;pts(5,0)=0.;
-//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;   pts(4,1)=400.000;pts(5,1)=400.;
-//         }
-//         if(mesh::quarenta==var)
-//         {
-//             gridname ="/home/diogo/projects/pz/data/beta-40-h-100.msh";
-//             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=434.588;pts(4,0)=315.412;pts(5,0)=0.;
-//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;   pts(4,1)=400.000;pts(5,1)=400.;
-//         }
-//         if(mesh::quarentacinco==var)
-//         {
-//             gridname ="/home/diogo/projects/pz/data/beta-45-h-100.msh";
-//             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=450.;pts(4,0)=350.;pts(5,0)=0.;
-//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;pts(4,1)=400.;pts(5,1)=400.;
-//         }
-//         if(mesh::sessenta==var)
-//         {
-//             gridname ="/home/diogo/projects/pz/data/beta-60-h-100.msh";
-//             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=403.868;pts(4,0)=346.133;pts(5,0)=0.;
-//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;pts(4,1)=400.;pts(5,1)=400.;
-//         }
-        if(mesh::trinta==var)
+        for(int jt=0;jt<coords[it].size();jt++)
         {
-            gridname ="/home/diogo/projects/pz/data/beta-30-h-300.msh";
-            pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=759.808;pts(4,0)=240.192;pts(5,0)=0.;
-            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
+            pts(it,jt) =coords[it][jt];
         }
-        if(mesh::quarenta==var)
-        {
-            gridname ="/home/diogo/projects/pz/data/beta-40-h-300.msh";
-            pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=678.763;pts(4,0)=321.237;pts(5,0)=0.;
-            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
-        }
-        if(mesh::quarentacinco==var)
-        {
-            gridname ="/home/diogo/projects/pz/data/beta-45-h-300.msh";
-            pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=650;pts(4,0)=350;pts(5,0)=0.;
-            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
-        }
-        if(mesh::sessenta==var)
-        {
-            gridname ="/home/diogo/projects/pz/data/beta-60-h-300.msh";
-            pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=586.603;pts(4,0)=413.397;pts(5,0)=0.;
-            pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
-        }
-
-
-        
-
-        TPZGeoMesh *gmesh = CreateGMeshGid ( 0 ,pts, gridname,delta);
-       // TPZGeoMesh *gmesh = CreateGMeshCentrifuga ( 0 );
-       // TPZGeoMesh *gmesh = CreateGMesh ( 5 );
-        REAL c =150.;
-        REAL phi = 34.1;
-        REAL poisson=0.49;
-        REAL young = 20000000.;
-        TPZCompMesh *cmesh =   CreateCMesh ( gmesh, porder,  c,  phi,  poisson,  young );
-        //TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
-        //TPZCompMesh *cmesh = CreateCMeshCentrifuga( gmesh, porder );
-
-        TPZElastoPlasticAnalysis  * analysis1 =  CreateAnal(cmesh);
-
-        ShearRed(cmesh);
-       // GravityIncrease ( cmesh );
-       //SolveRamp(cmesh);
-
-        analysis1->AcceptSolution();
-
-        TPZPostProcAnalysis  * postproc1 = new TPZPostProcAnalysis();
-
-        postproc1->SetCompMesh(0);
-
-        CreatePostProcessingMesh( postproc1, cmesh);
-
-        std::string vtkFile1 ="shearred-nilo.vtk";
-        Post(postproc1,vtkFile1);
     }
+    pts.Print(std::cout);
+    //string gridname ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/h143.888-beta45.msh";
+    string gridname ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/h75.7305-beta45.msh";
+    TPZGeoMesh *gmesh = CreateGMeshGid ( 0 ,pts, gridname);
+    REAL c =50.;
+    REAL phi = 34.1;
+    REAL poisson=0.49;
+    REAL young = 20000.;
+    TPZCompMesh *cmesh =   CreateCMesh ( gmesh, porder,  c,  phi,  poisson,  young );
+    TPZElastoPlasticAnalysis  * analysis1 =  CreateAnal(cmesh);
+
+    ShearRed(cmesh);
+    //GravityIncrease ( cmesh );
+    //SolveRamp(cmesh);
 
     return 0;
-
-    TPZGeoMesh *gmeshtwo = CreateGMeshGidTwoMatsTailings ( 0 );
-
-    TPZCompMesh *cmeshtwo = CreateCMeshTwoMats ( gmeshtwo, porder );
-
     int maxiter=100;
     REAL tol=1.e-3;
     bool linesearch=true;
     bool checkconv=false;
-    int steps=10;
-    REAL finalload = 0.9;
-    std::string vtkFile ="slopx.vtk";
-    std::ofstream outloadu("loadvu.nb");
-    outloadu << "plot = {";
-    TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
+    int steps=10,iters;
+    bool conv = analysis1->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv,iters);
+    analysis1->AcceptSolution();
 
-    //ShearRed (cmesh2);
+    TPZPostProcAnalysis  * postproc1 = new TPZPostProcAnalysis();
 
+    postproc1->SetCompMesh(0);
 
-    REAL uy=0;
-    for(int iloadstep=0; iloadstep<=steps; iloadstep++)
-    {
+    CreatePostProcessingMesh( postproc1, cmesh);
 
-
-
-        TPZElastoPlasticAnalysis  * analysis =  CreateAnal(cmeshtwo);
-        // TPZElastoPlasticAnalysis  * analysis =  CreateAnal(cmesh);
-
-
-        REAL load = iloadstep*finalload/steps;
-        cout << " \n --------- iloadstep  = "<< iloadstep << endl;
-
-        cout << " \n --------- load  = "<< load << endl;
-
-        LoadingRamptwo(cmeshtwo,load);
-        int iters;
-        // LoadingRamp(cmesh,load);
-        bool conv = analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv,iters);
-        
-        //uy+=findnodalsol(cmeshtwo);
-        //uy+=findnodalsol(cmesh);
-        TPZFMatrix<REAL> sol = analysis->Solution();
-
-        //cmesh->Solution().Print(cout);
-        cout << " sol "<<-uy << " | load = " << load <<    endl;
-        analysis->AcceptSolution();
-
-        outloadu << "{ "<<-uy << ", " << load << " } ," << endl;
-
-        postproc->SetCompMesh(0);
-        //CreatePostProcessingMesh( postproc, cmeshtwo);
-        CreatePostProcessingMeshTwoMats( postproc, cmeshtwo);
-        //CreatePostProcessingMesh( postproc, cmesh);
-
-        Post(postproc,vtkFile);
-
-        // IntegrateBCSol(cmeshtwo);
-        // ComputeBCWork(*cmeshtwo);
-        //cmesh->LoadSolution();
-        //ComputeElementDeformation(cmesh);
-
-// 		std::set<long> elindices;
-// 		REAL sqrtj2=0.005;
-
-        //DivideElementsAbove(cmesh,gmesh,sqrtj2,elindices);
-
-
-
-// 		LoadingRamp(cmesh,load);
-// 		analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
-// 		analysis->AcceptSolution();
-        //
-
-
-    }
-    outloadu <<  " }; ListLinePlot[plot,PlotRange->All]" << endl;
-
-// 		TPZElastoPlasticAnalysis *anal  =  CreateAnal(cmesh);
-//
-// 		LoadingRamp(cmesh,finalload);
-//
-//  		anal->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
-//
-//  		anal->AcceptSolution();
-//
-// 		CreatePostProcessingMesh( postproc, cmesh);
-//
-// 		Post(postproc,vtkFile);
-//
-//
-//     std::cout << "FINISHED!" << std::endl;
-
-
+    std::string vtkFile1 ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/srm-pts-h75.7305-beta45-c50.vtk";
+    Post(postproc1,vtkFile1);
+    
     return 0;
 }
+
+
+// int main()
+// {
+//     string file = "/home/diogo/Dropbox/Limit-Equilibrium-Pyton/pts.dat";
+//    std::vector<std::vector<double>> coords = ReadMeshPoints(file);
+//     for(int it=0;it<coords.size();it++)
+//     {
+//         for(int jt=0;jt<coords[it].size();jt++)
+//         {
+//             cout << coords[it][jt] << " ";
+//         }
+//         cout << endl;
+//     }
+//     return 0;
+//     int porder =2;
+// 
+// 
+//     int var=1;
+//     enum mesh { trinta = 0, quarenta = 1, quarentacinco = 2 ,sessenta=3};
+//     {
+//         TPZFMatrix<REAL> pts(6,2);
+//         string gridname;
+//         REAL delta=0.5;
+// 
+//         
+// //         if(mesh::trinta==var)
+// //         {
+// //             gridname ="/home/diogo/projects/pz/data/beta-30-h-100.msh";
+// //             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=461.602;pts(4,0)=288.398;pts(5,0)=0.;
+// //             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;   pts(4,1)=400.000;pts(5,1)=400.;
+// //         }
+// //         if(mesh::quarenta==var)
+// //         {
+// //             gridname ="/home/diogo/projects/pz/data/beta-40-h-100.msh";
+// //             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=434.588;pts(4,0)=315.412;pts(5,0)=0.;
+// //             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;   pts(4,1)=400.000;pts(5,1)=400.;
+// //         }
+// //         if(mesh::quarentacinco==var)
+// //         {
+// //             gridname ="/home/diogo/projects/pz/data/beta-45-h-100.msh";
+// //             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=450.;pts(4,0)=350.;pts(5,0)=0.;
+// //             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;pts(4,1)=400.;pts(5,1)=400.;
+// //         }
+// //         if(mesh::sessenta==var)
+// //         {
+// //             gridname ="/home/diogo/projects/pz/data/beta-60-h-100.msh";
+// //             pts(0,0)=0.;pts(1,0)=750.;pts(2,0)=750.;pts(3,0)=403.868;pts(4,0)=346.133;pts(5,0)=0.;
+// //             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=300.;pts(3,1)=300.;pts(4,1)=400.;pts(5,1)=400.;
+// //         }
+//         if(mesh::trinta==var)
+//         {
+//             gridname ="/home/diogo/projects/pz/data/beta-30-h-300.msh";
+//             pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=759.808;pts(4,0)=240.192;pts(5,0)=0.;
+//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
+//         }
+//         if(mesh::quarenta==var)
+//         {
+//             gridname ="/home/diogo/projects/pz/data/beta-40-h-300.msh";
+//             pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=678.763;pts(4,0)=321.237;pts(5,0)=0.;
+//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
+//         }
+//         if(mesh::quarentacinco==var)
+//         {
+//             gridname ="/home/diogo/projects/pz/data/beta-45-h-300.msh";
+//             pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=650;pts(4,0)=350;pts(5,0)=0.;
+//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
+//         }
+//         if(mesh::sessenta==var)
+//         {
+//             gridname ="/home/diogo/projects/pz/data/beta-60-h-300.msh";
+//             pts(0,0)=0.;pts(1,0)=1000.;pts(2,0)=1000.;pts(3,0)=586.603;pts(4,0)=413.397;pts(5,0)=0.;
+//             pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=400.;pts(3,1)=400.;   pts(4,1)=700.;pts(5,1)=700.;
+//         }
+// 
+// 
+// //         delta=0.5;
+// //         gridname ="/home/diogo/projects/pz/data/meshfs1.msh";
+// //         pts(0,0)=0.;pts(1,0)=240.45;pts(2,0)=240.45;pts(3,0)=140.45;pts(4,0)=100;pts(5,0)=0.;
+// //         pts(0,1)=0.;pts(1,1)=0.;  pts(2,1)=59.55;pts(3,1)=59.55;   pts(4,1)=100.;pts(5,1)=100.;
+// 
+//         TPZGeoMesh *gmesh = CreateGMeshGid ( 0 ,pts, gridname,delta);
+//        // TPZGeoMesh *gmesh = CreateGMeshCentrifuga ( 0 );
+//        // TPZGeoMesh *gmesh = CreateGMesh ( 5 );
+//         REAL c =50.;
+//         REAL phi = 34.1;
+//         REAL poisson=0.49;
+//         REAL young = 20000000.;
+// //         REAL c =50.;
+// //         REAL phi = 20;
+// //         REAL poisson=0.49;
+// //         REAL young = 200000.;
+//          TPZCompMesh *cmesh =   CreateCMesh ( gmesh, porder,  c,  phi,  poisson,  young );
+//         //TPZCompMesh *cmesh = CreateCMesh ( gmesh, porder );
+//         //TPZCompMesh *cmesh = CreateCMeshCentrifuga( gmesh, porder );
+// 
+//         TPZElastoPlasticAnalysis  * analysis1 =  CreateAnal(cmesh);
+// 
+//         //ShearRed(cmesh);
+//        GravityIncrease ( cmesh );
+//        //SolveRamp(cmesh);
+// 
+//         analysis1->AcceptSolution();
+// 
+//         TPZPostProcAnalysis  * postproc1 = new TPZPostProcAnalysis();
+// 
+//         postproc1->SetCompMesh(0);
+// 
+//         CreatePostProcessingMesh( postproc1, cmesh);
+// 
+//         std::string vtkFile1 ="shearred-nilo.vtk";
+//         Post(postproc1,vtkFile1);
+//     }
+// 
+//     return 0;
+// 
+//     TPZGeoMesh *gmeshtwo = CreateGMeshGidTwoMatsTailings ( 0 );
+// 
+//     TPZCompMesh *cmeshtwo = CreateCMeshTwoMats ( gmeshtwo, porder );
+// 
+//     int maxiter=100;
+//     REAL tol=1.e-3;
+//     bool linesearch=true;
+//     bool checkconv=false;
+//     int steps=10;
+//     REAL finalload = 0.9;
+//     std::string vtkFile ="slopx.vtk";
+//     std::ofstream outloadu("loadvu.nb");
+//     outloadu << "plot = {";
+//     TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
+// 
+//     //ShearRed (cmesh2);
+// 
+// 
+//     REAL uy=0;
+//     for(int iloadstep=0; iloadstep<=steps; iloadstep++)
+//     {
+// 
+// 
+// 
+//         TPZElastoPlasticAnalysis  * analysis =  CreateAnal(cmeshtwo);
+//         // TPZElastoPlasticAnalysis  * analysis =  CreateAnal(cmesh);
+// 
+// 
+//         REAL load = iloadstep*finalload/steps;
+//         cout << " \n --------- iloadstep  = "<< iloadstep << endl;
+// 
+//         cout << " \n --------- load  = "<< load << endl;
+// 
+//         LoadingRamptwo(cmeshtwo,load);
+//         int iters;
+//         // LoadingRamp(cmesh,load);
+//         bool conv = analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv,iters);
+//         
+//         //uy+=findnodalsol(cmeshtwo);
+//         //uy+=findnodalsol(cmesh);
+//         TPZFMatrix<REAL> sol = analysis->Solution();
+// 
+//         //cmesh->Solution().Print(cout);
+//         cout << " sol "<<-uy << " | load = " << load <<    endl;
+//         analysis->AcceptSolution();
+// 
+//         outloadu << "{ "<<-uy << ", " << load << " } ," << endl;
+// 
+//         postproc->SetCompMesh(0);
+//         //CreatePostProcessingMesh( postproc, cmeshtwo);
+//         CreatePostProcessingMeshTwoMats( postproc, cmeshtwo);
+//         //CreatePostProcessingMesh( postproc, cmesh);
+// 
+//         Post(postproc,vtkFile);
+// 
+//         // IntegrateBCSol(cmeshtwo);
+//         // ComputeBCWork(*cmeshtwo);
+//         //cmesh->LoadSolution();
+//         //ComputeElementDeformation(cmesh);
+// 
+// // 		std::set<long> elindices;
+// // 		REAL sqrtj2=0.005;
+// 
+//         //DivideElementsAbove(cmesh,gmesh,sqrtj2,elindices);
+// 
+// 
+// 
+// // 		LoadingRamp(cmesh,load);
+// // 		analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
+// // 		analysis->AcceptSolution();
+//         //
+// 
+// 
+//     }
+//     outloadu <<  " }; ListLinePlot[plot,PlotRange->All]" << endl;
+// 
+// // 		TPZElastoPlasticAnalysis *anal  =  CreateAnal(cmesh);
+// //
+// // 		LoadingRamp(cmesh,finalload);
+// //
+// //  		anal->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv);
+// //
+// //  		anal->AcceptSolution();
+// //
+// // 		CreatePostProcessingMesh( postproc, cmesh);
+// //
+// // 		Post(postproc,vtkFile);
+// //
+// //
+// //     std::cout << "FINISHED!" << std::endl;
+// 
+// 
+//     return 0;
+// }
 
 void SolveRamp(TPZCompMesh * cmesh)
 {
@@ -348,7 +438,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 {
 
 	TPZManVector<REAL,10> output(10,0.);
-    REAL FS=0.1,FSmax=1000.,FSmin=0.,tol=0.001;
+    REAL FS=0.5,FSmax=1000.,FSmin=0.,tol=0.001;
     int neq = cmesh->NEquations();
     int maxcount=50;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
@@ -363,6 +453,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
 	std::ofstream outloadu("outloadu.nb");
     
 
+    bool conv=false;
     do {
 
 
@@ -374,7 +465,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
         chrono::steady_clock sc;
         auto start = sc.now();
 		int iters;
-        bool conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv ,iters);
+         conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv ,iters);
 
         auto end = sc.now();
         auto time_span = static_cast<chrono::duration<double>> ( end - start );
@@ -401,7 +492,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
         
         counterout++;
 		delete anal;
-    }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
+    }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) || conv==false);
 
     
 	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
@@ -1476,7 +1567,7 @@ void ShearRed ( TPZCompMesh * cmesh)
     
     LoadingRamp(cmesh,1.);
 
-    REAL FS=1.,FSmax=5.,FSmin=0.,tol=1.e-3;
+    REAL FS=0.8,FSmax=5.,FSmin=0.,tol=0.001;
     int neq = cmesh->NEquations();
 
     TPZFMatrix<REAL> displace(neq,1),displace0(neq,1);
@@ -1489,14 +1580,16 @@ void ShearRed ( TPZCompMesh * cmesh)
     REAL phi0 = LEMC.fYC.Phi();
     REAL cohesion0 = LEMC.fYC.Cohesion();
     REAL phi,psi,c;
+    bool conv=false;
     do {
 
+        cmesh->Solution().Zero();
         std::cout << "FS "<< FS <<  "| step = " << counterout  <<std::endl;
         TPZElastoPlasticAnalysis  * anal = CreateAnal(cmesh);
                 
         REAL norm = 1000.;
         REAL tol2 = 0.01;
-        int NumIter = 100;
+        int NumIter = 50;
         bool linesearch = true;
         bool checkconv = false;
         int iters;
@@ -1506,7 +1599,7 @@ void ShearRed ( TPZCompMesh * cmesh)
         chrono::steady_clock sc;
         auto start = sc.now();
 
-        bool conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters );
+         conv = anal->IterativeProcess ( cout, tol2, NumIter,linesearch,checkconv,iters );
         norm = Norm ( anal->Rhs() );
 
 
@@ -1519,11 +1612,11 @@ void ShearRed ( TPZCompMesh * cmesh)
         std::cout <<" | Rhs norm = " << norm  << " | IterativeProcess Time: " << time_span.count() << " seconds !!! " <<std::endl;
 
         if ( conv==false ) {
-			cmesh->Solution().Zero();
+	
             FSmax = FS;
             FS = ( FSmin + FSmax ) / 2.;
         } else {
-			cmesh->Solution().Zero();
+			
             FSmin = FS;
 			FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
         }
@@ -1534,7 +1627,9 @@ void ShearRed ( TPZCompMesh * cmesh)
         LEMC.fYC.SetUp ( phi, psi, c, ER );
         material->SetPlasticity ( LEMC );
         counterout++;
-    }  while ( ( FSmax - FSmin ) / FS > tol );
+    }  while ( ( FSmax - FSmin ) / FS > tol || conv==false);
+    TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh );
+	anal->AcceptSolution();
 }
 
 TPZElastoPlasticAnalysis * CreateAnal(TPZCompMesh *cmesh)
@@ -1729,15 +1824,11 @@ void ComputeElementDeformation(TPZCompMesh * fcmesh)
 
     fcmesh->SetElementSolution(0, fPlasticDeformSqJ2);
 }
-TPZGeoMesh * CreateGMeshGid ( int ref ,TPZFMatrix<REAL> pts, string gridname, REAL delta)
+
+
+
+TPZGeoMesh * CreateGMeshGid ( int ref ,TPZFMatrix<REAL> pts, string gridname)
 {
-
-
-    //string file ="/home/diogo/projects/pz/data/tailings300-45.msh";
-    //string file ="/home/diogo/projects/pz/data/tailings100-45.msh";
-    //string file ="/home/diogo/projects/pz/data/tailings1000-45.msh";
-   // string file ="/home/diogo/projects/pz/data/beta-45-h-100.msh";
-   // string file ="/home/diogo/projects/pz/data/beta-30-h-100.msh";
     
     string file = gridname;
 
@@ -1754,56 +1845,54 @@ TPZGeoMesh * CreateGMeshGid ( int ref ,TPZFMatrix<REAL> pts, string gridname, RE
     std::vector<std::vector<int>> idsvec;
 
 
-    TPZManVector<REAL,2> a ( 2 ), b ( 2 );
+    TPZVec<double> constcoorddata(3,0.);
+    TPZVec<int> constcoord(3);
 
 
-    a[0] = pts(0,0);
-    a[1] = pts(0,1);
-    b[0] = pts(1,0);
-    b[1] = pts(1,1);
 
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom,delta );
+    // (linha y=0)
+    constcoorddata[0]=pts(0,0);
+    constcoorddata[1]=pts(0,0);
+    constcoorddata[2]=0;
+    constcoord[0]=0;
+    constcoord[1]=1;//direceo  fixa
+    constcoord[2]=1;//direceo  fixa
+    read.FindIds ( constcoorddata,constcoord, idsbottom );
+    
     idsvec.push_back ( idsbottom );
 
-    a = b;
-    b[0] = pts(2,0);
-    b[1] = pts(2,1);
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright,delta );
+    cout << "pts(1,0) = " <<pts(1,0) << endl;
+    cout << "pts(1,1) = " <<pts(1,1) << endl;
+    // (linha x=pts(1,0) )
+    constcoorddata[0]=pts(1,0);
+    constcoorddata[1]=pts(1,1);
+    constcoorddata[2]=0;
+    constcoord[0]=1;//direceo  fixa
+    constcoord[1]=0;
+    constcoord[2]=1;//direceo  fixa
+    read.FindIds ( constcoorddata,constcoord, idsright );
+    
     idsvec.push_back ( idsright );
+    
+    // (linha x=0 )
+    constcoorddata[0]=0;
+    constcoorddata[1]=0;
+    constcoorddata[2]=0;
+    constcoord[0]=1;//direceo  fixa
+    constcoord[1]=0;
+    constcoord[2]=1;//direceo  fixa
+    read.FindIds ( constcoorddata,constcoord, idsleft );
+    
 
-    a = b;
-    b[0] = pts(3,0);
-    b[1] = pts(3,1);
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
-    idsvec.push_back ( idstoprigth );
-
-    a = b;
-    b[0] = pts(4,0);
-    b[1] = pts(4,1);
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp,delta );
-    idsvec.push_back ( idsramp );
-
-    a = b;
-    b[0] = pts(5,0);
-    b[1] = pts(5,1);
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft,delta );
-    idsvec.push_back ( idstopleft );
-
-    a = b;
-    b[0] = pts(0,0);
-    b[1] = pts(0,1);
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft,delta );
     idsvec.push_back ( idsleft );
-
-
-    // for(int i=0;i<idsbottom.size();i++)cout << idsvec[3][i] << endl;
-
+    
+    cout << " *** ids *** " << endl;
+    for(int j=0;j<idsvec.size();j++)
+    {
+        cout << " *** j *** "<< j  << endl;
+        for(int i=0;i<idsvec[j].size();i++)cout << idsvec[j][i] << endl;
+    }
+    
     const std::string name ( "Slope Problem " );
 
     TPZGeoMesh *gmesh  =  new TPZGeoMesh();
@@ -1894,6 +1983,199 @@ TPZGeoMesh * CreateGMeshGid ( int ref ,TPZFMatrix<REAL> pts, string gridname, RE
 
     return gmesh;
 }
+
+
+// TPZGeoMesh * CreateGMeshGid ( int ref ,TPZFMatrix<REAL> pts, string gridname)
+// {
+//     
+//     string file = gridname;
+// 
+//     readgidmesh read = readgidmesh ( file );
+//     read.ReadMesh();
+//     TPZFMatrix<int> meshtopology = read.GetTopology();
+//     TPZFMatrix<REAL> meshcoords = read.GetCoords();
+//     std::vector<std::vector< std::vector<double > > > allcoords = read.GetAllCoords();
+// 
+//     int ndivs = 100000;
+//     TPZFMatrix<REAL> pathbottom, pathleft, pathright, pathdisplace;
+//     std::vector<int>  idsbottom, idsleft, idsright, idstoprigth,idsramp,idstopleft;
+// 
+//     std::vector<std::vector<int>> idsvec;
+// 
+// 
+//     TPZManVector<REAL,2> a ( 2 ), b ( 2 );
+// 
+//     REAL delta=fabs((pts(0,0)-pts(1,0)))/(ndivs/10);
+//    // REAL delta=fabs((pts(0,0)-pts(1,0)))/ndivs;
+//     
+//     cout << "delta = " << delta <<endl; 
+// 
+//     a[0] = pts(0,0);
+//     a[1] = pts(0,1);
+//     b[0] = pts(1,0);
+//     b[1] = pts(1,1);
+//     
+//     
+// 
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsbottom ,delta);
+//     idsvec.push_back ( idsbottom );
+//     
+//     
+//     TPZVec<double> constcoorddata(3,0.);
+//     TPZVec<int> constcoord(3);
+//     std::vector<int> ids1,ids2,ids3,ids4,ids5,ids6,ids7;
+// 
+// 
+// 
+//     // (linha y=0)
+//     constcoorddata[0]=0;
+//     constcoorddata[1]=0;
+//     constcoorddata[2]=0;
+//     constcoord[0]=0;
+//     constcoord[1]=1;//direceo  fixa
+//     constcoord[2]=1;//direceo  fixa
+//     read.FindIds ( constcoorddata,constcoord, ids1 );
+//     
+//     cout << " *** ids *** " << endl;
+//     for(int j=0;j<ids1.size();j++)
+//     {
+//         cout << ids1[j] << endl;
+//     }
+//     
+//     a = b;
+//     b[0] = pts(2,0);
+//     b[1] = pts(2,1);
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsright,delta );
+//     idsvec.push_back ( idsright );
+// 
+//     a = b;
+//     b[0] = pts(3,0);
+//     b[1] = pts(3,1);
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idstoprigth,delta );
+//     idsvec.push_back ( idstoprigth );
+// 
+//     a = b;
+//     b[0] = pts(4,0);
+//     b[1] = pts(4,1);
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsramp,delta );
+//     idsvec.push_back ( idsramp );
+// 
+//     a = b;
+//     b[0] = pts(5,0);
+//     b[1] = pts(5,1);
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idstopleft,delta );
+//     idsvec.push_back ( idstopleft );
+// 
+//     a = b;
+//     b[0] = pts(0,0);
+//     b[1] = pts(0,1);
+//     read.Line ( a, b, ndivs, pathbottom );
+//     read.FindIdsInPath ( pathbottom, idsleft,delta );
+//     idsvec.push_back ( idsleft );
+// 
+// 
+//     cout << " *** ids *** " << endl;
+//     for(int j=0;j<idsvec.size();j++)
+//     {
+//         cout << " *** j *** "<< j  << endl;
+//         for(int i=0;i<idsvec[j].size();i++)cout << idsvec[j][i] << endl;
+//     }
+// 
+//     const std::string name ( "Slope Problem " );
+// 
+//     TPZGeoMesh *gmesh  =  new TPZGeoMesh();
+// 
+//     gmesh->SetName ( name );
+//     gmesh->SetDimension ( 2 );
+// 
+//     TPZVec<REAL> coord ( 2 );
+// 
+//     vector<vector<double>> co;
+// 
+//     int ncoords = meshcoords.Rows();
+//     co.resize ( ncoords );
+//     for ( int i=0; i<ncoords; i++ ) {
+//         co[i].resize ( 2 );
+//         co[i][0]=meshcoords ( i,0 );
+//         co[i][1]=meshcoords ( i,1 );
+//     }
+//     vector<vector<int>> topol;
+// 
+//     int ntopol = meshtopology.Rows();
+//     topol.resize ( ntopol );
+// 
+//     for ( int i=0; i<ntopol; i++ ) {
+//         topol[i].resize ( meshtopology.Cols() );
+//         for ( int j=0; j<meshtopology.Cols(); j++ ) {
+//             topol[i][j]=meshtopology ( i,j );
+//         }
+//     }
+// 
+//     gmesh->NodeVec().Resize ( co.size() );
+// 
+//     for ( int inode=0; inode<co.size(); inode++ ) {
+//         coord[0] = co[inode][0];
+//         coord[1] = co[inode][1];
+//         gmesh->NodeVec() [inode] = TPZGeoNode ( inode, coord, *gmesh );
+//     }
+//     if ( meshtopology.Cols() ==4 ) {
+//         TPZVec <long> TopoQuad ( 4 );
+//         for ( int iel=0; iel<topol.size(); iel++ ) {
+//             TopoQuad[0] = topol[iel][0];
+//             TopoQuad[1] = topol[iel][1];
+//             TopoQuad[2] = topol[iel][2];
+//             TopoQuad[3] = topol[iel][3];
+//             new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( iel, TopoQuad, 1,*gmesh );
+//         }
+//     }
+// 
+//     if ( meshtopology.Cols() ==3 ) {
+//         TPZVec <long> TopoTri ( 3 );
+//         for ( int iel=0; iel<topol.size(); iel++ ) {
+//             TopoTri[0] =topol[iel][0];
+//             TopoTri[1] =topol[iel][1];
+//             TopoTri[2] =topol[iel][2];
+//             new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( iel, TopoTri, 1,*gmesh );
+//         }
+//     }
+// 
+//     if ( meshtopology.Cols() !=3 && meshtopology.Cols() !=4 ) {
+//         DebugStop();
+//     }
+//     TPZVec <long> TopoLine ( 2 );
+//     int id = topol.size();
+//     id++;
+// 
+//     for ( int ivec=0; ivec<idsvec.size(); ivec++ ) {
+//         int nodes = idsvec[ivec].size();
+//         for ( int inode=0; inode<nodes-1; inode++ ) {
+//             TopoLine[0] = idsvec[ivec][inode];
+//             TopoLine[1] = idsvec[ivec][inode+1];
+//             new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, - ( ivec+1 ), *gmesh );
+//         }
+//     }
+// 
+// 
+//     gmesh->BuildConnectivity();
+//     for ( int d = 0; d<ref; d++ ) {
+//         int nel = gmesh->NElements();
+//         TPZManVector<TPZGeoEl *> subels;
+//         for ( int iel = 0; iel<nel; iel++ ) {
+//             TPZGeoEl *gel = gmesh->ElementVec() [iel];
+//             gel->Divide ( subels );
+//         }
+//     }
+//     // gmesh->Print(std::cout);
+//     std::ofstream files ( "ge2.vtk" );
+//     TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
+// 
+//     return gmesh;
+// }
 
 TPZGeoMesh * CreateGMeshCentrifuga ( int ref )
 {

@@ -187,6 +187,7 @@ void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath, REA
     int nels = fallcoords.size();
     GetElCoords (  0, elcoords );
     int nnodes = elcoords.Rows();
+    REAL tol=delta;
     for ( int iel = 0; iel < nels; iel++ ) {
         GetElCoords ( iel, elcoords );
         for ( int inode = 0; inode < nnodes; inode++ ) {
@@ -197,7 +198,7 @@ void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath, REA
                 REAL copathx = path.Get(ipath,0);
                 REAL copathy = path.Get(ipath,1);
 
-                if ( fabs ( x - copathx ) < delta && fabs ( y - copathy ) <delta ) {
+                if ( fabs ( x - copathx ) < tol && fabs ( y - copathy ) <tol ) {
                     idpath.push_back ( fmeshtopology(iel,inode) );
                     ipath = path.Rows();
                 }
