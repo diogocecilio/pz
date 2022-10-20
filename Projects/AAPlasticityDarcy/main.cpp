@@ -96,7 +96,7 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 
 REAL findnodalsol(TPZCompMesh *cmesh);
 
-int beta=45;
+int betax=45;
 
 int main()
 {
@@ -473,19 +473,19 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 
     string file;
  
-    if(beta==30)
+    if(betax==30)
     {
          file ="/home/diogo/projects/pz/data/h10-beta30.msh";
     }
-    if(beta==45)
+    if(betax==45)
     {
          file ="/home/diogo/projects/pz/data/h10-beta45.msh";
     }
-    if(beta==60)
+    if(betax==60)
     {
          file ="/home/diogo/projects/pz/data/h10-beta60.msh";
     }
-    if(beta==90)
+    if(betax==90)
     {
          file ="/home/diogo/projects/pz/data/h10-beta90.msh";
     }
@@ -524,7 +524,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
     idsvec.push_back ( idsright );
 
 //para demais
-    if(beta==30 || beta==45 || beta ==60)
+    if(betax==30 || betax==45 || betax ==60)
     {
         a = b;
         b[0] = 45.;
@@ -545,7 +545,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 
     
     
-    if(beta==30)
+    if(betax==30)
     {
         a = b;
         b[0] = 27.675;
@@ -554,7 +554,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
         read.FindIdsInPath ( pathbottom, idsramp );
         idsvec.push_back ( idsramp );
     }
-    if(beta==45)
+    if(betax==45)
     {
         a = b;
         b[0] = 35.;
@@ -564,7 +564,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
         idsvec.push_back ( idsramp );
     }
     
-    if(beta==60)
+    if(betax==60)
     {
         a = b;
         b[0] = 39.2265;
@@ -574,7 +574,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
         idsvec.push_back ( idsramp );
     }
     
-    if(beta==90)
+    if(betax==90)
     {
         a = b;
         b[0] = 37.5;

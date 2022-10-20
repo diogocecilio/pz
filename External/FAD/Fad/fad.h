@@ -50,7 +50,7 @@ public:
   void copy(const Fad<T>& rhs);
 protected:
   T val_;
-  Vector<T> dx_;
+  VectorFad<T> dx_;
 
 public:
 
@@ -68,7 +68,7 @@ public:
 
   void diff(const int ith, const int n);
 
-  const Vector<T>& dx() const { return dx_;}
+  const VectorFad<T>& dx() const { return dx_;}
 
   const T& val()     const { return val_;}
   T& val()    { return val_;}

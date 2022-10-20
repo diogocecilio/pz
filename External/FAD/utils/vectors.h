@@ -78,7 +78,7 @@ template <class T> class MEM_CPY {
 //-------------------------------------------------------------------
 //interface
 
-template < class T > class Vector {
+template < class T > class VectorFad {
 
 public:
   typedef T value_type;
@@ -92,23 +92,23 @@ public:
   typedef ptrdiff_t difference_type; 
 
 // Constructors
-  inline               Vector();
-  inline               Vector(int csize);
-                       Vector(int csize, const T& val);
-  inline               Vector(const Vector< T >& a);
+  inline               VectorFad();
+  inline               VectorFad(int csize);
+                       VectorFad(int csize, const T& val);
+  inline               VectorFad(const VectorFad< T >& a);
 
 // destructor
-                      ~Vector();
+                      ~VectorFad();
 
 // Operators
   inline       T&      operator [] (int );
   inline const T&      operator [] (int )         const;
   inline       T&      operator () ( int );
   inline const T&      operator () ( int )         const;
-               Vector< T >& operator=(const Vector< T >& a);
-               Vector< T >& operator=(const T & val);
+               VectorFad< T >& operator=(const VectorFad< T >& a);
+               VectorFad< T >& operator=(const T & val);
 
-  Vector< T >& operator+=(const Vector< T >& a)
+  VectorFad< T >& operator+=(const VectorFad< T >& a)
     { 
       int sz = size();
       if ( sz != a.size() ) error("operator-=(const Vector< T >& a), size error");
@@ -116,7 +116,7 @@ public:
       return *this;
     }
 
-  Vector< T >& operator-=(const Vector< T >& a)
+  VectorFad< T >& operator-=(const VectorFad< T >& a)
     { 
       int sz = size();
       if ( sz != a.size() ) error("operator-=(const Vector< T >& a), size error");
@@ -139,7 +139,7 @@ public:
 
 private:
 
-               void copy(const Vector< T >& a);
+               void copy(const VectorFad< T >& a);
 
 private:
 
@@ -147,12 +147,12 @@ private:
   T* RESTRICT  ptr_to_data;
 };
 
-template < class T> Vector<T> operator+(const Vector<T> & x, const Vector<T> & y)
+template < class T> VectorFad<T> operator+(const VectorFad<T> & x, const VectorFad<T> & y)
 {
   int sz = x.size();
   if ( sz!=y.size() ) error("operator+(const Vector<T> & x, const Vector<T> & y), size error");
 
-  Vector<T> z(sz);
+  VectorFad<T> z(sz);
 
   for (int i=0; i<sz; ++i)
     z[i] = x[i] + y[i];
@@ -160,12 +160,12 @@ template < class T> Vector<T> operator+(const Vector<T> & x, const Vector<T> & y
   return z;
 }
 
-template < class T> Vector<T> operator-(const Vector<T> & x, const Vector<T> & y)
+template < class T> VectorFad<T> operator-(const VectorFad<T> & x, const VectorFad<T> & y)
 {
   int sz = x.size();
   if ( sz!=y.size() ) error("operator+(const Vector<T> & x, const Vector<T> & y), size error");
 
-  Vector<T> z(sz);
+  VectorFad<T> z(sz);
 
   for (int i=0; i<sz; ++i)
     z[i] = x[i] - y[i];
@@ -173,10 +173,10 @@ template < class T> Vector<T> operator-(const Vector<T> & x, const Vector<T> & y
   return z;
 }
 
-template < class T> Vector<T> operator*(const T& a, const Vector<T> & x)
+template < class T> VectorFad<T> operator*(const T& a, const VectorFad<T> & x)
 {
   int sz = x.size();
-  Vector<T> y(sz);
+  VectorFad<T> y(sz);
 
   for (int i=0; i<sz; ++i)
     y[i] = a*x[i];
@@ -184,7 +184,7 @@ template < class T> Vector<T> operator*(const T& a, const Vector<T> & x)
   return y;
 }
 
-template <class T> inline std::ostream& operator << (std::ostream& os, const Vector<T>& x)
+template <class T> inline std::ostream& operator << (std::ostream& os, const VectorFad<T>& x)
 {
   os.setf(std::ios::fixed,std::ios::floatfield);
   os.width(12);
@@ -206,11 +206,11 @@ template <class T> inline std::ostream& operator << (std::ostream& os, const Vec
 
 
 
-template< class T > inline Vector< T >::Vector() : num_elts(0), ptr_to_data((T*)0)
+template< class T > inline VectorFad< T >::VectorFad() : num_elts(0), ptr_to_data((T*)0)
 // default constructor
 {
 #ifdef DEBUG
-	std::cerr << "Vector<>::Vector()               |default constructor|";
+	std::cerr << "VectorFad<>::VectorFad()               |default constructor|";
 #endif
 
 #ifdef DEBUG
@@ -219,7 +219,7 @@ template< class T > inline Vector< T >::Vector() : num_elts(0), ptr_to_data((T*)
 } 
 
 
-template< class T > inline Vector< T >::Vector(int csize) : num_elts(0), ptr_to_data((T*)0) 
+template< class T > inline VectorFad< T >::VectorFad(int csize) : num_elts(0), ptr_to_data((T*)0)
 // size constructor
 {
 #ifdef DEBUG
@@ -239,11 +239,11 @@ template< class T > inline Vector< T >::Vector(int csize) : num_elts(0), ptr_to_
 } 
 
 
-template< class T > inline Vector< T >::Vector(const Vector< T >& a) : num_elts(a.num_elts), ptr_to_data((T*)0)
+template< class T > inline VectorFad< T >::VectorFad(const VectorFad< T >& a) : num_elts(a.num_elts), ptr_to_data((T*)0)
 // copy constructor
 {
 #ifdef DEBUG
-	std::cerr << "Vector<>::Vector(const Vector< T >& ) |copy constructor   |";
+	std::cerr << "VectorFad<>::VectorFad(const Vector< T >& ) |copy constructor   |";
 #endif
     
     if ( num_elts != 0 ) {
@@ -258,10 +258,10 @@ template< class T > inline Vector< T >::Vector(const Vector< T >& a) : num_elts(
 
 
 
-template< class T > inline void Vector< T >::destroy() 
+template< class T > inline void VectorFad< T >::destroy()
 {
 #ifdef DEBUG
-    fprintf(stderr,"Vector<>::destroy()         |                   | adr =  %x \n", ptr_to_data);
+    fprintf(stderr,"VectorFad<>::destroy()         |                   | adr =  %x \n", ptr_to_data);
 #endif
     if (ptr_to_data != 0) 
 	delete [] ptr_to_data; 
@@ -273,10 +273,26 @@ template< class T > inline void Vector< T >::destroy()
 
 
 
-template< class T >  inline T&   Vector< T >::operator [] (int i)
+template< class T >  inline T&   VectorFad< T >::operator [] (int i)
 {
 #ifdef DEBUG
-  //    cerr << "T&   Vector< T >::operator [] (int i)" << endl;
+  //    cerr << "T&   VectorFad< T >::operator [] (int i)" << endl;
+#endif
+
+#ifdef CHECK_SIZE
+    if ( ptr_to_data == 0 ) error("VectorFad<>::operator[], empty array");
+
+    if ( !( (i >= 0) && (i < num_elts) ) ) error("VectorFad<>::operator[], index out of bound");
+#endif
+
+    return *(ptr_to_data + i);
+}
+
+
+template< class T >  inline const T&   VectorFad< T >::operator [] (int i)  const
+{
+#ifdef DEBUG
+//    cerr << "const T&   VectorFad< T >::operator [] (int i)  const" << endl;
 #endif
 
 #ifdef CHECK_SIZE
@@ -288,40 +304,24 @@ template< class T >  inline T&   Vector< T >::operator [] (int i)
     return *(ptr_to_data + i);
 }
 
-
-template< class T >  inline const T&   Vector< T >::operator [] (int i)  const
+template< class T >  inline T&   VectorFad< T >::operator () (int i)
 {
-#ifdef DEBUG
-//    cerr << "const T&   Vector< T >::operator [] (int i)  const" << endl;
-#endif
-
-#ifdef CHECK_SIZE
-    if ( ptr_to_data == 0 ) error("Vector<>::operator[], empty array");
-
-    if ( !( (i >= 0) && (i < num_elts) ) ) error("Vector<>::operator[], index out of bound");
-#endif
-
-    return *(ptr_to_data + i);
+  return VectorFad<T>::operator[](i);
 }
 
-template< class T >  inline T&   Vector< T >::operator () (int i)
+template< class T >  inline const T&   VectorFad< T >::operator () (int i)  const
 {
-  return Vector<T>::operator[](i);
-}
-
-template< class T >  inline const T&   Vector< T >::operator () (int i)  const
-{
-  return Vector<T>::operator[](i);
+  return VectorFad<T>::operator[](i);
 }
 
 
 
-template< class T > inline void Vector< T >::reserve(int ssize)
+template< class T > inline void VectorFad< T >::reserve(int ssize)
 {
 #ifdef CHECK_SIZE
-    if ( ptr_to_data != 0 ) error("Vector<>::reserve(), array already allocted");
+    if ( ptr_to_data != 0 ) error("VectorFad<>::reserve(), array already allocted");
 
-    if ( ssize <0 ) error("Vector<>::reserve(), negative size");
+    if ( ssize <0 ) error("VectorFad<>::reserve(), negative size");
 #endif
 
     if (ssize != 0){
@@ -331,15 +331,15 @@ template< class T > inline void Vector< T >::reserve(int ssize)
 	if ( ptr_to_data == 0 ) error("Vector<>::reserve(), not enough memory");
     }
 #ifdef DEBUG
-    fprintf(stderr,"Vector<>::reserve()         |                   | adr =  %x \n", ptr_to_data);
+    fprintf(stderr,"VectorFad<>::reserve()         |                   | adr =  %x \n", ptr_to_data);
 #endif
 }
 
 
-template< class T > inline void Vector< T >::resize(int ssize)
+template< class T > inline void VectorFad< T >::resize(int ssize)
 {
 #ifdef CHECK_SIZE
-    if ( ssize <0 ) error("Vector<>::reserve(), negative size");
+    if ( ssize <0 ) error("VectorFad<>::reserve(), negative size");
 #endif
 
     if ( ssize != 0){
@@ -360,20 +360,20 @@ template< class T > inline void Vector< T >::resize(int ssize)
 }
 
 
-template< class T > inline  int Vector< T >::capacity() const
+template< class T > inline  int VectorFad< T >::capacity() const
 { 
     return num_elts;
 } 
 
 
 
-template< class T > inline  T* Vector< T >::begin() const 
+template< class T > inline  T* VectorFad< T >::begin() const
 {
     return ptr_to_data;
 } 
 
 
-template< class T > Vector< T >::Vector(int csize, const T& val) : num_elts(0), ptr_to_data((T*)0)
+template< class T > VectorFad< T >::VectorFad(int csize, const T& val) : num_elts(0), ptr_to_data((T*)0)
 {
 #ifdef DEBUG
 	std::cerr << "Vector<>::Vector(int, const T& )|size constructor   |";
@@ -396,16 +396,16 @@ template< class T > Vector< T >::Vector(int csize, const T& val) : num_elts(0), 
 }
 
 
-template< class T > void Vector< T >::copy(const Vector< T >& a)
+template< class T > void VectorFad< T >::copy(const VectorFad< T >& a)
 {
   MEM_CPY<T>::copy(ptr_to_data,a.ptr_to_data, num_elts);
 }
 
 
-template< class T > Vector< T >::~Vector()// destructeur
+template< class T > VectorFad< T >::~VectorFad()// destructeur
 {
 #ifdef DEBUG
-	std::cerr << "Vector<>::~Vector()              |destructor         |" << std::endl;;
+	std::cerr << "VectorFad<>::~VectorFad()              |destructor         |" << std::endl;;
 #endif
 
     destroy();
@@ -414,7 +414,7 @@ template< class T > Vector< T >::~Vector()// destructeur
 
 
 //le return dans le if empeche de mettre la fonction en ligne
-template< class T > Vector< T >& Vector< T >::operator = (const Vector< T >& a)
+template< class T > VectorFad< T >& VectorFad< T >::operator = (const VectorFad< T >& a)
 {
   if ( this != &a) {
     // Cas ou le pointeur est non alloue
@@ -438,7 +438,7 @@ template< class T > Vector< T >& Vector< T >::operator = (const Vector< T >& a)
 }
 
 
-template< class T > Vector< T >& Vector< T >::operator = (const T& val)
+template< class T > VectorFad< T >& VectorFad< T >::operator = (const T& val)
 {
   if (num_elts != 0)
     for (int i=0; i<num_elts; ++i)
