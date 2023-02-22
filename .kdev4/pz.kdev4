@@ -2,30 +2,10 @@
 BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x00\x00\x01\x00\x00\x00\x04\x00p\x00z)
 
 [CMake]
-Build Directory Count=3
-Current Build Directory Index-Host System=2
+Build Directory Count=2
+Current Build Directory Index-Host System=0
 
 [CMake][CMake Build Directory 0]
-Build Directory Path=/home/diogo/projects/pz-build-debug
-Build Type=Debug\n
-CMake Binary=/usr/bin/cmake
-CMake Executable=/usr/bin/cmake
-Environment Profile=
-Extra Arguments=
-Install Directory=/usr/local
-Runtime=Host System
-
-[CMake][CMake Build Directory 1]
-Build Directory Path=/home/diogo/projects/pz-build-release
-Build Type=Release
-CMake Binary=/usr/bin/cmake
-CMake Executable=/usr/bin/cmake
-Environment Profile=
-Extra Arguments=
-Install Directory=/usr/local
-Runtime=Host System
-
-[CMake][CMake Build Directory 2]
 Build Directory Path=/home/diogo/projects/pz-build-debug
 Build Type=Debug
 CMake Binary=/usr/bin/cmake
@@ -35,13 +15,23 @@ Extra Arguments=
 Install Directory=/usr/local
 Runtime=Host System
 
+[CMake][CMake Build Directory 1]
+Build Directory Path=/home/diogo/projects/pzbuildrelease
+Build Type=Release
+CMake Binary=/usr/bin/cmake
+CMake Executable=/usr/bin/cmake
+Environment Profile=
+Extra Arguments=
+Install Directory=/usr/local
+Runtime=Host System
+
 [Launch]
-Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=darcy-siotropic-debug
+Name=plasticity-debug
 Type=Native Application
 
 [Launch][Launch Configuration 0][Data]
@@ -49,8 +39,9 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/pz-build-debug/Projects/DarcyIsotropic/DarcyIsotropic
+Executable=file:///home/diogo/projects/pz-build-debug/Projects/AAPlasticity/AAPlasticity
 External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
 Project Target=pz,Projects,AADarcy,AADarcy
 Use External Terminal=false
 Working Directory=
@@ -59,7 +50,7 @@ isExecutable=true
 [Launch][Launch Configuration 1]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=release-isotropic-darcy
+Name=darcy-iso-debug
 Type=Native Application
 
 [Launch][Launch Configuration 1][Data]
@@ -67,8 +58,9 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/pz-build-release/Projects/DarcyIsotropic/DarcyIsotropic
+Executable=file:///home/diogo/projects/pz-build-debug/Projects/DarcyIsotropic/DarcyIsotropic
 External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
 Project Target=pz,Projects,AADarcy,AADarcy
 Use External Terminal=false
 Working Directory=
@@ -77,7 +69,7 @@ isExecutable=true
 [Launch][Launch Configuration 2]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=random-field
+Name=plasticity-darcy-release
 Type=Native Application
 
 [Launch][Launch Configuration 2][Data]
@@ -85,8 +77,9 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/pz-build-release/Projects/AAPlasticityKL/AAPlasticityKL
+Executable=file:///home/diogo/projects/pzbuildrelease/Projects/AAPlasticityDarcy/AAPlasticityDarcy
 External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
 Project Target=pz,Projects,AADarcy,AADarcy
 Use External Terminal=false
 Working Directory=
@@ -95,7 +88,7 @@ isExecutable=true
 [Launch][Launch Configuration 3]
 Configured Launch Modes=execute
 Configured Launchers=nativeAppLauncher
-Name=release-plasticity
+Name=plasticity-darcy-debug
 Type=Native Application
 
 [Launch][Launch Configuration 3][Data]
@@ -103,26 +96,9 @@ Arguments=
 Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
-Executable=file:///home/diogo/projects/pz-build-release/Projects/AAPlasticity/AAPlasticity
+Executable=file:///home/diogo/projects/pz-build-debug/Projects/AAPlasticityDarcy/AAPlasticityDarcy
 External Terminal=konsole --noclose --workdir %workdir -e %exe
-Project Target=pz,Projects,AADarcy,AADarcy
-Use External Terminal=false
-Working Directory=
-isExecutable=true
-
-[Launch][Launch Configuration 4]
-Configured Launch Modes=execute
-Configured Launchers=nativeAppLauncher
-Name=debug-plasticity
-Type=Native Application
-
-[Launch][Launch Configuration 4][Data]
-Arguments=
-Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
-Dependency Action=Nothing
-EnvironmentGroup=
-Executable=file:///home/diogo/projects/pz-build-debug/Projects/AAPlasticity/AAPlasticity
-External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
 Project Target=pz,Projects,AADarcy,AADarcy
 Use External Terminal=false
 Working Directory=

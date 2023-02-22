@@ -340,6 +340,14 @@ class  TPZMatElastoPlastic : public TPZMatWithMem<TMEM>
 		{
 			fForce = Force;
 		}
+		void SetLoadFactor(REAL factor)
+		{
+			ffactor = factor;
+		}
+		void SetWhichLoadVector(int option)
+		{
+			fwhichinternalforce = option;
+		}
 		
 protected:
 
@@ -347,6 +355,14 @@ protected:
        * gravity acceleration
        */
       TPZManVector<REAL, 3> fForce;
+
+	  REAL ffactor;
+
+
+	  //0 ef = (Bt sigma + (b + gradu))
+	  //1 ef = Bt sigma
+	  //2 ef = b + gradu
+	  int fwhichinternalforce;
 	
 	  /**
 	   * bulk density of rock

@@ -26,6 +26,7 @@
 #include "TPZPlasticStepPV.h"
 #include "TPZElasticResponse.h"
 #include "TPZYCMohrCoulombPV.h"
+#include "TPZMohrCoulombVoigt.h"
 #include "pzelastoplastic2D.h"
 #include "pzelastoplastic.h"
 
@@ -113,56 +114,113 @@ std::vector<std::vector<double>> ReadMeshPoints(std::string file)
 
 void LoadingRamp (TPZCompMesh * cmesh,  REAL factor,REAL gamma);
 
+void MaterialPointMohrCoulomb2() {
+//left
+//     // Mohr Coulomb data
+//     REAL mc_cohesion    =490.;
+//     REAL mc_phi         = ( 20.0*M_PI/180 );
+//     REAL mc_psi         = mc_phi;
+//
+//     TPZElasticResponse ER;
+//     REAL nu = 0.48;
+//     REAL E = 10000000;
 
+        // Mohr Coulomb data
+    REAL mc_cohesion    =50.;
+    REAL mc_phi         = ( 20.0*M_PI/180 );
+    REAL mc_psi         = mc_phi;
+
+    TPZElasticResponse ER;
+    REAL nu = 0.49;
+    REAL E = 20000;
+
+    ER.SetUp( E, nu );
+    TPZMohrCoulombVoigt *mc = new  TPZMohrCoulombVoigt(mc_phi,mc_phi,mc_cohesion,ER);
+//plane
+    TPZFMatrix<REAL> dep;
+    TPZTensor<REAL> sigma_trial,sigma_proj,a,b;
+    sigma_trial.XX()=3891.34;
+    sigma_trial.YY()=3059.69;
+    sigma_trial.ZZ()=3406.01;
+    sigma_trial.XZ()=0;
+    sigma_trial.YZ()=0;
+    sigma_trial.XY()=168.535;
+
+    REAL epsbarnew = 0.;
+    //bool sol = mc->ReturnMapPlane ( sigma_trial, sigma_proj,dep,  epsbarnew);
+    //mc->ComputePlaneTangent(dep,epsbarnew);
+//left
+    sigma_trial.XX()=-1465.15;
+    sigma_trial.YY()=-1353.51;
+    sigma_trial.ZZ()=-210.626;
+    sigma_trial.XZ()=0;
+    sigma_trial.YZ()=0;
+    sigma_trial.XY()=1271.35;
+
+
+    //mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
+    sigma_trial.XX()=5226.4;
+    sigma_trial.YY()=4860.25;
+    sigma_trial.ZZ()=4942.46;
+    sigma_trial.XZ()=0;
+    sigma_trial.YZ()=0;
+    sigma_trial.XY()=-219.96;
+    mc->ReturnMapRightEdge ( sigma_trial, sigma_proj,dep,  epsbarnew,a,b);
+    sigma_proj.Print(std::cout);
+    dep.Print(std::cout);
+
+
+}
 
 int main()
 {
-    int porder=2;
-    string file = "/home/diogo/Dropbox/Limit-Equilibrium-Pyton/pts-h89.9299-beta45.dat";
-   std::vector<std::vector<double>> coords = ReadMeshPoints(file);
-   int rows=coords.size();
-   int cols = coords[0].size();
-   TPZFMatrix<REAL> pts(rows,cols);
-    for(int it=0;it<coords.size();it++)
-    {
-        for(int jt=0;jt<coords[it].size();jt++)
-        {
-            pts(it,jt) =coords[it][jt];
-        }
-    }
-    pts.Print(std::cout);
-    //string gridname ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/h143.888-beta45.msh";
-    string gridname ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/h75.7305-beta45.msh";
-    TPZGeoMesh *gmesh = CreateGMeshGid ( 0 ,pts, gridname);
-    REAL c =50.;
-    REAL phi = 34.1;
-    REAL poisson=0.49;
-    REAL young = 20000.;
-    TPZCompMesh *cmesh =   CreateCMesh ( gmesh, porder,  c,  phi,  poisson,  young );
-    TPZElastoPlasticAnalysis  * analysis1 =  CreateAnal(cmesh);
-
-    ShearRed(cmesh);
-    //GravityIncrease ( cmesh );
-    //SolveRamp(cmesh);
-
-    return 0;
-    int maxiter=100;
-    REAL tol=1.e-3;
-    bool linesearch=true;
-    bool checkconv=false;
-    int steps=10,iters;
-    bool conv = analysis1->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv,iters);
-    analysis1->AcceptSolution();
-
-    TPZPostProcAnalysis  * postproc1 = new TPZPostProcAnalysis();
-
-    postproc1->SetCompMesh(0);
-
-    CreatePostProcessingMesh( postproc1, cmesh);
-
-    std::string vtkFile1 ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/srm-pts-h75.7305-beta45-c50.vtk";
-    Post(postproc1,vtkFile1);
-    
+        MaterialPointMohrCoulomb2();
+// int porder=2;
+//     string file = "/home/diogo/Dropbox/Limit-Equilibrium-Pyton/pts-h89.9299-beta45.dat";
+//    std::vector<std::vector<double>> coords = ReadMeshPoints(file);
+//    int rows=coords.size();
+//    int cols = coords[0].size();
+//    TPZFMatrix<REAL> pts(rows,cols);
+//     for(int it=0;it<coords.size();it++)
+//     {
+//         for(int jt=0;jt<coords[it].size();jt++)
+//         {
+//             pts(it,jt) =coords[it][jt];
+//         }
+//     }
+//     pts.Print(std::cout);
+//     //string gridname ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/h143.888-beta45.msh";
+//     string gridname ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/h75.7305-beta45.msh";
+//     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 ,pts, gridname);
+//     REAL c =50.;
+//     REAL phi = 34.1;
+//     REAL poisson=0.49;
+//     REAL young = 20000.;
+//     TPZCompMesh *cmesh =   CreateCMesh ( gmesh, porder,  c,  phi,  poisson,  young );
+//     TPZElastoPlasticAnalysis  * analysis1 =  CreateAnal(cmesh);
+//
+//     ShearRed(cmesh);
+//     //GravityIncrease ( cmesh );
+//     //SolveRamp(cmesh);
+//
+//
+//     int maxiter=100;
+//     REAL tol=1.e-3;
+//     bool linesearch=true;
+//     bool checkconv=false;
+//     int steps=10,iters;
+//     bool conv = analysis1->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv,iters);
+//     analysis1->AcceptSolution();
+//
+//     TPZPostProcAnalysis  * postproc1 = new TPZPostProcAnalysis();
+//
+//     postproc1->SetCompMesh(0);
+//
+//     CreatePostProcessingMesh( postproc1, cmesh);
+//
+//     std::string vtkFile1 ="/home/diogo/Dropbox/Limit-Equilibrium-Pyton/srm-pts-h75.7305-beta45-c50.vtk";
+//     Post(postproc1,vtkFile1);
+//
     return 0;
 }
 
@@ -503,6 +561,7 @@ TPZManVector<REAL,10> GravityIncrease ( TPZCompMesh * cmesh )
     return output;
 }
 
+
 void MaterialPointMohrCoulomb() {
 
     // Mohr Coulomb data
@@ -525,32 +584,102 @@ void MaterialPointMohrCoulomb() {
     TPZTensor<REAL> sigma;
     TPZFMatrix<REAL> Dep;
 
-    sigma.XX()=17658.1;
-    sigma.YY()=15494.7;
-    sigma.ZZ()=16244.8;
-    sigma.XY()=-19.7463;
-    ER.ComputeDeformation(sigma,eps);
-    REAL kprev=0.;
-    TPZVec<REAL> coef;
-    //cout << "before" << endl;
-    //eps.Print(std::cout);
+
+//     (*MAIN*)
+// epsttr = {3.6157562487484481 10^-2, -2.5800526093809846
+// 10^-2, 0, 0, 0, (2.5111726131341262) 10^-2};
+// epsptr = {0, 0, 0, 0, 0, 0};
+// elastmat = {20000, 0.49, 20 Pi/180, 50};
+// {sig, dep, g} = SolvePlasticity[epsttr, epsptr, elastmat];
+// sig // MatrixForm
+// dep // MatrixForm
+    eps.XX()=0.036157562487484481;
+    eps.YY()=-0.025800526093809846;
+    eps.ZZ()=0;
+    eps.XZ()=0;
+    eps.YZ()=0;
+    eps.XY()=1./2.*0.025111726131341262;
     //cout << "affter" << endl;
     mc.ApplyStrainComputeDep(eps,sigma,Dep);
-    deps.XX()=0.000001;
-    deps.YY()=0.000002;
-    deps.ZZ()=0.0000015;
-    deps.XZ()=-0.000001;
-    deps.YZ()=0.000002;
-    deps.XY()=0.000003;
-    mc.TaylorCheck(eps,deps,kprev,coef);
-    coef.Print(cout);
+
     //cout << "out" << endl;
-    //sigma.Print(std::cout);
+    sigma.Print(std::cout);
+    cout << "Dep" << endl;
+    Dep.Print(std::cout);
+
+//     epsttr = {2.1153582845979804 10^-2, -6.1244636739267791 10^-3, 0, 0,
+//    0, (-3.2774022989690031) 10^-2};
+// epsptr = {0, 0, 0, 0, 0, 0};
+// elastmat = {20000, 0.49, 20 Pi/180, 50};
+// {sig, dep, g} = SolvePlasticity[epsttr, epsptr, elastmat];
+// sig // MatrixForm
+// dep // MatrixForm
+    eps.XX()=2.1153582845979804e-2;
+    eps.YY()=-6.1244636739267791e-3;
+    eps.ZZ()=0;
+    eps.XZ()=0;
+    eps.YZ()=0;
+    eps.XY()=1./2.*(-3.2774022989690031e-2);
+    //cout << "affter" << endl;
+    mc.ApplyStrainComputeDep(eps,sigma,Dep);
+
+    //cout << "out" << endl;
+    sigma.Print(std::cout);
     cout << "Dep" << endl;
     Dep.Print(std::cout);
 
 
 }
+
+
+// void MaterialPointMohrCoulomb() {
+//
+//     // Mohr Coulomb data
+//     REAL mc_cohesion    =50.;
+//     REAL mc_phi         = ( 20.0*M_PI/180 );
+//     REAL mc_psi         = mc_phi;
+//
+//     /// ElastoPlastic Material using Mohr Coulomb
+//     // Elastic predictor
+//     TPZElasticResponse ER;
+//     REAL nu = 0.49;
+//     REAL E = 20000;
+//
+//     TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> mc;
+//     ER.SetUp( E, nu );
+//     mc.fER =ER;
+//     //mc.SetElasticResponse( ER );
+//     mc.fYC.SetUp ( mc_phi, mc_psi, mc_cohesion, ER );
+//     TPZTensor<REAL> eps,deps;
+//     TPZTensor<REAL> sigma;
+//     TPZFMatrix<REAL> Dep;
+//
+//     sigma.XX()=17658.1;
+//     sigma.YY()=15494.7;
+//     sigma.ZZ()=16244.8;
+//     sigma.XY()=-19.7463;
+//     ER.ComputeDeformation(sigma,eps);
+//     REAL kprev=0.;
+//     TPZVec<REAL> coef;
+//     //cout << "before" << endl;
+//     //eps.Print(std::cout);
+//     //cout << "affter" << endl;
+//     mc.ApplyStrainComputeDep(eps,sigma,Dep);
+//     deps.XX()=0.000001;
+//     deps.YY()=0.000002;
+//     deps.ZZ()=0.0000015;
+//     deps.XZ()=-0.000001;
+//     deps.YZ()=0.000002;
+//     deps.XY()=0.000003;
+//     mc.TaylorCheck(eps,deps,kprev,coef);
+//     coef.Print(cout);
+//     //cout << "out" << endl;
+//     //sigma.Print(std::cout);
+//     cout << "Dep" << endl;
+//     Dep.Print(std::cout);
+//
+//
+// }
 
 
 const auto rhs3 = [](const TPZVec<REAL>&loc, TPZVec<STATE> &dx,TPZFMatrix<STATE> &d2x) {

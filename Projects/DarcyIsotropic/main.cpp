@@ -70,7 +70,7 @@ int betax=45;
 
 int main()
 {
-    int porder=3;
+    int porder=1;
     
     TPZGeoMesh* gmesh = CreateGMeshGid(0);
     
@@ -331,7 +331,7 @@ TPZCompMesh * CreateCMesh( TPZGeoMesh *gmesh, int pOrder )
 	//STATE permeability = 6.3e-5;//m/s
 	TPZManVector<REAL,3> permeability(3);//m/s
 
-    permeability[0]=1.;permeability[1]=1;permeability[2]=1.;
+    permeability[0]=0.5;permeability[1]=1.;permeability[2]=1.;
     material->SetConstantPermeability ( permeability );
 	material->SetId(1);
     
