@@ -99,7 +99,8 @@ void TPZMatElastoPlastic<T,TMEM>::SetPlasticity(T & plasticity)
 
     TPZFMatrix<REAL> Dep;
 	
-	plastloc.ApplyStrainComputeDep(memory.fPlasticState.fEpsT, memory.fSigma,Dep);
+    plastloc.ApplyStrainComputeSigma(memory.fPlasticState.fEpsT, memory.fSigma);
+	//plastloc.ApplyStrainComputeDep(memory.fPlasticState.fEpsT, memory.fSigma,Dep);
 	
 	this->SetDefaultMem(memory);
 	
@@ -1529,7 +1530,8 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrain(TPZMaterialData & data, TPZFM
 	EpsT.Add(plasticloc.GetState().fEpsT, 1.);
 	
     TPZFMatrix<REAL> Dep;
-	plasticloc.ApplyStrainComputeDep(EpsT, Sigma,Dep);
+    plasticloc.ApplyStrainComputeSigma(EpsT, Sigma);
+	//plasticloc.ApplyStrainComputeDep(EpsT, Sigma,Dep);
     
 //    cout << "\n Memoria " << endl;
 //    TPZMatWithMem<TMEM>::fMemory[intPt].Print();

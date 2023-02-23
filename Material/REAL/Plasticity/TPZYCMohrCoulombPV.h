@@ -267,61 +267,61 @@ public:
     void ComputeConsistentEdgeTangent ( TPZTensor<REAL> &trialstress,TPZFMatrix<REAL> & Dep, int &m_type );
 
 
-    TPZFMatrix<REAL> GetElasticMatrix()
-    {
-        TPZFMatrix<REAL> C ( 6, 6, 0. );
-        REAL G = fER.G();
-        REAL K = fER.K();
-        C ( _XX_,_XX_ ) = ( 4 * G ) / 3 + K;
-        C ( _XX_,_YY_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _XX_,_ZZ_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _XX_,_XZ_ ) = 0.;
-        C ( _XY_,_YZ_ ) = 0.;
-        C ( _XX_,_XY_ ) = 0.;
-
-
-        C ( _YY_,_XX_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _YY_,_YY_ ) = ( 4 * G ) / 3 + K;
-        C ( _YY_,_ZZ_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _YY_,_XZ_ ) = 0.;
-        C ( _YY_,_YZ_ ) = 0.;
-        C ( _YY_,_XY_ ) = 0.;
-
-
-        C ( _ZZ_,_XX_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _ZZ_,_YY_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _ZZ_,_ZZ_ ) = ( 4 * G ) / 3 + K;
-        C ( _ZZ_,_XZ_ ) = 0.;
-        C ( _ZZ_,_YZ_ ) = 0.;
-        C ( _ZZ_,_XY_ ) = 0.;
-
-
-        C ( _XZ_,_XX_ ) = 0;
-        C ( _XZ_,_YY_ ) = 0;
-        C ( _XZ_,_ZZ_ ) = 0;
-        C ( _XZ_,_XZ_ ) = G ;
-        C ( _XZ_,_YZ_ ) = 0.;
-        C ( _XZ_,_XY_ ) = 0.;
-
-
-        C ( _YZ_,_XX_ ) = 0;
-        C ( _YZ_,_YY_ ) = 0;
-        C ( _YZ_,_ZZ_ ) = 0;
-        C ( _YZ_,_XZ_ ) = 0.;
-        C ( _YZ_,_YZ_ ) = G ;
-        C ( _YZ_,_XY_ ) = 0.;
-
-
-        C ( _XY_,_XX_ ) = 0;
-        C ( _XY_,_YY_ ) = 0;
-        C ( _XY_,_ZZ_ ) = 0;
-        C ( _XY_,_XZ_ ) = 0.;
-        C ( _XY_,_YZ_ ) = 0.;
-        C ( _XY_,_XY_ ) = G ;
-
-
-        return C;
-    }
+//     TPZFMatrix<REAL> GetElasticMatrix()
+//     {
+//         TPZFMatrix<REAL> C ( 6, 6, 0. );
+//         REAL G = fER.G();
+//         REAL K = fER.K();
+//         C ( _XX_,_XX_ ) = ( 4 * G ) / 3 + K;
+//         C ( _XX_,_YY_ ) = - ( ( 2 * G ) / 3 ) + K;
+//         C ( _XX_,_ZZ_ ) = - ( ( 2 * G ) / 3 ) + K;
+//         C ( _XX_,_XZ_ ) = 0.;
+//         C ( _XY_,_YZ_ ) = 0.;
+//         C ( _XX_,_XY_ ) = 0.;
+//
+//
+//         C ( _YY_,_XX_ ) = - ( ( 2 * G ) / 3 ) + K;
+//         C ( _YY_,_YY_ ) = ( 4 * G ) / 3 + K;
+//         C ( _YY_,_ZZ_ ) = - ( ( 2 * G ) / 3 ) + K;
+//         C ( _YY_,_XZ_ ) = 0.;
+//         C ( _YY_,_YZ_ ) = 0.;
+//         C ( _YY_,_XY_ ) = 0.;
+//
+//
+//         C ( _ZZ_,_XX_ ) = - ( ( 2 * G ) / 3 ) + K;
+//         C ( _ZZ_,_YY_ ) = - ( ( 2 * G ) / 3 ) + K;
+//         C ( _ZZ_,_ZZ_ ) = ( 4 * G ) / 3 + K;
+//         C ( _ZZ_,_XZ_ ) = 0.;
+//         C ( _ZZ_,_YZ_ ) = 0.;
+//         C ( _ZZ_,_XY_ ) = 0.;
+//
+//
+//         C ( _XZ_,_XX_ ) = 0;
+//         C ( _XZ_,_YY_ ) = 0;
+//         C ( _XZ_,_ZZ_ ) = 0;
+//         C ( _XZ_,_XZ_ ) = G ;
+//         C ( _XZ_,_YZ_ ) = 0.;
+//         C ( _XZ_,_XY_ ) = 0.;
+//
+//
+//         C ( _YZ_,_XX_ ) = 0;
+//         C ( _YZ_,_YY_ ) = 0;
+//         C ( _YZ_,_ZZ_ ) = 0;
+//         C ( _YZ_,_XZ_ ) = 0.;
+//         C ( _YZ_,_YZ_ ) = G ;
+//         C ( _YZ_,_XY_ ) = 0.;
+//
+//
+//         C ( _XY_,_XX_ ) = 0;
+//         C ( _XY_,_YY_ ) = 0;
+//         C ( _XY_,_ZZ_ ) = 0;
+//         C ( _XY_,_XZ_ ) = 0.;
+//         C ( _XY_,_YZ_ ) = 0.;
+//         C ( _XY_,_XY_ ) = G ;
+//
+//
+//         return C;
+//     }
 
 
     TPZFMatrix<REAL> avec ( TPZTensor<REAL> tensor )

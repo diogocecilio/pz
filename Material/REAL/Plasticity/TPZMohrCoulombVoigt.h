@@ -372,63 +372,6 @@ public:
     void ComputeConsistentEdgeTangent ( TPZTensor<REAL> &trialstress,TPZFMatrix<REAL> & Dep, int &m_type );
 
 
-    TPZFMatrix<REAL> GetElasticMatrix()
-    {
-        TPZFMatrix<REAL> C ( 6, 6, 0. );
-        REAL G = fER.G();
-        REAL K = fER.K();
-        C ( _XX_,_XX_ ) = ( 4 * G ) / 3 + K;
-        C ( _XX_,_YY_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _XX_,_ZZ_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _XX_,_XZ_ ) = 0.;
-        C ( _XY_,_YZ_ ) = 0.;
-        C ( _XX_,_XY_ ) = 0.;
-
-
-        C ( _YY_,_XX_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _YY_,_YY_ ) = ( 4 * G ) / 3 + K;
-        C ( _YY_,_ZZ_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _YY_,_XZ_ ) = 0.;
-        C ( _YY_,_YZ_ ) = 0.;
-        C ( _YY_,_XY_ ) = 0.;
-
-
-        C ( _ZZ_,_XX_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _ZZ_,_YY_ ) = - ( ( 2 * G ) / 3 ) + K;
-        C ( _ZZ_,_ZZ_ ) = ( 4 * G ) / 3 + K;
-        C ( _ZZ_,_XZ_ ) = 0.;
-        C ( _ZZ_,_YZ_ ) = 0.;
-        C ( _ZZ_,_XY_ ) = 0.;
-
-
-        C ( _XZ_,_XX_ ) = 0;
-        C ( _XZ_,_YY_ ) = 0;
-        C ( _XZ_,_ZZ_ ) = 0;
-        C ( _XZ_,_XZ_ ) = G ;
-        C ( _XZ_,_YZ_ ) = 0.;
-        C ( _XZ_,_XY_ ) = 0.;
-
-
-        C ( _YZ_,_XX_ ) = 0;
-        C ( _YZ_,_YY_ ) = 0;
-        C ( _YZ_,_ZZ_ ) = 0;
-        C ( _YZ_,_XZ_ ) = 0.;
-        C ( _YZ_,_YZ_ ) = G ;
-        C ( _YZ_,_XY_ ) = 0.;
-
-
-        C ( _XY_,_XX_ ) = 0;
-        C ( _XY_,_YY_ ) = 0;
-        C ( _XY_,_ZZ_ ) = 0;
-        C ( _XY_,_XZ_ ) = 0.;
-        C ( _XY_,_YZ_ ) = 0.;
-        C ( _XY_,_XY_ ) = G ;
-
-
-        return C;
-    }
-
-
  TPZFMatrix<REAL>  dAdsig ( TPZTensor<REAL> tensor, REAL funcA,REAL dadt,REAL da2dt )
     {
 
@@ -642,25 +585,7 @@ TPZFMatrix<REAL>   d2J3d2sig ( TPZTensor<REAL> tensor )
 // #define _YY_ 3
 // #define _YZ_ 4
 // #define _ZZ_ 5
-    void FromTensorToMatVoigt (TPZTensor<REAL>source, TPZFMatrix< REAL >& resp )
-    {
-        resp.Resize ( 6, 1);
-        resp(0,0) = source.XX();
-        resp(3,0) = source.YY();
-        resp(5,0) = source.ZZ();
-        resp(2,0) = source.XZ();
-        resp(4,0) = source.YZ();
-        resp(1,0) = source.XY();
-    }
-    void FromMatToTensor ( TPZFMatrix< REAL >& source,TPZTensor<REAL>&resp )
-    {
-        resp.XX()=source(0,0);
-        resp.YY()=source(3,0);
-        resp.ZZ()=source(5,0);
-        resp.XZ()=source(2,0);
-        resp.YZ()=source(4,0);
-        resp.XY()=source(1,0);
-    }
+
 };
 
 

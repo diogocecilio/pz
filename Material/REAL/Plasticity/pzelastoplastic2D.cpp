@@ -255,7 +255,7 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 			}
 
 
-			val  = 2. * Dep(_XX_,_XX_) * Deriv(0,0);//dvdx*dudx
+ 			val  = 2. * Dep(_XX_,_XX_) * Deriv(0,0);//dvdx*dudx
 			val +=      Dep(_XX_,_XY_) * Deriv(0,1);//dvdx*dudy
 			val += 2. * Dep(_XY_,_XX_) * Deriv(1,0);//dvdy*dudx
 			val +=      Dep(_XY_,_XY_) * Deriv(1,1);//dvdy*dudy

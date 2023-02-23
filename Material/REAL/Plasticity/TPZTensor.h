@@ -521,6 +521,10 @@ public:
     
    
 
+// void FromTensorToMatVoigt (TPZTensor<REAL>source, TPZFMatrix< REAL >& resp );
+//
+//
+// void FromMatToTensor ( TPZFMatrix< REAL >& source,TPZTensor<REAL>&resp );
 	
 	/**
 	 Mnemonical access
@@ -1969,6 +1973,28 @@ void TPZTensor<T>::Lodeangle(TPZTensor<T> &GradLode,T &Lode)const
 	 GradLode = dJ3t;
 	 */
 }
+
+// template <class T>
+// void TPZTensor<T>::FromTensorToMatVoigt (TPZTensor<REAL>source, TPZFMatrix< REAL >& resp )
+//     {
+//         resp.Resize ( 6, 1);
+//         resp(0,0) = source.XX();
+//         resp(3,0) = source.YY();
+//         resp(5,0) = source.ZZ();
+//         resp(2,0) = source.XZ();
+//         resp(4,0) = source.YZ();
+//         resp(1,0) = source.XY();
+//     }
+// template <class T>
+// void TPZTensor<T>::FromMatToTensor ( TPZFMatrix< REAL >& source,TPZTensor<REAL>&resp )
+//     {
+//         resp.XX()=source(0,0);
+//         resp.YY()=source(3,0);
+//         resp.ZZ()=source(5,0);
+//         resp.XZ()=source(2,0);
+//         resp.YZ()=source(4,0);
+//         resp.XY()=source(1,0);
+//     }
 
 template <class T>
 void TPZTensor<T>::Eigenvalue(TPZTensor<T> &eigenval,TPZTensor<T> &dSigma1,TPZTensor<T> &dSigma2,TPZTensor<T> &dSigma3)const

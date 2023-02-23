@@ -730,7 +730,7 @@ void TPZYCMohrCoulombPV::ComputeConsistentPlaneTangent ( TPZTensor<REAL> & trial
 	//cout << "\n ftheta " << ftheta << endl;
 	//cout << "\n fa " << fa << endl;
     //Compute Deltalambda
-    TPZFMatrix<REAL> E= GetElasticMatrix();
+    TPZFMatrix<REAL> E= fER.GetElasticMatrix();
     TPZFMatrix<REAL> atemp,denom;
     REAL phiinvars=PhiInvars ( trialstress );
 	//REAL phiinvars = 2*(1./3. * I1 *sin ( fPhi )+sqrt ( J2 ) *fa-fc*cos ( fPhi ));
@@ -803,7 +803,7 @@ void TPZYCMohrCoulombPV::ComputeConsistentEdgeTangent ( TPZTensor<REAL> &trialst
     //cout <<ftheta*180/M_PI<<endl;
     // NRvector<NRmatrix<Doub>> nvecs = N ( trialstress );
     // NRvector<Doub> phis = Yields ( trialstress );
-    TPZFMatrix<REAL>E = GetElasticMatrix();
+    TPZFMatrix<REAL>E = fER.GetElasticMatrix();
     TPZFMatrix<REAL> a,b,at,bt;
 
     a=avec ( trialstress );

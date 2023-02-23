@@ -32,7 +32,11 @@ void TPZPlasticStepVoigt<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL
     epsTr -= epsPN; // Porque soh tem implementado o operator -=
 
     // Compute and Decomposition of SigTrial
-    fER.Compute(epsTr, sigtr); // sigma = lambda Tr(E)I + 2 mu E
+    TPZFMatrix<REAL> tempeps,tempsig,sigprojtemp,epstemp;
+    //FromTensorToMatVoigt(epsTr,tempeps);
+    epsTr.FromTensorToNRmatrix(tempeps);
+
+    fER.ComputeStress(epsTr,sigtr);
 
     // ReturMap in the principal values
     STATE nextalpha = -0.;
@@ -40,9 +44,17 @@ void TPZPlasticStepVoigt<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL
 
     fYC.ProjectSigmaDep(sigtr, sigma,Dep, nextalpha);
 
+
+    //cout << " ------------------------------------------Dep " << endl;
+    //Dep.Print(std::cout);
+
+    sigma.FromTensorToNRmatrix(sigprojtemp);
+    //FromTensorToMatVoigt(sigma,sigprojtemp);
+
     fN.fAlpha = nextalpha;
 
-    fER.ComputeDeformation(sigma,epsElaNp1);
+    fER.ComputeStrain(sigma,epsElaNp1);
+
     fN.fEpsT = epsTotal;
     epsPN = epsTotal;
     epsPN -= epsElaNp1; // Transforma epsPN em epsPNp1
@@ -127,29 +139,29 @@ void TPZPlasticStepVoigt<YC_t, ER_t>::Write(TPZStream &buf) const
     
 }
 
-template <class YC_t, class ER_t>
-void TPZPlasticStepVoigt<YC_t, ER_t>::CopyFromFMatrixToTensor(TPZFMatrix<STATE> FNM,TPZTensor<STATE> &copy)
-{
-    FNM.Resize(6,1);
-    copy.XX()=FNM(0,0);
-    copy.XY()=FNM(1,0);
-    copy.XZ()=FNM(2,0);
-    copy.YY()=FNM(3,0);
-    copy.YZ()=FNM(4,0);
-    copy.ZZ()=FNM(5,0);
-}
-
-template <class YC_t, class ER_t>
-void TPZPlasticStepVoigt<YC_t, ER_t>::CopyFromTensorToFMatrix(TPZTensor<STATE> tensor,TPZFMatrix<STATE> &copy)
-{
-    
-    copy(0,0)=tensor.XX();
-    copy(1,0)=tensor.XY();
-    copy(2,0)=tensor.XZ();
-    copy(3,0)=tensor.YY();
-    copy(4,0)=tensor.YZ();
-    copy(5,0)=tensor.ZZ();
-}
+// template <class YC_t, class ER_t>
+// void TPZPlasticStepVoigt<YC_t, ER_t>::CopyFromFMatrixToTensor(TPZFMatrix<STATE> FNM,TPZTensor<STATE> &copy)
+// {
+//     //FNM.Resize(6,1);
+//     copy.XX()=FNM(0,0);
+//     copy.XY()=FNM(1,0);
+//     copy.XZ()=FNM(2,0);
+//     copy.YY()=FNM(3,0);
+//     copy.YZ()=FNM(4,0);
+//     copy.ZZ()=FNM(5,0);
+// }
+//
+// template <class YC_t, class ER_t>
+// void TPZPlasticStepVoigt<YC_t, ER_t>::CopyFromTensorToFMatrix(TPZTensor<STATE> tensor,TPZFMatrix<STATE> &copy)
+// {
+//     copy.Resize(6,1);
+//     copy(0,0)=tensor.XX();
+//     copy(1,0)=tensor.XY();
+//     copy(2,0)=tensor.XZ();
+//     copy(3,0)=tensor.YY();
+//     copy(4,0)=tensor.YZ();
+//     copy(5,0)=tensor.ZZ();
+// }
 
 
 template class TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse>;

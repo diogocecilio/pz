@@ -172,11 +172,11 @@ virtual void TangentOperator(TPZFMatrix<REAL> & gradient,TPZTensor<REAL>::TPZDec
     
     
     //void CopyFromFNMatrixToTensor(TPZFNMatrix<6> FNM,TPZTensor<STATE> &copy);
-    void CopyFromTensorToFMatrix(TPZTensor<STATE> tensor,TPZFMatrix<STATE> &copy);
+    //void CopyFromTensorToFMatrix(TPZTensor<STATE> tensor,TPZFMatrix<STATE> &copy);
     
 
     //void CopyFromTensorToFNMatrix(TPZTensor<STATE> tensor,TPZFNMatrix<6> &copy);
-    void CopyFromFMatrixToTensor(TPZFMatrix<STATE> FNM,TPZTensor<STATE> &copy);
+    //void CopyFromFMatrixToTensor(TPZFMatrix<STATE> FNM,TPZTensor<STATE> &copy);
     
 
     
@@ -236,6 +236,28 @@ public:
 	TPZPlasticState<STATE> fN;
     
     int fYield;
+
+// 	void FromTensorToMatVoigt (TPZTensor<REAL>source, TPZFMatrix< REAL >& resp )
+//     {
+//         resp.Resize ( 6, 1);
+//         resp(0,0) = source.XX();
+//         resp(3,0) = source.YY();
+//         resp(5,0) = source.ZZ();
+//         resp(2,0) = source.XZ();
+//         resp(4,0) = source.YZ();
+//         resp(1,0) = source.XY();
+//     }
+//     void FromMatToTensor ( TPZFMatrix< REAL >& source,TPZTensor<REAL>&resp )
+//     {
+//         resp.XX()=source(0,0);
+//         resp.YY()=source(3,0);
+//         resp.ZZ()=source(5,0);
+//         resp.XZ()=source(2,0);
+//         resp.YZ()=source(4,0);
+//         resp.XY()=source(1,0);
+//     }
+
+
 	
 	
 };

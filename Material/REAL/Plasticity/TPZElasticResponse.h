@@ -177,6 +177,54 @@ public:
         for ( i = 0; i < 6; i++ ) Kef ( i, i ) += Mu2;
     }
 
+    template <class T>
+    void ComputeStress (  TPZTensor<T> & epsilon, TPZTensor<T> & sigma )
+    {
+        TPZFMatrix<REAL> cmat,tempsig,tempeps;
+
+//         epsilon.XY() *=1./2.;
+//         epsilon.XZ() *=1./2.;
+//         epsilon.YZ() *=1./2.;
+
+//         epsilon.XY() *=2.;
+//         epsilon.XZ() *=2.;
+//         epsilon.YZ() *=2.;
+
+        epsilon.FromTensorToNRmatrix(tempeps);
+
+        cmat = this->GetElasticMatrix();
+
+        cmat.Multiply(tempeps,tempsig);
+
+        sigma.CopyFrom(tempsig);
+
+    }
+
+    template <class T>
+    void ComputeStrain (  TPZTensor<T> & sigma, TPZTensor<T> & epsilon )
+    {
+        TPZFMatrix<REAL> cmat,tempsig,tempeps,inverse;
+
+//         sigma.XY() *=2;
+//         sigma.XZ() *=2;
+//         sigma.YZ() *=2;
+
+        //sigma.XY() *=0.5;
+        //sigma.XZ() *=0.5;
+        //sigma.YZ() *=0.5;
+        sigma.FromTensorToNRmatrix(tempsig);
+
+        cmat = this->GetElasticMatrix();
+
+        cmat.Inverse(inverse);
+
+        inverse.Multiply(tempsig,tempeps);
+
+        epsilon.CopyFrom(tempeps);
+
+    }
+
+
     TPZFMatrix<REAL> GetElasticMatrix()
     {
         TPZFMatrix<REAL> C ( 6, 6, 0. );
@@ -209,7 +257,7 @@ public:
         C ( _XZ_,_XX_ ) = 0;
         C ( _XZ_,_YY_ ) = 0;
         C ( _XZ_,_ZZ_ ) = 0;
-        C ( _XZ_,_XZ_ ) = G ;
+        C ( _XZ_,_XZ_ ) = 2.*G;
         C ( _XZ_,_YZ_ ) = 0.;
         C ( _XZ_,_XY_ ) = 0.;
 
@@ -218,7 +266,7 @@ public:
         C ( _YZ_,_YY_ ) = 0;
         C ( _YZ_,_ZZ_ ) = 0;
         C ( _YZ_,_XZ_ ) = 0.;
-        C ( _YZ_,_YZ_ ) = G ;
+        C ( _YZ_,_YZ_ ) = 2.*G;
         C ( _YZ_,_XY_ ) = 0.;
 
 
@@ -227,7 +275,7 @@ public:
         C ( _XY_,_ZZ_ ) = 0;
         C ( _XY_,_XZ_ ) = 0.;
         C ( _XY_,_YZ_ ) = 0.;
-        C ( _XY_,_XY_ ) = G ;
+        C ( _XY_,_XY_ ) = 2.*G;
 
 
         return C;

@@ -904,7 +904,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 #include "pzelastoplastic.h"
 #include "TPZMohrCoulombVoigt.h"
 #include "TPZPlasticStepVoigt.h"
-//typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
+typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
 typedef   TPZMatElastoPlastic2D < TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse>, TPZElastoPlasticMem > plasticmatcrisfield;
 
 void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2, REAL l,bool linesearch){

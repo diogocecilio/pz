@@ -115,13 +115,13 @@ int main()
 {
 
 
-    TPZGeoMesh *gmesh0 = CreateSimpleGMesh (  );
-    TPZCompMesh *cmesh0 = CreateSimpleCMesh ( gmesh0,1 );
-    TPZElastoPlasticAnalysis *anal0 =  CreateSimpleAnal ( cmesh0,false );
-
-
-
-    return 0;
+//     TPZGeoMesh *gmesh0 = CreateSimpleGMesh (  );
+//     TPZCompMesh *cmesh0 = CreateSimpleCMesh ( gmesh0,1 );
+//     TPZElastoPlasticAnalysis *anal0 =  CreateSimpleAnal ( cmesh0,false );
+//
+//
+//
+//     return 0;
 
     int porder= 2;
 
@@ -855,8 +855,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     REAL nu = 0.49;
     REAL E = 20000.;
 
-   // TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
-    TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse> LEMC;
+    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
+    //TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse> LEMC;
     ER.SetUp ( E, nu );
     LEMC.fER =ER;
     // LEMC.SetElasticResponse( ER );
@@ -864,8 +864,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
 
     int PlaneStrain = 1;
 
-    //plasticmat * material = new plasticmat ( 1,PlaneStrain );
-    plasticmatcrisfield * material = new plasticmatcrisfield ( 1,PlaneStrain );
+    plasticmat * material = new plasticmat ( 1,PlaneStrain );
+    //plasticmatcrisfield * material = new plasticmatcrisfield ( 1,PlaneStrain );
     material->SetPlasticity ( LEMC );
 
     material->SetId ( 1 );
@@ -903,8 +903,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
 
 void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor )
 {
-  //  plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
-    plasticmatcrisfield * body= dynamic_cast<plasticmatcrisfield *> ( cmesh->FindMaterial ( 1 ) );
+    plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+    //plasticmatcrisfield * body= dynamic_cast<plasticmatcrisfield *> ( cmesh->FindMaterial ( 1 ) );
     TPZManVector<REAL, 3> force ( 3,0. );
     force[1]=(gammaaugua-gammasolo);
     //force[1]=(-gammasolo);
@@ -998,90 +998,90 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
     scalNames.Push ( "Pressure" );
 
 }
-void GravityIncrease ( TPZCompMesh * cmesh )
-{
-
-
-    int neq = cmesh->NEquations();
-
-    REAL tol = 0.001;
-    int numiter =5;
-    REAL tol2 = 0.001;
-    int numiter2 =5;
-    REAL l =0.1;
-    bool linesearch =false;
-
-    LoadingRamp ( cmesh,1. );
-
-    bool optimize =true;
-
-    TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
-
-    std::ofstream outnewton("saida-newton.txt");
-    anal->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
-    anal->AcceptSolution();
-}
 // void GravityIncrease ( TPZCompMesh * cmesh )
 // {
 //
-//     REAL FS=0.1,FSmax=1000.,FSmin=0.,tol=0.01;
+//
 //     int neq = cmesh->NEquations();
-//     int maxcount=100;
-//     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
 //
-//     int counterout = 0;
+//     REAL tol = 0.001;
+//     int numiter =5;
+//     REAL tol2 = 0.001;
+//     int numiter2 =5;
+//     REAL l =0.1;
+//     bool linesearch =false;
 //
-//     REAL norm = 1000.;
-//     REAL tol2 = 1;
-//     int NumIter = 50;
-//     bool linesearch = true;
-//     bool checkconv = false;
-// 	std::ofstream outnewton("saida-newton.txt");
-// 	std::ofstream outloadu("gimloadvsu-darcy.nb");
-// 	REAL uy=0.;
-// 	outloadu << "plot = {";
-//     do {
+//     LoadingRamp ( cmesh,-1. );
 //
-//         std::cout << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
-//         LoadingRamp ( cmesh,FS );
-//         bool optimize =true;
-//         TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
-// 		chrono::steady_clock sc;
-// 		auto start = sc.now();
-//         int iters;
-//        bool conv = anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv ,iters);
+//     bool optimize =true;
 //
-// 		auto end = sc.now();
-// 		auto time_span = static_cast<chrono::duration<double>> ( end - start );
-// 		cout << "| total time in iterative process =  " << time_span.count()<< std::endl;
-// 		//anal->IterativeProcess ( outnewton, tol2, NumIter);
+//     TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
 //
-//         norm = Norm ( anal->Rhs() );
-//
-//         if ( conv==false) {
-//             cmesh->LoadSolution(displace0);
-// 			//cmesh->Solution().Zero();
-//             FSmax = FS;
-//             FS = ( FSmin + FSmax ) / 2.;
-//
-//         } else {
-//            // uy+=findnodalsol(cmesh);
-//             outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
-// 			displace0 = anal->Solution();
-//             FSmin = FS;
-//             anal->AcceptSolution();
-//
-// 			//FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 1.5 );
-//             FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
-//         }
-//        // cout << "|asdadadasd =  " << std::endl;
-//         counterout++;
-//
-//     }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
-// outloadu <<  " }; ListLinePlot[plot,PlotRange->All]" << endl;
-// 	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,true );
-// 	anal->AcceptSolution();
+//     std::ofstream outnewton("saida-newton.txt");
+//     anal->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
+//     anal->AcceptSolution();
 // }
+void GravityIncrease ( TPZCompMesh * cmesh )
+{
+
+    REAL FS=0.1,FSmax=1000.,FSmin=0.,tol=0.01;
+    int neq = cmesh->NEquations();
+    int maxcount=100;
+    TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );
+
+    int counterout = 0;
+
+    REAL norm = 1000.;
+    REAL tol2 = 1;
+    int NumIter = 50;
+    bool linesearch = true;
+    bool checkconv = false;
+	std::ofstream outnewton("saida-newton.txt");
+	std::ofstream outloadu("gimloadvsu-darcy.nb");
+	REAL uy=0.;
+	outloadu << "plot = {";
+    do {
+
+        std::cout << "FS = " << FS  <<" | Load step = " << counterout << " | Rhs norm = " << norm  << std::endl;
+        LoadingRamp ( cmesh,FS );
+        bool optimize =true;
+        TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,optimize );
+		chrono::steady_clock sc;
+		auto start = sc.now();
+        int iters;
+       bool conv = anal->IterativeProcess ( outnewton, tol2, NumIter,linesearch,checkconv ,iters);
+
+		auto end = sc.now();
+		auto time_span = static_cast<chrono::duration<double>> ( end - start );
+		cout << "| total time in iterative process =  " << time_span.count()<< std::endl;
+		//anal->IterativeProcess ( outnewton, tol2, NumIter);
+
+        norm = Norm ( anal->Rhs() );
+
+        if ( conv==false) {
+            cmesh->LoadSolution(displace0);
+			//cmesh->Solution().Zero();
+            FSmax = FS;
+            FS = ( FSmin + FSmax ) / 2.;
+
+        } else {
+           // uy+=findnodalsol(cmesh);
+            outloadu << "{ "<<-uy << ", " << FS << " } ," << endl;
+			displace0 = anal->Solution();
+            FSmin = FS;
+            anal->AcceptSolution();
+
+			//FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 1.5 );
+            FS = 1. / ( ( 1. / FSmin + 1. / FSmax ) / 2. );
+        }
+       // cout << "|asdadadasd =  " << std::endl;
+        counterout++;
+
+    }  while ( (( FSmax - FSmin ) / FS > tol && counterout<maxcount) );
+outloadu <<  " }; ListLinePlot[plot,PlotRange->All]" << endl;
+	TPZElastoPlasticAnalysis  * anal = CreateAnal ( cmesh,true );
+	anal->AcceptSolution();
+}
 void ShearRed ( TPZCompMesh * cmesh )
 {
 	//plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
