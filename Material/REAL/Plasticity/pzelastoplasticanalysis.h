@@ -148,20 +148,23 @@ REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<RE
     REAL dlamb2;
     REAL dlamb1;
 
-    //cout << "delta" <<delta << " aa = "<< aa << " bb = "<< bb << " cc = "<< cc << endl;
 
     if ( fabs ( aa ) >1.e-12 && delta>0 ) {
         dlamb2 = ( -bb + sqrt ( delta ) ) / ( 2. * aa ); //maior
         dlamb1= ( -bb - sqrt ( delta ) ) / ( 2. * aa ); //menor
         //return dlamb1;
         //cout << "dlamb1" <<dlamb1 << " dlamb2 = "<< dlamb2 << endl;
-    } else if ( bb != 0 ) {
+    } else {
+        if ( bb != 0 ) {
         //cout << "-cc/bb" <<-cc/bb << endl;
         return -cc/bb;
     } else {
         //cout << "(-bb ) / (2. * aa)" <<(-bb ) / (2. * aa)<< endl;
         return ( -bb ) / ( 2. * aa );
     }
+    }
+
+
 
 
     //page 111, eq. 4.118 - Souza Neto

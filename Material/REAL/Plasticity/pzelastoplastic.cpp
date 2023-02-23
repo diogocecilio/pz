@@ -99,8 +99,8 @@ void TPZMatElastoPlastic<T,TMEM>::SetPlasticity(T & plasticity)
 
     TPZFMatrix<REAL> Dep;
 	
-    plastloc.ApplyStrainComputeSigma(memory.fPlasticState.fEpsT, memory.fSigma);
-	//plastloc.ApplyStrainComputeDep(memory.fPlasticState.fEpsT, memory.fSigma,Dep);
+    //plastloc.ApplyStrainComputeSigma(memory.fPlasticState.fEpsT, memory.fSigma);
+	plastloc.ApplyStrainComputeDep(memory.fPlasticState.fEpsT, memory.fSigma,Dep);
 	
 	this->SetDefaultMem(memory);
 	
@@ -379,7 +379,9 @@ void TPZMatElastoPlastic<T,TMEM>::Solution(TPZMaterialData &data, int var, TPZVe
         EpsT.CopyFrom(deltastrain);
         EpsT.Add(plasticloc.GetState().fEpsT, 1.);
         
-        plasticloc.ApplyStrainComputeSigma(EpsT, Sigma);
+        TPZFMatrix<REAL> Dep;
+        plasticloc.ApplyStrainComputeDep(EpsT, Sigma,Dep);
+        //plasticloc.ApplyStrainComputeSigma(EpsT, Sigma);
 		
     }
     TPZPlasticState<STATE> PState = plasticloc.GetState();
@@ -1411,7 +1413,8 @@ void TPZMatElastoPlastic<T,TMEM>::CheckConvergence(TPZMaterialData & data, TPZFM
     Alfa2DeltaEps*=alfa2;
     temp=Eps;
     temp+=Alfa1DeltaEps;
-    plasticloc.ApplyStrainComputeSigma(temp,part1);
+    //plasticloc.ApplyStrainComputeSigma(temp,part1);
+    plasticloc.ApplyStrainComputeDep(temp,part1,DEP);
     plasticloc.ApplyStrainComputeDep(Eps,part2,DEP);
     TPZFNMatrix<6,REAL> part3temp(6,1),tempAlfa1DeltaEps(6,1);
     for(int i=0;i<6;i++)
@@ -1431,7 +1434,8 @@ void TPZMatElastoPlastic<T,TMEM>::CheckConvergence(TPZMaterialData & data, TPZFM
     
     temp=Eps;
     temp+=Alfa2DeltaEps;
-    plasticloc.ApplyStrainComputeSigma(temp,part1);
+    //plasticloc.ApplyStrainComputeSigma(temp,part1);
+    plasticloc.ApplyStrainComputeDep(temp,part1,DEP);
     for(int i=0;i<6;i++)
     {
         tempAlfa1DeltaEps(i,0)=Alfa2DeltaEps.fData[i];
@@ -1530,8 +1534,8 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrain(TPZMaterialData & data, TPZFM
 	EpsT.Add(plasticloc.GetState().fEpsT, 1.);
 	
     TPZFMatrix<REAL> Dep;
-    plasticloc.ApplyStrainComputeSigma(EpsT, Sigma);
-	//plasticloc.ApplyStrainComputeDep(EpsT, Sigma,Dep);
+    //plasticloc.ApplyStrainComputeSigma(EpsT, Sigma);
+	plasticloc.ApplyStrainComputeDep(EpsT, Sigma,Dep);
     
 //    cout << "\n Memoria " << endl;
 //    TPZMatWithMem<TMEM>::fMemory[intPt].Print();

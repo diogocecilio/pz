@@ -925,8 +925,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
 
     TPZFMatrix<STATE> prevsol(fSolution);
 
-    //plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
-    plasticmatcrisfield * material= dynamic_cast<plasticmatcrisfield *> ( fCompMesh->FindMaterial ( 1 ) );
+    plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+    //plasticmatcrisfield * material= dynamic_cast<plasticmatcrisfield *> ( fCompMesh->FindMaterial ( 1 ) );
 
     while(diff>tol && counterout<numiter)
     {
@@ -951,6 +951,7 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
         while( normdu>tol2 && counter<numiter2 )
         {
 
+            material->SetWhichLoadVector(0);
             this->Assemble();
 //             this->Solve();
 //
@@ -973,9 +974,6 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
 
             material->SetWhichLoadVector(2);
             this->AssembleResidual();
-
-
-            material->SetWhichLoadVector(0);
 
             TPZFMatrix<STATE> fbody =this->fRhs;
 
