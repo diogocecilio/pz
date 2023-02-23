@@ -96,8 +96,10 @@ void TPZMatElastoPlastic<T,TMEM>::SetPlasticity(T & plasticity)
 	TMEM memory;
 	
 	memory.fPlasticState = plastloc.GetState();
+
+    TPZFMatrix<REAL> Dep;
 	
-	plastloc.ApplyStrainComputeSigma(memory.fPlasticState.fEpsT, memory.fSigma);	
+	plastloc.ApplyStrainComputeDep(memory.fPlasticState.fEpsT, memory.fSigma,Dep);
 	
 	this->SetDefaultMem(memory);
 	
@@ -1526,7 +1528,8 @@ void TPZMatElastoPlastic<T,TMEM>::ApplyDeltaStrain(TPZMaterialData & data, TPZFM
 	EpsT.CopyFrom(Strain);
 	EpsT.Add(plasticloc.GetState().fEpsT, 1.);
 	
-	plasticloc.ApplyStrainComputeSigma(EpsT, Sigma);
+    TPZFMatrix<REAL> Dep;
+	plasticloc.ApplyStrainComputeDep(EpsT, Sigma,Dep);
     
 //    cout << "\n Memoria " << endl;
 //    TPZMatWithMem<TMEM>::fMemory[intPt].Print();
@@ -1739,6 +1742,8 @@ void TPZMatElastoPlastic<T,TMEM>::FillBoundaryConditionDataRequirement(int type,
 #include "pzsandlerextPV.h"
 #include "TPZPlasticStepPV.h"
 #include "TPZYCMohrCoulombPV.h"
+#include "TPZMohrCoulombVoigt.h"
+#include "TPZPlasticStepVoigt.h"
 
 //#include "TPZModifiedMohrCoulomb.h"
 
@@ -1773,6 +1778,6 @@ template class TPZMatElastoPlastic<TPZPlasticStep<TPZYCDruckerPrager, TPZThermoF
 
 template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZSandlerExtended,TPZElasticResponse> , TPZElastoPlasticMem>;
 template class TPZMatElastoPlastic<TPZPlasticStepPV<TPZYCMohrCoulombPV,TPZElasticResponse> , TPZElastoPlasticMem>;
+template class TPZMatElastoPlastic<TPZPlasticStepVoigt<TPZMohrCoulombVoigt,TPZElasticResponse> , TPZElastoPlasticMem>;
 
-//template class TPZMatElastoPlastic<TPZMohrCoulombVoigt, TPZElastoPlasticMem>;
 

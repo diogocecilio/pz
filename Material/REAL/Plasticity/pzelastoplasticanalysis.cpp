@@ -820,7 +820,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         this->LoadSolution(fSolution);
         this->AssembleResidual();
         REAL normf  = Norm(fRhs);
-        cout << "Iteracao n : " << (iter) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " << normf << " | tol = "<<tol << endl;
+        cout << "Iteracao n : " << (iter) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " << normf/normrhs0 << " | tol = "<<tol << endl;
         a = iter < numiter ;
         b =error2 > tol *1.e-3;
         c= error > tol;
@@ -902,8 +902,10 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 #include "TPZYCMohrCoulombPV.h"
 #include "pzelastoplastic2D.h"
 #include "pzelastoplastic.h"
-typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
-
+#include "TPZMohrCoulombVoigt.h"
+#include "TPZPlasticStepVoigt.h"
+//typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
+typedef   TPZMatElastoPlastic2D < TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse>, TPZElastoPlasticMem > plasticmatcrisfield;
 
 void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2, REAL l,bool linesearch){
 
@@ -923,7 +925,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
 
     TPZFMatrix<STATE> prevsol(fSolution);
 
-    plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+    //plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+    plasticmatcrisfield * material= dynamic_cast<plasticmatcrisfield *> ( fCompMesh->FindMaterial ( 1 ) );
 
     while(diff>tol && counterout<numiter)
     {
@@ -949,8 +952,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
         {
 
             this->Assemble();
-            //this->Solve();
-
+//             this->Solve();
+//
 //             if (true) {
 //                 TPZFMatrix<STATE> nextSol;
 //                 REAL LineSearchTol = 1e-3 * Norm(fSolution);
@@ -971,6 +974,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
             material->SetWhichLoadVector(2);
             this->AssembleResidual();
 
+
+            material->SetWhichLoadVector(0);
 
             TPZFMatrix<STATE> fbody =this->fRhs;
 

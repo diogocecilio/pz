@@ -9,19 +9,51 @@
 template <class YC_t, class ER_t>
 void TPZPlasticStepVoigt<YC_t, ER_t>::ApplyStrainComputeSigma(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma)
 {
-
+    std::cout<< " \n this method is not implemented in TPZPlasticStepVoigt. ";
+    DebugStop();
 }
 
 template <class YC_t, class ER_t>
 void TPZPlasticStepVoigt<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL> &epsTotal, TPZTensor<REAL> &sigma, TPZFMatrix<REAL> &Dep)
 {
+    TPZTensor<REAL>::TPZDecomposed DecompSig,DecompEps; // It may be SigTr or SigPr Decomposition, dependes on the part of this method
+    TPZTensor<REAL> sigtr;
 
+	if(fN.fmatprop.size()!=0 && fN.fmatprop[0]>1.e-3)
+ 	{
+	 fYC.SetLocalMatState(fN);
+	}
+
+	//fYC.fPhi = cohesion;
+    //
+    TPZTensor<REAL> epsTr,epsPN,epsElaNp1;
+    epsPN = fN.fEpsP;
+    epsTr = epsTotal;
+    epsTr -= epsPN; // Porque soh tem implementado o operator -=
+
+    // Compute and Decomposition of SigTrial
+    fER.Compute(epsTr, sigtr); // sigma = lambda Tr(E)I + 2 mu E
+
+    // ReturMap in the principal values
+    STATE nextalpha = -0.;
+    STATE printPlastic = fN.Alpha();
+
+    fYC.ProjectSigmaDep(sigtr, sigma,Dep, nextalpha);
+
+    fN.fAlpha = nextalpha;
+
+    fER.ComputeDeformation(sigma,epsElaNp1);
+    fN.fEpsT = epsTotal;
+    epsPN = epsTotal;
+    epsPN -= epsElaNp1; // Transforma epsPN em epsPNp1
+    fN.fEpsP = epsPN;
 }
 
 template <class YC_t, class ER_t>
 void TPZPlasticStepVoigt<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradient,TPZTensor<REAL>::TPZDecomposed & eps_eigen_system, TPZTensor<REAL>::TPZDecomposed & sig_eigen_system, TPZFMatrix<REAL> & Tangent){
 	
-
+    std::cout<< " \n this method is not implemented in TPZPlasticStepVoigt. ";
+    DebugStop();
 	
 }
 
@@ -29,7 +61,8 @@ void TPZPlasticStepVoigt<YC_t, ER_t>::TangentOperator(TPZFMatrix<REAL> & gradien
 template <class YC_t, class ER_t>
 void TPZPlasticStepVoigt<YC_t, ER_t>::TaylorCheck(TPZTensor<REAL> &EpsIni, TPZTensor<REAL> &deps, REAL kprev, TPZVec<REAL> &conv)
 {
-
+    std::cout<< " \n this method is not implemented in TPZPlasticStepVoigt. ";
+    DebugStop();
 }
 
 
@@ -37,7 +70,7 @@ template <class YC_t, class ER_t>
 void TPZPlasticStepVoigt<YC_t, ER_t>::ApplyStrain(const TPZTensor<REAL> &epsTotal)
 {
 
-    std::cout<< " \n this method is not implemented in PlasticStepPV. ";
+    std::cout<< " \n this method is not implemented in TPZPlasticStepVoigt. ";
     DebugStop();
     
 }
@@ -45,7 +78,8 @@ void TPZPlasticStepVoigt<YC_t, ER_t>::ApplyStrain(const TPZTensor<REAL> &epsTota
 template <class YC_t, class ER_t>
 void TPZPlasticStepVoigt<YC_t, ER_t>::ApplyLoad(const TPZTensor<REAL> & GivenStress, TPZTensor<REAL> &epsTotal)
 {
- 
+     std::cout<< " \n this method is not implemented in TPZPlasticStepVoigt. ";
+    DebugStop();
 }
 
 template <class YC_t, class ER_t>
@@ -57,7 +91,8 @@ TPZPlasticState<STATE>  TPZPlasticStepVoigt<YC_t, ER_t>::GetState() const
 template <class YC_t, class ER_t>
 void TPZPlasticStepVoigt<YC_t, ER_t>::Phi(const TPZTensor<STATE> &eps, TPZVec<REAL> &phi) const
 {
-
+    std::cout<< " \n this method is not implemented in TPZPlasticStepVoigt. ";
+    DebugStop();
 }
 
 

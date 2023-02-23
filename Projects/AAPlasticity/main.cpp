@@ -116,59 +116,79 @@ void LoadingRamp (TPZCompMesh * cmesh,  REAL factor,REAL gamma);
 
 void MaterialPointMohrCoulomb2() {
 //left
-//     // Mohr Coulomb data
-//     REAL mc_cohesion    =490.;
-//     REAL mc_phi         = ( 20.0*M_PI/180 );
-//     REAL mc_psi         = mc_phi;
-//
-//     TPZElasticResponse ER;
-//     REAL nu = 0.48;
-//     REAL E = 10000000;
 
-        // Mohr Coulomb data
-    REAL mc_cohesion    =50.;
+    REAL mc_cohesion    =490.;
     REAL mc_phi         = ( 20.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
     TPZElasticResponse ER;
-    REAL nu = 0.49;
-    REAL E = 20000;
+    REAL nu = 0.48;
+    REAL E = 10000000;
+
+  //     Mohr Coulomb data
+//     REAL mc_cohesion    =50.;
+//     REAL mc_phi         = ( 20.0*M_PI/180 );
+//     REAL mc_psi         = mc_phi;
+//
+//     TPZElasticResponse ER;
+//     REAL nu = 0.49;
+//     REAL E = 20000;
 
     ER.SetUp( E, nu );
     TPZMohrCoulombVoigt *mc = new  TPZMohrCoulombVoigt(mc_phi,mc_phi,mc_cohesion,ER);
 //plane
-    TPZFMatrix<REAL> dep;
-    TPZTensor<REAL> sigma_trial,sigma_proj,a,b;
-    sigma_trial.XX()=3891.34;
-    sigma_trial.YY()=3059.69;
-    sigma_trial.ZZ()=3406.01;
-    sigma_trial.XZ()=0;
-    sigma_trial.YZ()=0;
-    sigma_trial.XY()=168.535;
-
     REAL epsbarnew = 0.;
-    //bool sol = mc->ReturnMapPlane ( sigma_trial, sigma_proj,dep,  epsbarnew);
-    //mc->ComputePlaneTangent(dep,epsbarnew);
-//left
+     TPZFMatrix<REAL> dep;
+     TPZTensor<REAL> sigma_trial,sigma_proj,a,b;
+//     sigma_trial.XX()=3891.34;
+//     sigma_trial.YY()=3059.69;
+//     sigma_trial.ZZ()=3406.01;
+//     sigma_trial.XZ()=0;
+//     sigma_trial.YZ()=0;
+//     sigma_trial.XY()=168.535;
+
+// // //
+// // //
+//      mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+// //
+//     sigma_proj.Print(std::cout);
+//     dep.Print(std::cout);
+//
+//
     sigma_trial.XX()=-1465.15;
     sigma_trial.YY()=-1353.51;
     sigma_trial.ZZ()=-210.626;
     sigma_trial.XZ()=0;
     sigma_trial.YZ()=0;
     sigma_trial.XY()=1271.35;
-
-
-    //mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
-    sigma_trial.XX()=5226.4;
-    sigma_trial.YY()=4860.25;
-    sigma_trial.ZZ()=4942.46;
-    sigma_trial.XZ()=0;
-    sigma_trial.YZ()=0;
-    sigma_trial.XY()=-219.96;
-    mc->ReturnMapRightEdge ( sigma_trial, sigma_proj,dep,  epsbarnew,a,b);
+    mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
     sigma_proj.Print(std::cout);
     dep.Print(std::cout);
+//
+//     sigma_trial.XX()=5226.4;
+//     sigma_trial.YY()=4860.25;
+//     sigma_trial.ZZ()=4942.46;
+//     sigma_trial.XZ()=0;
+//     sigma_trial.YZ()=0;
+//     sigma_trial.XY()=-219.96;
+//     mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+//     mc->ReturnMapRightEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
+//    sigma_proj.Print(std::cout);
+//    dep.Print(std::cout);
 
+
+//     //sigtr = {5024.51,4666.28,4748.49,0.,0.,-194.931}
+//     sigma_trial.XX()=5024.51;
+//     sigma_trial.YY()=4666.28;
+//     sigma_trial.ZZ()=4748.49;
+//     sigma_trial.XZ()=0;
+//     sigma_trial.YZ()=0;
+//     sigma_trial.XY()=-194.931;
+//     mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+//     //mc->ReturnMapRightEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
+//     sigma_proj.Print(std::cout);
+//     dep.Print(std::cout);
 
 }
 

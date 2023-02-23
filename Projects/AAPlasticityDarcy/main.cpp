@@ -30,7 +30,8 @@
 #include "TPZMohrCoulombVoigt.h"
 #include "pzelastoplastic2D.h"
 #include "pzelastoplastic.h"
-
+#include "TPZMohrCoulombVoigt.h"
+#include "TPZPlasticStepVoigt.h"
 //#include "TPZDarcyFlow.h"
 #include "TPZDarcyFlowIsoPerm.h"
 
@@ -38,7 +39,7 @@ using namespace std;
 
 
 typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
-typedef   TPZMatElastoPlastic2D < TPZMohrCoulombVoigt, TPZElastoPlasticMem > plasticmatcrisfield;
+typedef   TPZMatElastoPlastic2D < TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse>, TPZElastoPlasticMem > plasticmatcrisfield;
 
 //TPZVec<REAL> fPlasticDeformSqJ2;
 
@@ -47,9 +48,13 @@ typedef   TPZMatElastoPlastic2D < TPZMohrCoulombVoigt, TPZElastoPlasticMem > pla
 
 TPZGeoMesh * CreateGMesh ( int ref );
 
+TPZGeoMesh * CreateSimpleGMesh (  );
+
 TPZGeoMesh * CreateGMeshGid ( int ref );
 
 TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder );
+
+TPZCompMesh * CreateSimpleCMesh ( TPZGeoMesh * gmesh,int porder );
 
 void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor );
 
@@ -61,6 +66,8 @@ void  CreatePostProcessingMesh ( TPZPostProcAnalysis * PostProcess,TPZCompMesh *
 void Post ( TPZPostProcAnalysis * postproc,std::string vtkFile );
 
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize );
+
+TPZElastoPlasticAnalysis * CreateSimpleAnal ( TPZCompMesh *cmesh,bool optimize );
 
 void ShearRed ( TPZCompMesh * cmesh );
 
@@ -107,9 +114,22 @@ bool water=false;
 int main()
 {
 
+
+    TPZGeoMesh *gmesh0 = CreateSimpleGMesh (  );
+    TPZCompMesh *cmesh0 = CreateSimpleCMesh ( gmesh0,1 );
+    TPZElastoPlasticAnalysis *anal0 =  CreateSimpleAnal ( cmesh0,false );
+
+
+
+    return 0;
+
     int porder= 2;
 
+
+
     TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
+
+
 
 
     string vtk = "Darcyx.vtk"; 
@@ -171,6 +191,117 @@ int main()
 
 
     return 0;
+}
+TPZElastoPlasticAnalysis * CreateSimpleAnal ( TPZCompMesh *cmesh,bool optimize )
+{
+    int numthreads = 0;
+    TPZAnalysis *analysis =  new TPZAnalysis( cmesh ); // Create analysis
+
+    TPZFStructMatrix matskl ( cmesh );
+    //TPZSkylineStructMatrix matskl ( cmesh );
+    matskl.SetNumThreads ( numthreads );
+    analysis->SetStructuralMatrix ( matskl );
+
+    ///Setting a direct solver
+    TPZStepSolver<STATE> step;
+    step.SetDirect ( ELDLt );
+    analysis->SetSolver ( step );
+
+    analysis->Assemble();
+
+    TPZAutoPointer<TPZMatrix<REAL> > K = analysis->Solver().Matrix();
+    K->Print(std::cout);
+    TPZFMatrix<STATE> rhs =analysis->Rhs();
+}
+
+TPZCompMesh * CreateSimpleCMesh ( TPZGeoMesh * gmesh,int porder )
+{
+    unsigned int dim  = 2;
+    const std::string name ( " simple cmesh " );
+
+    TPZCompMesh * cmesh =  new TPZCompMesh ( gmesh );
+    cmesh->SetName ( name );
+    cmesh->SetDefaultOrder ( porder );
+    cmesh->SetDimModel ( dim );
+
+    REAL mc_phi         = ( 30.*M_PI/180 );
+    REAL mc_psi         = mc_phi;
+    REAL mc_cohesion = 50.;
+
+    TPZElasticResponse ER;
+    REAL nu = 0.49;
+    REAL E = 20000.;
+
+    TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse> LEMC;
+    ER.SetUp ( E, nu );
+    LEMC.fER =ER;
+
+    LEMC.fYC.SetUp ( mc_phi, mc_psi, mc_cohesion, ER );
+
+    int PlaneStrain = 1;
+
+    plasticmatcrisfield * material = new plasticmatcrisfield ( 1,PlaneStrain );
+
+    material->SetPlasticity ( LEMC );
+
+    material->SetId ( 1 );
+
+    material->SetLoadFactor(1.);
+    material->SetWhichLoadVector(0);//option to compute the total internal force vecor fi=(Bt sigma+ N (b+gradu))
+
+    cmesh->InsertMaterialObject ( material );
+
+    cmesh->SetAllCreateFunctionsContinuousWithMem();
+
+    cmesh->AutoBuild();
+
+    return cmesh;
+}
+
+TPZGeoMesh * CreateSimpleGMesh ( )
+{
+    const std::string name ( "Simple GMesh " );
+
+    TPZGeoMesh *gmesh  =  new TPZGeoMesh();
+
+    gmesh->SetName ( name );
+    gmesh->SetDimension ( 2 );
+
+    TPZVec<REAL> coord ( 2 );
+
+    vector<vector<double>> co;
+
+    int ncoords = 4;
+    int nels =2;
+
+    double coords[ncoords][2]={{0.,0.},{0.,1.},{1.,0.},{1.,1.}};
+
+    long topol[nels][3]={{0,2,1},{2,3,1}};
+
+
+     gmesh->NodeVec().Resize(ncoords);
+    for(int inode=0;inode<ncoords;inode++)
+    {
+        TPZVec<double> co(2);
+        co[0]=coords[inode][0];co[1]=coords[inode][1];
+        gmesh->NodeVec() [inode] = TPZGeoNode ( inode, co, *gmesh );
+    }
+
+
+    for ( int iel=0; iel<nels; iel++ ) {
+        TPZVec<long> top(3);
+        top[0]=topol[iel][0];top[1]=topol[iel][1];top[2]=topol[iel][2];
+        new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( iel,top, 1,*gmesh );
+    }
+
+
+    gmesh->BuildConnectivity();
+
+    gmesh->Print(std::cout);
+    std::ofstream files ( "gesimple.vtk" );
+    TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
+
+    return gmesh;
 }
 void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
 		const auto &x=pt[0];
@@ -724,7 +855,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     REAL nu = 0.49;
     REAL E = 20000.;
 
-    TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
+   // TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
+    TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse> LEMC;
     ER.SetUp ( E, nu );
     LEMC.fER =ER;
     // LEMC.SetElasticResponse( ER );
@@ -732,7 +864,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
 
     int PlaneStrain = 1;
 
-    plasticmat * material = new plasticmat ( 1,PlaneStrain );
+    //plasticmat * material = new plasticmat ( 1,PlaneStrain );
+    plasticmatcrisfield * material = new plasticmatcrisfield ( 1,PlaneStrain );
     material->SetPlasticity ( LEMC );
 
     material->SetId ( 1 );
@@ -770,7 +903,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
 
 void LoadingRamp ( TPZCompMesh * cmesh,  REAL factor )
 {
-    plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+  //  plasticmat * body= dynamic_cast<plasticmat *> ( cmesh->FindMaterial ( 1 ) );
+    plasticmatcrisfield * body= dynamic_cast<plasticmatcrisfield *> ( cmesh->FindMaterial ( 1 ) );
     TPZManVector<REAL, 3> force ( 3,0. );
     force[1]=(gammaaugua-gammasolo);
     //force[1]=(-gammasolo);
@@ -874,7 +1008,7 @@ void GravityIncrease ( TPZCompMesh * cmesh )
     int numiter =5;
     REAL tol2 = 0.001;
     int numiter2 =5;
-    REAL l =1.;
+    REAL l =0.1;
     bool linesearch =false;
 
     LoadingRamp ( cmesh,1. );

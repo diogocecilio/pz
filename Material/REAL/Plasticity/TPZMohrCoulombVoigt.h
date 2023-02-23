@@ -127,23 +127,49 @@ public:
      * @brief Implements the return map in the plane of the surface
      */
 
-    bool ReturnMapPlane (  TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew,REAL &dlamb, TPZTensor<REAL> &avec, TPZTensor<REAL> &bvec  ) ;
+    REAL ReturnMapPlane (  TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew ) ;
 
 
-    bool ReturnMapLeftEdge (TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew,TPZTensor<REAL> &avec, TPZTensor<REAL> &bvec) ;
+    bool ReturnMapLeftEdge (TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew) ;
 
 
-    void ComputeLeftEdgeTangent ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew,TPZTensor<REAL> &avec, TPZTensor<REAL> &bvec) ;
+    void ComputeLeftEdgeTangent ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew) ;
 
 
-    bool ReturnMapRightEdge ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew,TPZTensor<REAL> &avec, TPZTensor<REAL> &bvec ) ;
+    bool ReturnMapRightEdge ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew ) ;
 
 
-    bool ReturnMapApex ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew,TPZTensor<REAL> &avec, TPZTensor<REAL> &bvec ) ;
+    bool ReturnMapApex ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew ) ;
 
 
     void ProjectSigmaDep ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew);
 
+    inline void FlowVector(TPZTensor<REAL> &sigma,REAL & a, REAL & dadt, REAL & d2Adt,TPZTensor<REAL> &flowvec)
+    {
+
+        TPZTensor<REAL> di1 = sigma.dI1();
+        TPZTensor<REAL> dj2 = sigma.dJ2();
+        TPZTensor<REAL> dj3 = sigma.dJ3();
+
+        REAL c1=C1();
+        REAL c2=C2 ( sigma, a, dadt);
+        REAL c3 = C3 ( sigma,dadt );
+        di1*=c1;
+        dj2*=c2;
+        dj3*=c3;
+
+
+        flowvec=di1;
+        flowvec+=dj2;
+        flowvec+=dj3;
+    }
+
+    inline void Yield(TPZTensor<REAL> &sigma,REAL &a,REAL &f)
+    {
+         REAL I1 = sigma.I1();
+         REAL J2 = sigma.J2();
+         f = -(fc*cos(fPhi)) + a*sqrt(J2) + 0.3333333333333333*I1*sin(fPhi);
+    }
 
 
     STATE Phi()
@@ -175,29 +201,53 @@ public:
 
     REAL theta(TPZTensor<REAL> tensor)
     {
-        return -0.3333333333333333*asin((2.598076211353316*tensor.J3())/pow(tensor.J2(),1.5));
+        //tensor.Print(std::cout);
+        REAL J2 =tensor.J2();
+        REAL denom=pow(J2,1.5);
+        if(denom*(-1)>0 && fabs(denom)<1.e-6)denom=-1.e-6;
+        if(denom*(-1)<0 && fabs(denom)<1.e-6)denom=-1.e-6;
+        REAL val = (2.598076211353316*tensor.J3())/denom;
+        if(val>=1.)
+        {
+               return -0.3333333333333333 * M_PI/2.;
+        }
+        else
+        {
+            if(val<=-1.)
+            {
+                return 0.3333333333333333 * M_PI/2.;
+            }
+            else
+            {
+                return -0.3333333333333333*asin(val);
+            }
+        }
     }
 
-    REAL A(REAL t)
+    REAL A(TPZTensor<REAL> tensor)
     {
 
+        REAL t= theta(tensor);
         return cos(t) - 0.5773502691896258*sin(fPhi)*sin(t);
     }
 
     REAL dAdt(TPZTensor<REAL> tensor)
     {
+
         REAL t= theta(tensor);
         return -0.5773502691896258*cos(t)*sin(fPhi) - sin(t);
     }
 
     REAL d2Adt(TPZTensor<REAL> tensor)
     {
+
         REAL t= theta(tensor);
         return -cos(t) + 0.5773502691896258*sin(fPhi)*sin(t);
     }
 
     REAL A2(TPZTensor<REAL> tensor)
     {
+
         REAL t= theta(tensor);
         return 0.5*cos(t)*(1 + sin(fPhi)) + 0.2886751345948129*(-3. + sin(fPhi))*sin(t);
     }
@@ -212,6 +262,7 @@ public:
     REAL d2A2dt(TPZTensor<REAL> tensor)
     {
         REAL t= theta(tensor);
+        //-0.5*Cos(t)*(1. + Sin(phi)) - 0.2886751345948129*(-3. + Sin(phi))*Sin(t)
         return -0.5*cos(t)*(1. + sin(fPhi)) - 0.2886751345948129*(-3. + sin(fPhi))*sin(t);
     }
 
@@ -249,9 +300,14 @@ public:
 
     REAL C2 ( TPZTensor<REAL> tensor, REAL funcA,REAL dadt  )
     {
+        REAL thetaval = theta(tensor);
         REAL J2=tensor.J2();
         REAL a=funcA;
-        return (0.5*(a - dadt*tan(3.*theta(tensor))))/pow(J2,0.5);
+        REAL powj2=pow(J2,0.5);
+        REAL tantheta=tan(3.*thetaval);
+        REAL num = (a - dadt*tantheta);
+        REAL c2=(0.5*num)/powj2;
+        return c2;
 
     }
 
