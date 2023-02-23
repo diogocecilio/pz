@@ -578,6 +578,8 @@ public:
 	 * @param Tensor [out]
 	 */
 	void CopyToTensor(TPZFMatrix<REAL> & Tensor);
+
+	REAL Dot(TPZTensor<REAL> & Tensorb);
 	
 	/**
 	 Initializa o valor do tensor (tensor de deformacao)
@@ -974,6 +976,13 @@ void TPZTensor<T>::CopyToTensor(TPZFMatrix<REAL> & Tensor)
 	Tensor(2,0) = shapeFAD::val( XZ() ); //xz
 	Tensor(2,1) = shapeFAD::val( YZ() ); //yz
 	Tensor(2,2) = shapeFAD::val( ZZ() ); //zz
+}
+
+template<class T>
+REAL TPZTensor<T>::Dot(TPZTensor<REAL> & Tensorb)
+{
+
+	return fData[_XX_]*Tensorb.XX()+fData[_YY_]*Tensorb.YY()+fData[_ZZ_]*Tensorb.ZZ()+fData[_XZ_]*Tensorb.XZ()+fData[_YZ_]*Tensorb.YZ()+fData[_XY_]*Tensorb.XY();
 }
 
 template<class T>

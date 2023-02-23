@@ -257,7 +257,7 @@ public:
         C ( _XZ_,_XX_ ) = 0;
         C ( _XZ_,_YY_ ) = 0;
         C ( _XZ_,_ZZ_ ) = 0;
-        C ( _XZ_,_XZ_ ) = 2.*G;
+        C ( _XZ_,_XZ_ ) = G;
         C ( _XZ_,_YZ_ ) = 0.;
         C ( _XZ_,_XY_ ) = 0.;
 
@@ -266,7 +266,7 @@ public:
         C ( _YZ_,_YY_ ) = 0;
         C ( _YZ_,_ZZ_ ) = 0;
         C ( _YZ_,_XZ_ ) = 0.;
-        C ( _YZ_,_YZ_ ) = 2.*G;
+        C ( _YZ_,_YZ_ ) =G;
         C ( _YZ_,_XY_ ) = 0.;
 
 
@@ -275,7 +275,7 @@ public:
         C ( _XY_,_ZZ_ ) = 0;
         C ( _XY_,_XZ_ ) = 0.;
         C ( _XY_,_YZ_ ) = 0.;
-        C ( _XY_,_XY_ ) = 2.*G;
+        C ( _XY_,_XY_ ) = G;
 
 
         return C;

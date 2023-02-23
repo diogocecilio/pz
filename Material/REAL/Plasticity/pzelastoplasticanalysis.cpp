@@ -19,7 +19,14 @@
 #include "pzelastoplastic2D.h"
 
 #include "pzbuildmultiphysicsmesh.h"
-
+#include "TPZPlasticStepPV.h"
+#include "TPZPlasticStepPV.h"
+#include "TPZElasticResponse.h"
+#include "TPZYCMohrCoulombPV.h"
+#include "pzelastoplastic2D.h"
+#include "pzelastoplastic.h"
+#include "TPZMohrCoulombVoigt.h"
+#include "TPZPlasticStepVoigt.h"
 #include <map>
 #include <set>
 #include <stdio.h>
@@ -28,7 +35,8 @@
 #include "pzsolve.h"
 
 #include "pzlog.h"
-
+//typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
+typedef   TPZMatElastoPlastic2D < TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
 #ifdef LOG4CXX
 static LoggerPtr EPAnalysisLogger(Logger::getLogger("pz.analysis.elastoplastic"));
 static LoggerPtr loggertest(Logger::getLogger("testing"));
@@ -896,16 +904,8 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         out.flush();
     }
 }
-#include "TPZPlasticStepPV.h"
-#include "TPZPlasticStepPV.h"
-#include "TPZElasticResponse.h"
-#include "TPZYCMohrCoulombPV.h"
-#include "pzelastoplastic2D.h"
-#include "pzelastoplastic.h"
-#include "TPZMohrCoulombVoigt.h"
-#include "TPZPlasticStepVoigt.h"
-typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
-typedef   TPZMatElastoPlastic2D < TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse>, TPZElastoPlasticMem > plasticmatcrisfield;
+
+
 
 void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2, REAL l,bool linesearch){
 
