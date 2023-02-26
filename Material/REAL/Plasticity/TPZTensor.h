@@ -580,7 +580,9 @@ public:
 	void CopyToTensor(TPZFMatrix<REAL> & Tensor);
 
 	REAL Dot(TPZTensor<REAL> & Tensorb);
-	
+
+// 	REAL Norm(TPZTensor<REAL> & Tensorb);
+//
 	/**
 	 Initializa o valor do tensor (tensor de deformacao)
 	 */
@@ -984,6 +986,13 @@ REAL TPZTensor<T>::Dot(TPZTensor<REAL> & Tensorb)
 
 	return fData[_XX_]*Tensorb.XX()+fData[_YY_]*Tensorb.YY()+fData[_ZZ_]*Tensorb.ZZ()+fData[_XZ_]*Tensorb.XZ()+fData[_YZ_]*Tensorb.YZ()+fData[_XY_]*Tensorb.XY();
 }
+
+// template<class T>
+// REAL TPZTensor<T>::Norm(TPZTensor<REAL> & Tensorb)
+// {
+//
+// 	return sqrt(Tensorb.Dot(Tensorb));
+// }
 
 template<class T>
 static T Polynom(const T &x, const T &I1, const T &I2, const T &I3)

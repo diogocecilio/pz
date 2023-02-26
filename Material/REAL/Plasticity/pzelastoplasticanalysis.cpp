@@ -35,8 +35,12 @@
 #include "pzsolve.h"
 
 #include "pzlog.h"
-//typedef   TPZMatElastoPlastic2D < TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
-typedef   TPZMatElastoPlastic2D < TPZPlasticStepVoigt<TPZMohrCoulombVoigt, TPZElasticResponse>, TPZElastoPlasticMem > plasticmat;
+
+//typedef TPZPlasticStepVoigt<TPZMohrCoulombVoigt,TPZElasticResponse> LEMC;
+
+typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
+typedef   TPZMatElastoPlastic2D <LEMC, TPZElastoPlasticMem > plasticmat;
+
 #ifdef LOG4CXX
 static LoggerPtr EPAnalysisLogger(Logger::getLogger("pz.analysis.elastoplastic"));
 static LoggerPtr loggertest(Logger::getLogger("testing"));
@@ -836,7 +840,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         //if( normDeltaSol>100 || iter >=numiter  || ((normDeltaSol - error2) > 1.e-9 && (NormResLambda - error) > 1.e-9) ) {
        // if((normu>100 || iter >=numiter  ||(normu - error2) > 1.e-3)&& iter>5) {
         // if((normu>1 && iter>5 && (normu - error2) > 1.e-3)|| iter >=numiter) {
-        if(  ( iter >=numiter || ( iter>2 && normu >2 ) ) ) {
+        if(  ( iter >=numiter || ( iter>2 && normu >1 ) ) ) {
             cout << "\nDivergent Method\n";
             return false;
         }
@@ -905,187 +909,304 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
     }
 }
 
-
-
-void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2, REAL l,bool linesearch){
-
-
-    REAL a,b,c;
-
-    int counterout=1;
-
-    TPZFMatrix<STATE> un(fCumSol);
-
-    REAL diff = 1000.;
-
-    REAL lambda = 1000.;
-
-    REAL lambdan;
-
-
-    TPZFMatrix<STATE> prevsol(fSolution);
-
-    plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
-    //plasticmatcrisfield * material= dynamic_cast<plasticmatcrisfield *> ( fCompMesh->FindMaterial ( 1 ) );
-
-    while(diff>tol && counterout<numiter)
-    {
-
-        cout << "counterout = "<< counterout  << endl;
-        int counter=1;
-
-        lambdan=lambda;
-
-        REAL dlamb=0.;
-
-        REAL normares = 1000.;
-
-        REAL normdu = 1000.;
-
-        TPZFMatrix<STATE> dw(fSolution),dwtemp;
-        dw*=0.;
-        dwtemp=dw;
-
-
-
-        while( normdu>tol2 && counter<numiter2 )
-        {
-
-            material->SetWhichLoadVector(0);
-            this->Assemble();
-//             this->Solve();
+// void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2, REAL l,bool linesearch){
 //
-//             if (true) {
-//                 TPZFMatrix<STATE> nextSol;
-//                 REAL LineSearchTol = 1e-3 * Norm(fSolution);
-//                 const int niter = 10;
-//                 this->LineSearch(prevsol, fSolution, nextSol, LineSearchTol, niter);
-//                 fSolution = nextSol;
-//                 prevsol = fSolution;
-//             }
-
-            material->SetWhichLoadVector(1);
-            this->AssembleResidual();
-
-            TPZFMatrix<STATE> fstress =this->fRhs;
-
-            REAL normastress;
-            normastress=Norm(fstress);
-
-            material->SetWhichLoadVector(2);
-            this->AssembleResidual();
-
-            TPZFMatrix<STATE> fbody =this->fRhs;
-
-            TPZFMatrix<STATE> residual  = fbody;
-
-            REAL normafbody;
-
-            normafbody=Norm(fbody);
-
-            residual*=lambda;
-
-            residual-= fstress;
-
-            this->fRhs = residual;
-
-            normares=Norm(residual);
-
-            cout <<  " normares = "<< normares<< " normafbody "<< normafbody << " normastress  = " << normastress << endl;
-
-            this->Solve();
-
-            TPZFMatrix<STATE> dws = this->fSolution;
-
-            this->fRhs = fbody;
-
-            this->Solve();
-
-            TPZFMatrix<STATE> dwb = this->fSolution;
-
-            dlamb= computelamda ( dwb, dws,  dw,  l );
-
-            cout << "dlamb = "<<dlamb << endl;
-
-            dwtemp=dwb;
-
-            dwtemp*=dlamb;
-
-            dwtemp+=dws;
-
-            normdu = Norm(dwtemp);
-
-            cout << "counter = "<< counter << " normdu = " << normdu << " normares = "<< normares  << endl;
-
-            dw+=dwtemp;
-
-
-            //fSolution=dw;
-
-            this->LoadSolution(dw);
-
-            lambda+=dlamb;
-
-            counter++;
-
-
-        }
-
-        counterout++;
-    }
-    material->SetWhichLoadVector(0);
-
-}
-
-
-//  void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter, bool linesearch, bool checkconv)
-// {
 //
-// /*
-//     do {
-//         do {
+//     std::ofstream eout("debug.txt");
+//     REAL a,b,c;
 //
-// 			Assemble();
+//     int counterout=1;
 //
-// 			TPZFMatrix<STATE> fbody;
-// 			TPZFMatrix<STATE> fint;
-//             R = FBODY;
-//             R *= lamb;
-//             R -= FINT;
+//     TPZFMatrix<STATE> un(fCumSol);
 //
-//             SolveEigenSparse ( type,KG, R, dws );
-//             SolveEigenSparse ( type,KG, FBODY, dwb );
+//     REAL diff = 1000.;
 //
-//             if ( (counter==0 && counterout!=0)/*|| check==true*/ ) {
-//                 dlamb = computelamda0 ( dwb,  dw, l );
-//             } else {
-//                 dlamb = computelamda ( dwb, dws, dw, l );
-//             }
+//     REAL lambda = 1000.;
 //
-//             lamb += dlamb;
-//             dww = dwb;
-//             dww *= dlamb;
-//             dww += dws;
-//             dw += dww;
+//     REAL lambdan;
 //
-//             displace += dww;
-//             fmesh->fmaterial->UpdateDisplacement ( displace );
 //
-//             rnorm = R.NRmatrixNorm();
-//             Doub normdw = dww.NRmatrixNorm();
-//             Doub unorm = displace.NRmatrixNorm();
-//             FBODY *= lamb;
-//             err1 = rnorm / FBODY.NRmatrixNorm();
-//             err2 = normdw / unorm;
+//     TPZFMatrix<STATE> prevsol(fSolution);
+//
+//     plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+//     //plasticmatcrisfield * material= dynamic_cast<plasticmatcrisfield *> ( fCompMesh->FindMaterial ( 1 ) );
+//
+//     while(diff>tol && counterout<numiter)
+//     {
+//
+//         eout << "counterout = "<< counterout  << endl;
+//         int counter=1;
+//
+//         lambdan=lambda;
+//
+//         REAL dlamb=0.;
+//
+//         REAL normares = 1000.;
+//
+//         REAL normdu = 1000.;
+//
+//         TPZFMatrix<STATE> dw(fSolution),dwtemp;
+//         dw*=0.;
+//         dwtemp=dw;
+//
+//
+//
+//         while( normdu>tol2 && counter<numiter2 )
+//         {
+//             material->SetWhichLoadVector(0);
+//
+//             Assemble();
+//
+//             fRhs.Zero();
+//
+//             material->SetWhichLoadVector(2);
+//
+//             AssembleResidual();
+//
+//             Solve();
+//
+//             TPZFMatrix<STATE> dwb = fSolution;
+//
+//             fRhs.Zero();
+//
+//             material->SetWhichLoadVector(1);
+//
+//             AssembleResidual();
+//
+//             Solve();
+//
+//             TPZFMatrix<STATE> solufint = fSolution;
+//
+//             TPZFMatrix<STATE> dws = dwb*lambda-solufint;
+//
+//             eout <<  " normares = "<< Norm(fRhs) << endl;
+//
+//             dlamb= computelamda ( dwb, dws,  dw,  l );
+//
+//             eout << "dlamb = "<<dlamb << endl;
+//
+//             dwtemp=dwb;
+//
+//             dwtemp*=dlamb;
+//
+//             dwtemp+=dws;
+//
+//             normdu = Norm(dwtemp);
+//
+//             //eout << "counter = "<< counter << " normdu = " << normdu << " normares = "<< normares  << endl;
+//
+//             dw+=dwtemp;
+//
+//             LoadSolution(dw);
+//
+//             lambda+=dlamb;
 //
 //             counter++;
 //
-//         } while ( counter < maxcount && err1 > rtol );
+//         }
 //
-//     } while ( counterout <= maxniter && fabs ( diff2 ) > tol );*/
+//         counterout++;
+//     }
+//     material->SetWhichLoadVector(0);
 //
 // }
-// // CompEl create Functions setup
+
+// void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2, REAL l,bool linesearch){
+//
+//
+//     std::ofstream eout("debug.txt");
+//     std::ofstream eout2("debug2.nb");
+//     REAL a,b,c;
+//
+//     int counterout=1;
+//
+//     TPZFMatrix<STATE> un(fCumSol);
+//
+//     REAL diff = 1000.;
+//
+//     REAL lambda = 1000.;
+//
+//     REAL lambdan;
+//
+//
+//     TPZFMatrix<STATE> prevsol(fSolution);
+//
+//     plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+//
+//     while(diff>tol && counterout<numiter)
+//     {
+//
+//         int bottombc[3]= {1, 6, 0};
+//         int rightbc[3]= {2, 9, 1};
+//
+//         eout << "counterout = "<< counterout  << endl;
+//         int counter=1;
+//
+//         lambdan=lambda;
+//
+//         REAL dlamb=0.;
+//
+//         REAL normares = 1000.;
+//
+//         REAL normdu = 1000.;
+//
+//         TPZFMatrix<STATE> dw(fSolution),dww;
+//         dw.Zero();
+//
+//         REAL normresrhs=10;
+//         while( normresrhs>tol2 && counter<numiter2 )
+//         {
+//
+//             this->Assemble();
+//
+//             //assemble force vec
+//             material->SetWhichLoadVector(1);
+//             this->AssembleResidual();
+//             TPZFMatrix<STATE> fstress =this->fRhs;
+//
+//             //assemble body vec
+//             material->SetWhichLoadVector(2);
+//             this->AssembleResidual();
+//             TPZFMatrix<STATE> fbody =this->fRhs;
+//
+//             //solve displacement star
+//             fRhs = lambda*fbody-fstress;
+//             normresrhs=Norm(fRhs);
+//             Solve();
+//             TPZFMatrix<STATE> dws = fSolution;
+//
+//             //solve displacement bar
+//             fRhs = fbody;
+//             Solve();
+//             TPZFMatrix<STATE> dwb = this->fSolution;
+//
+//             //compute delta lambda
+//             dlamb= computelamda ( dwb, dws,  dw,  l );
+//
+//             //compute delta lambda
+//             dww=dws+dlamb*dwb;
+//
+//             normdu=Norm(dww);
+//
+//             dw+=dww;
+//
+//             LoadSolution(dw);
+//
+//             lambda+=dlamb;
+//
+//     cout << " counterout = " << counterout << " counter = " << counter <<  " lamb = " << lambda << " dlamb = " << dlamb << " normrhs = " << normresrhs << " normdu = " << normdu << endl;
+//
+//             counter++;
+//
+//         }
+//
+//         counterout++;
+//     }
+//     material->SetWhichLoadVector(0);
+//
+// }
+// void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2,REAL l, bool linesearch){
+//
+//     REAL diff=10.;
+//     std::ofstream eout("debug.txt");
+//     std::ofstream eout2("debug2.nb");
+//
+//     int counterout=1;
+//
+//     plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+//
+//     while(diff>tol && counterout<numiter)
+//     {
+//
+//         int counter=1;
+//         REAL normresrhs=10;
+//
+//         while( normresrhs>tol2 && counter<numiter2 )
+//         {
+//
+//             Assemble();
+//
+//             Solve();
+//
+//             TPZFMatrix<REAL> un=fSolution;
+//
+//
+//
+//
+//             counter++;
+//
+//         }
+//
+//         counterout++;
+//     }
+//
+// }
+
+ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2,REAL l, bool linesearch)
+{
+
+    plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+
+    REAL lamb=1000,diff2=0.1;
+    Assemble();
+    int counterout=1;
+    do {
+        TPZFMatrix<REAL> dw(fSolution);
+        dw.Zero();
+        int counter=1;
+        REAL err1=10.,err2=10.,rtol=0.001;
+        do {
+            material->SetWhichLoadVector(0);
+			Assemble();
+
+            TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
+
+            material->SetWhichLoadVector(2);
+            AssembleResidual();
+            TPZFMatrix<STATE> FBODY =fRhs;
+
+            material->SetWhichLoadVector(1);
+            AssembleResidual();
+            TPZFMatrix<STATE> FINT =fRhs;
+
+
+            TPZFMatrix<REAL> R = FBODY;
+            R = lamb * FBODY - FINT ;
+
+
+            int type=5;
+
+            TPZFMatrix<REAL> dws,dwb,dww;
+
+            SolveEigenSparse ( type,KG, R, dws );
+            SolveEigenSparse ( type,KG, FBODY, dwb );
+
+            REAL dlamb = computelamda( dwb, dws, dw, l );
+
+            lamb += dlamb;
+
+            dww = dwb*dlamb+dws;
+
+            dw += dww;
+
+            LoadSolution(dw);
+
+            REAL rnorm = Norm(R);
+            REAL normdw = Norm(dww);
+            REAL unorm = Norm(fSolution);
+            FBODY *= lamb;
+            err1 = rnorm / Norm(FBODY);
+            err2 = normdw / unorm;
+cout << " counterout = " << counterout << " counter = " << counter <<  " lamb = " << lamb << " dlamb = " << dlamb << " normrhs = " << rnorm << " normdu = " << normdw << endl;
+            counter++;
+
+        } while ( counter < 10 && err1 > rtol );
+
+        counterout++;
+    } while ( counterout <= 5 && fabs ( diff2 ) > tol );
+
+}
+// CompEl create Functions setup
 
 #include "pzintel.h"
 //#include "pzelctempplus.h"

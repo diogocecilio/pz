@@ -38,7 +38,12 @@ public:
 		std::cout<<"Not implemented here" <<std::endl;
 		DebugStop();
 	}
-	
+	virtual void IterativeProcessArcLength(){
+
+		std::cout<<"Not implemented here" <<std::endl;
+		DebugStop();
+
+	}
 
 	/**
 	 * @brief Implements a golden section line search.

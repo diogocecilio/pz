@@ -224,6 +224,59 @@ public:
         }
     }
 
+    TPZTensor<REAL> FlowVectorMain(TPZTensor<REAL> & tensor)
+    {
+         TPZTensor<REAL> flowvec;
+         REAL dadt = dAdt(tensor);
+         REAL d2adt = d2Adt(tensor);
+         REAL a=A(tensor);
+         FlowVector(tensor,a,dadt,d2adt,flowvec);
+         return flowvec;
+    }
+
+    TPZTensor<REAL> FlowVectorLeft(TPZTensor<REAL> & tensor)
+    {
+         TPZTensor<REAL> flowvec;
+         REAL dadt = dA3dt(tensor);
+         REAL d2adt = d2A3dt(tensor);
+         REAL a=A3(tensor);
+         FlowVector(tensor,a,dadt,d2adt,flowvec);
+         return flowvec;
+    }
+
+    TPZTensor<REAL> FlowVectorRight(TPZTensor<REAL> & tensor)
+    {
+         TPZTensor<REAL> flowvec;
+         REAL dadt = dA2dt(tensor);
+         REAL d2adt = d2A2dt(tensor);
+         REAL a=A2(tensor);
+         FlowVector(tensor,a,dadt,d2adt,flowvec);
+         return flowvec;
+    }
+
+    REAL FMain(TPZTensor<REAL> & tensor)
+    {
+         REAL I1 = tensor.I1();
+         REAL J2 = tensor.J2();
+         REAL a =A(tensor);
+         return (-(fc*cos(fPhi)) + a*sqrt(J2) + 0.3333333333333333*I1*sin(fPhi));
+    }
+    REAL FLeft(TPZTensor<REAL> & tensor)
+    {
+         REAL I1 = tensor.I1();
+         REAL J2 = tensor.J2();
+         REAL a =A3(tensor);
+         return (-(fc*cos(fPhi)) + a*sqrt(J2) + 0.3333333333333333*I1*sin(fPhi));
+    }
+    REAL FRight(TPZTensor<REAL> & tensor)
+    {
+         REAL I1 = tensor.I1();
+         REAL J2 = tensor.J2();
+         REAL a =A2(tensor);
+         return (-(fc*cos(fPhi)) + a*sqrt(J2) + 0.3333333333333333*I1*sin(fPhi));
+    }
+
+
     REAL A(TPZTensor<REAL> tensor)
     {
 

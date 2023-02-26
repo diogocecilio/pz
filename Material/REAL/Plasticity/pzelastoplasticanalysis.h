@@ -90,6 +90,7 @@ public:
 	//Implements the cylindrical arc length method ref- Souza Neto 2009
 	virtual void IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2,REAL l, bool linesearch);
 
+
     REAL LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter);
 	
     TPZFMatrix<REAL> &CumulativeSolution()
@@ -118,7 +119,27 @@ public:
     /// return the vector of active equation indices
     void GetActiveEquations(TPZVec<long> &activeEquations);
 
+void InsertBC(TPZFMatrix<REAL> &stiff, TPZFMatrix<REAL> rhs)
+{
+//     int nnodes=rhs.Rows()/2;
+//     int dim=2;
+//     for(int inode =0;inode<nnodes;inode++)
+//     {
+//         stiff(2*ids[i]-(2-1),2*ids[i]-(2-1))=1.e12;
+//         rhs(2*ids[i]-(2-1),0)=1.e12;
+//     }
 
+// For[i = 1, i <= nodes, i++,
+//   If[dir == 1,
+//    Ek[[dim ids[[i]] - (dim - 1), dim ids[[i]] - (dim - 1)]] = 10^12;
+//    Ef[[dim ids[[i]] - (dim - 1)]] = 10^12 val;];
+//   If[dir == 2,
+//    Ek[[dim ids[[i]] - (dim - 2), dim ids[[i]] - (dim - 2)]] = 10^12;
+//    Ef[[dim ids[[i]] - (dim - 2)]] = 10^12 val;];
+//   If[dir == 3, Ek[[ dim ids[[i]], dim ids[[i]]]] = 10^12;
+//    Ef[[dim ids[[i]] ]] = 10^12 val;];
+//   ];
+}
 
 REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<REAL>& dw, REAL& l )
 {

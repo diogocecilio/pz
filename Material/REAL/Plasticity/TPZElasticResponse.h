@@ -111,18 +111,6 @@ public:
         sigma.Add ( epsilon,2.*fMu );
     }
 
-//     template <class T>
-//     void Compute ( const TPZTensor<T> & epsilon, TPZTensor<T> & sigma ) const
-//     {
-//         epsilon.XY() *=1./2.;
-//         epsilon.XZ() *=1./2.;
-//         epsilon.YZ() *=1./2.;
-//         T trace = epsilon.I1();
-//         sigma.Identity();
-//         sigma.Multiply ( trace,fLambda );
-// 
-//         sigma.Add ( epsilon,2.*fMu );
-//     }
     /**
      * @brief Calcula o tensor de deformacao em funcao do tensor de tensao
      */
@@ -135,22 +123,42 @@ public:
         epsilon.Identity();
         epsilon.Multiply ( trace,Fac );
         epsilon.Add ( sigma,1./ ( 2.*fMu ) );
-		//TPZFMatrix<REAL> C = GetElasticMatrix();
-
     }
 
 //     template <class T>
+//     void Compute ( const TPZTensor<T> & epsilon, TPZTensor<T> & sigma ) const
+//     {
+//         TPZFMatrix<T> tempsig,tempeps;
+//
+//         TPZTensor<T> epscp(epsilon);
+//
+//         epscp.FromTensorToNRmatrix(tempeps);
+//
+//        TPZFMatrix<T> cmat = GetElasticMatrix();
+//
+//         cmat.Multiply(tempeps,tempsig);
+//
+//         //sigma.CopyFrom(tempsig);
+//     }
+// //
+//     /**
+//      * @brief Calcula o tensor de deformacao em funcao do tensor de tensao
+//      */
+//     template <class T>
 //     void ComputeDeformation ( const TPZTensor<T> & sigma, TPZTensor<T> & epsilon ) const
 //     {
-//         sigma.XY() *=2;
-//         sigma.XZ() *=2;
-//         sigma.YZ() *=2;
-//         const T Fac = T ( ( 1/3. ) * ( 1./ ( 3.*fLambda+2.*fMu ) -1./ ( 2.*fMu ) ) );
-//         T trace = sigma.I1();
-//         epsilon.Identity();
-//         epsilon.Multiply ( trace,Fac );
-//         epsilon.Add ( sigma,1./ ( 2.*fMu ) );
-// 
+//
+//         TPZFMatrix<T> tempsig,tempeps,inverse;
+//
+//         TPZTensor<T> sigcpcp(sigma);
+//
+//         sigcpcp.FromTensorToNRmatrix(tempsig);
+//
+//         //inverse = GetInvElasticMatrix();
+//
+//         inverse.Multiply(tempsig,tempeps);
+//
+//         epsilon.CopyFrom(tempeps);
 //     }
 
     /**
@@ -177,22 +185,14 @@ public:
         for ( i = 0; i < 6; i++ ) Kef ( i, i ) += Mu2;
     }
 
-    template <class T>
-    void ComputeStress (  TPZTensor<T> & epsilon, TPZTensor<T> & sigma )
+
+    void ComputeStress (  TPZTensor<REAL> & epsilon, TPZTensor<REAL> & sigma )
     {
         TPZFMatrix<REAL> cmat,tempsig,tempeps;
 
-//         epsilon.XY() *=1./2.;
-//         epsilon.XZ() *=1./2.;
-//         epsilon.YZ() *=1./2.;
-
-//         epsilon.XY() *=2.;
-//         epsilon.XZ() *=2.;
-//         epsilon.YZ() *=2.;
-
         epsilon.FromTensorToNRmatrix(tempeps);
 
-        cmat = this->GetElasticMatrix();
+        cmat = GetElasticMatrixReal();
 
         cmat.Multiply(tempeps,tempsig);
 
@@ -200,32 +200,96 @@ public:
 
     }
 
-    template <class T>
-    void ComputeStrain (  TPZTensor<T> & sigma, TPZTensor<T> & epsilon )
+    void ComputeStrain (  TPZTensor<REAL> & sigma, TPZTensor<REAL> & epsilon )
     {
-        TPZFMatrix<REAL> cmat,tempsig,tempeps,inverse;
+        TPZFMatrix<REAL> tempsig,tempeps,inverse;
 
-//         sigma.XY() *=2;
-//         sigma.XZ() *=2;
-//         sigma.YZ() *=2;
-
-        //sigma.XY() *=0.5;
-        //sigma.XZ() *=0.5;
-        //sigma.YZ() *=0.5;
         sigma.FromTensorToNRmatrix(tempsig);
 
-        cmat = this->GetElasticMatrix();
-
-        cmat.Inverse(inverse);
+        inverse = GetInvElasticMatrixReal();
 
         inverse.Multiply(tempsig,tempeps);
 
         epsilon.CopyFrom(tempeps);
 
     }
+//     TPZFMatrix<REAL> GetElasticMatrix()
+//     {
+//         TPZFMatrix<REAL> C ( 6, 6, 0. );
+//         REAL young = E();
+//         REAL nu = Poisson();
+//         REAL constx  = young/((1+nu)*(1-2*nu));
+//
+//         C ( _XX_,_XX_ ) =1-nu;C ( _XX_,_YY_ ) =   nu;C ( _XX_,_ZZ_ ) = nu; C ( _XX_,_XZ_ ) = 0.; C ( _XY_,_YZ_ )=  0.;C ( _XX_,_XY_ ) = 0.;
+//         C ( _YY_,_XX_ ) =  nu;C ( _YY_,_YY_ ) = 1-nu;C ( _YY_,_ZZ_ ) = nu; C ( _YY_,_XZ_ ) =  0.;C ( _YY_,_YZ_ ) = 0.;C ( _YY_,_XY_ ) = 0.;
+//         C ( _ZZ_,_XX_ ) =  nu;C ( _ZZ_,_YY_ ) =  nu; C ( _ZZ_,_ZZ_ ) =1-nu;C ( _ZZ_,_XZ_ ) = 0.; C ( _ZZ_,_YZ_ ) = 0.;C ( _ZZ_,_XY_ ) = 0.;
+//         C ( _XZ_,_XX_ ) =0; C ( _XZ_,_YY_ ) = 0;C ( _XZ_,_ZZ_ ) = 0;C ( _XZ_,_XZ_ ) = (1-2*nu);  C( _XZ_,_YZ_ ) = 0.; C ( _XZ_,_XY_ ) = 0.;
+//         C ( _YZ_,_XX_ ) = 0;C ( _YZ_,_YY_ ) = 0;C ( _YZ_,_ZZ_ ) = 0;C ( _YZ_,_XZ_ ) = 0.;C ( _YZ_,_YZ_ ) =(1-2*nu);C ( _YZ_,_XY_ ) = 0.;
+//         C ( _XY_,_XX_ ) = 0;C ( _XY_,_YY_ ) = 0;C ( _XY_,_ZZ_ ) = 0;C ( _XY_,_XZ_ ) = 0.;C ( _XY_,_YZ_ ) = 0.;C ( _XY_,_XY_ ) = (1-2*nu);
+//         C*= constx;
+//
+//         return C;
+//     }
+
+    template <class T>
+    TPZFMatrix<T> GetElasticMatrix()const
+    {
+        TPZFMatrix<T> C ( 6, 6, 0. );
+        T G = fMu;
+        T K = fLambda+2.*G/3.;
+        C ( _XX_,_XX_ ) = ( 4. * G ) / 3. + K;
+        C ( _XX_,_YY_ ) = - ( ( 2. * G ) / 3. ) + K;
+        C ( _XX_,_ZZ_ ) = - ( ( 2. * G ) / 3. ) + K;
+        C ( _XX_,_XZ_ ) = 0.;
+        C ( _XY_,_YZ_ ) = 0.;
+        C ( _XX_,_XY_ ) = 0.;
 
 
-    TPZFMatrix<REAL> GetElasticMatrix()
+        C ( _YY_,_XX_ ) = - ( ( 2. * G ) / 3. ) + K;
+        C ( _YY_,_YY_ ) = ( 4. * G ) / 3. + K;
+        C ( _YY_,_ZZ_ ) = - ( ( 2. * G ) / 3. ) + K;
+        C ( _YY_,_XZ_ ) = 0.;
+        C ( _YY_,_YZ_ ) = 0.;
+        C ( _YY_,_XY_ ) = 0.;
+
+
+        C ( _ZZ_,_XX_ ) = - ( ( 2. * G ) / 3. ) + K;
+        C ( _ZZ_,_YY_ ) = - ( ( 2. * G ) / 3. ) + K;
+        C ( _ZZ_,_ZZ_ ) = ( 4. * G ) / 3. + K;
+        C ( _ZZ_,_XZ_ ) = 0.;
+        C ( _ZZ_,_YZ_ ) = 0.;
+        C ( _ZZ_,_XY_ ) = 0.;
+
+
+        C ( _XZ_,_XX_ ) = 0;
+        C ( _XZ_,_YY_ ) = 0;
+        C ( _XZ_,_ZZ_ ) = 0;
+        C ( _XZ_,_XZ_ ) = 2.*G;
+        C ( _XZ_,_YZ_ ) = 0.;
+        C ( _XZ_,_XY_ ) = 0.;
+
+
+        C ( _YZ_,_XX_ ) = 0.;
+        C ( _YZ_,_YY_ ) = 0.;
+        C ( _YZ_,_ZZ_ ) = 0.;
+        C ( _YZ_,_XZ_ ) = 0.;
+        C ( _YZ_,_YZ_ ) =2.*G;
+        C ( _YZ_,_XY_ ) = 0.;
+
+
+        C ( _XY_,_XX_ ) = 0;
+        C ( _XY_,_YY_ ) = 0;
+        C ( _XY_,_ZZ_ ) = 0;
+        C ( _XY_,_XZ_ ) = 0.;
+        C ( _XY_,_YZ_ ) = 0.;
+        C ( _XY_,_XY_ ) = 2.*G;
+
+
+        return C;
+    }
+
+
+    TPZFMatrix<REAL> GetElasticMatrixReal()const
     {
         TPZFMatrix<REAL> C ( 6, 6, 0. );
         REAL G = fMu;
@@ -276,6 +340,134 @@ public:
         C ( _XY_,_XZ_ ) = 0.;
         C ( _XY_,_YZ_ ) = 0.;
         C ( _XY_,_XY_ ) = G;
+
+
+        return C;
+    }
+
+
+TPZFMatrix<REAL> GetInvElasticMatrixReal()
+{
+        TPZFMatrix<REAL> C ( 6, 6, 0. );
+        REAL G = fMu;
+        REAL K = fLambda+2.*G/3.;
+//         {
+//         {(G + 3.* K)/(9. * G  * K), -(1./(6. * G)) + 1./(9. * K), -(1./(6. * G)) + 1./(9. * K), 0., 0.,0.},
+//         {-(1./(6. * G)) + 1./(9. * K), (G + 3.* K)/(9.* G* K), -(1./(6. * G)) + 1./(9. * K),0, 0, 0},
+//         {-(1/(6 G)) + 1/(9 K), -(1/(6 G)) + 1/(9 K), (G + 3 K)/(9 G K), 0, 0, 0},
+//         {0, 0, 0, 1/(2 G), 0, 0},
+//         {0, 0, 0, 0, 1/(2 G), 0},
+//         {0, 0, 0, 0, 0, 1/(2 G)}}
+        C ( _XX_,_XX_ ) = (G + 3.* K)/(9. * G  * K);
+        C ( _XX_,_YY_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _XX_,_ZZ_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _XX_,_XZ_ ) = 0.;
+        C ( _XY_,_YZ_ ) = 0.;
+        C ( _XX_,_XY_ ) = 0.;
+
+
+        C ( _YY_,_XX_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _YY_,_YY_ ) = (G + 3.* K)/(9.* G* K);
+        C ( _YY_,_ZZ_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _YY_,_XZ_ ) = 0.;
+        C ( _YY_,_YZ_ ) = 0.;
+        C ( _YY_,_XY_ ) = 0.;
+
+
+        C ( _ZZ_,_XX_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _ZZ_,_YY_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _ZZ_,_ZZ_ ) = (G + 3.* K)/(9.* G* K);
+        C ( _ZZ_,_XZ_ ) = 0.;
+        C ( _ZZ_,_YZ_ ) = 0.;
+        C ( _ZZ_,_XY_ ) = 0.;
+
+
+        C ( _XZ_,_XX_ ) = 0;
+        C ( _XZ_,_YY_ ) = 0;
+        C ( _XZ_,_ZZ_ ) = 0;
+        C ( _XZ_,_XZ_ ) = 1./( G);
+        C ( _XZ_,_YZ_ ) = 0.;
+        C ( _XZ_,_XY_ ) = 0.;
+
+
+        C ( _YZ_,_XX_ ) = 0;
+        C ( _YZ_,_YY_ ) = 0;
+        C ( _YZ_,_ZZ_ ) = 0;
+        C ( _YZ_,_XZ_ ) = 0.;
+        C ( _YZ_,_YZ_ ) =1./( G);
+        C ( _YZ_,_XY_ ) = 0.;
+
+
+        C ( _XY_,_XX_ ) = 0;
+        C ( _XY_,_YY_ ) = 0;
+        C ( _XY_,_ZZ_ ) = 0;
+        C ( _XY_,_XZ_ ) = 0.;
+        C ( _XY_,_YZ_ ) = 0.;
+        C ( _XY_,_XY_ ) = 1./( G);
+
+
+        return C;
+    }
+
+template <class T>
+TPZFMatrix<T> GetInvElasticMatrix() const
+{
+        TPZFMatrix<T> C ( 6, 6, 0. );
+        T G = fMu;
+        T K = fLambda+2.*G/3.;
+//         {
+//         {(G + 3.* K)/(9. * G  * K), -(1./(6. * G)) + 1./(9. * K), -(1./(6. * G)) + 1./(9. * K), 0., 0.,0.},
+//         {-(1./(6. * G)) + 1./(9. * K), (G + 3.* K)/(9.* G* K), -(1./(6. * G)) + 1./(9. * K),0, 0, 0},
+//         {-(1/(6 G)) + 1/(9 K), -(1/(6 G)) + 1/(9 K), (G + 3 K)/(9 G K), 0, 0, 0},
+//         {0, 0, 0, 1/(2 G), 0, 0},
+//         {0, 0, 0, 0, 1/(2 G), 0},
+//         {0, 0, 0, 0, 0, 1/(2 G)}}
+        C ( _XX_,_XX_ ) = (G + 3.* K)/(9. * G  * K);
+        C ( _XX_,_YY_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _XX_,_ZZ_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _XX_,_XZ_ ) = 0.;
+        C ( _XY_,_YZ_ ) = 0.;
+        C ( _XX_,_XY_ ) = 0.;
+
+
+        C ( _YY_,_XX_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _YY_,_YY_ ) = (G + 3.* K)/(9.* G* K);
+        C ( _YY_,_ZZ_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _YY_,_XZ_ ) = 0.;
+        C ( _YY_,_YZ_ ) = 0.;
+        C ( _YY_,_XY_ ) = 0.;
+
+
+        C ( _ZZ_,_XX_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _ZZ_,_YY_ ) = -(1./(6. * G)) + 1./(9. * K);
+        C ( _ZZ_,_ZZ_ ) = (G + 3.* K)/(9.* G* K);
+        C ( _ZZ_,_XZ_ ) = 0.;
+        C ( _ZZ_,_YZ_ ) = 0.;
+        C ( _ZZ_,_XY_ ) = 0.;
+
+
+        C ( _XZ_,_XX_ ) = 0;
+        C ( _XZ_,_YY_ ) = 0;
+        C ( _XZ_,_ZZ_ ) = 0;
+        C ( _XZ_,_XZ_ ) = 1./(2. * G);
+        C ( _XZ_,_YZ_ ) = 0.;
+        C ( _XZ_,_XY_ ) = 0.;
+
+
+        C ( _YZ_,_XX_ ) = 0;
+        C ( _YZ_,_YY_ ) = 0;
+        C ( _YZ_,_ZZ_ ) = 0;
+        C ( _YZ_,_XZ_ ) = 0.;
+        C ( _YZ_,_YZ_ ) =1./(2. * G);
+        C ( _YZ_,_XY_ ) = 0.;
+
+
+        C ( _XY_,_XX_ ) = 0;
+        C ( _XY_,_YY_ ) = 0;
+        C ( _XY_,_ZZ_ ) = 0;
+        C ( _XY_,_XZ_ ) = 0.;
+        C ( _XY_,_YZ_ ) = 0.;
+        C ( _XY_,_XY_ ) = 1./(2. * G);
 
 
         return C;

@@ -544,10 +544,22 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
           val  = ((ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0));
           ef(in*nstate+1,0) += weight * val;
         }
+        if(this->fwhichinternalforce == 3)
+        {
+          val  =this->ffactor*((ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0));
+          val -= Stress(_XX_,0) * dphiXY(0,in);
+          val -= Stress(_XY_,0) * dphiXY(1,in);
+          ef(in*nstate+0,0) += weight * val;
+
+          val  = this->ffactor*((ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0));
+          val -= Stress(_XY_,0) * dphiXY(0,in);
+          val -= Stress(_YY_,0) * dphiXY(1,in);
+          ef(in*nstate+1,0) += weight * val;
+          cout << "FACTOR << " << this->ffactor <<endl;
+        }
 
 
 	}
-
 
 }
 
@@ -647,6 +659,15 @@ void TPZMatElastoPlastic2D<T,TMEM>::ContributeBC(TPZMaterialData &data,
 					ek(nstate*in+1,nstate*jn+1) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * v2[1];
 				}//jn
 			}//in
+// 			for(in = 0 ; in < phr; in++) {
+// 				ef(nstate*in+0,0) =  0;
+// 				ef(nstate*in+1,0) = 0;
+// 				for (jn = 0 ; jn < phr; jn++) {
+// 					ek(nstate*in+0,nstate*jn+0) = 1;
+// 					ek(nstate*in+1,nstate*jn+1) = 1;
+// 				}//jn
+// 			}//in
+
 			break;
 
 		case 4: // stressField Neumann condition
@@ -785,8 +806,10 @@ void TPZMatElastoPlastic2D<T,TMEM>::ContributeBC(TPZMaterialData &data,
 
         case 3: // Directional Null Dirichlet - displacement is set to null in the non-null vector component direction
             for(in = 0 ; in < phr; in++) {
-                ef(nstate*in+0,0) += BIGNUMBER * (0. - data.sol[0][0]) * v2[0] * phi(in,0) * weight;
-                ef(nstate*in+1,0) += BIGNUMBER * (0. - data.sol[0][1]) * v2[1] * phi(in,0) * weight;
+                 ef(nstate*in+0,0) += BIGNUMBER * (0. - data.sol[0][0]) * v2[0] * phi(in,0) * weight;
+                 ef(nstate*in+1,0) += BIGNUMBER * (0. - data.sol[0][1]) * v2[1] * phi(in,0) * weight;
+                //ef(nstate*in+0,0) =  v2[0] ;
+				//ef(nstate*in+1,0) =  v2[1] ;
             }//in
             break;
 

@@ -147,10 +147,10 @@ void MaterialPointMohrCoulomb2() {
     sigma_trial.YZ()=0;
     sigma_trial.XY()=168.535;
 
-// //
-// //
+
+
      mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
-// //
+
      sigma_proj.Print(std::cout);
      dep.Print(std::cout);
 //
@@ -200,7 +200,6 @@ void MaterialPointMohrCoulomb2() {
 //     sigma_trial.YZ()=0;
 //     sigma_trial.XY()=-194.931;
 //     mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
-//     //mc->ReturnMapRightEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
 //     sigma_proj.Print(std::cout);
 //     dep.Print(std::cout);
 
