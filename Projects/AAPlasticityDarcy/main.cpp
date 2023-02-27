@@ -383,7 +383,7 @@ TPZGeoMesh * CreateSimpleGMesh ( )
 
     gmesh->BuildConnectivity();
 
-        for ( int d = 0; d<4; d++ ) {
+        for ( int d = 0; d<5; d++ ) {
         int nel = gmesh->NElements();
         TPZManVector<TPZGeoEl *> subels;
         for ( int iel = 0; iel<nel; iel++ ) {
@@ -1404,7 +1404,7 @@ void ShearRed ( TPZCompMesh * cmesh)
 #include "TPZSpStructMatrix.h"
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
-    int numthreads=0;
+    int numthreads=12;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 

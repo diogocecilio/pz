@@ -233,15 +233,41 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 	for(in = 0; in < phr; in++)
 	{
 
-		val  = ((ForceLoc[0]) * phi(in,0)+ fluxx*phi(in,0))*fac;
-		val -= Stress(_XX_,0) * dphiXY(0,in);//- pressure*dphiXY(0,in);
-		val -= Stress(_XY_,0) * dphiXY(1,in);
-		ef(in*nstate+0,0) += weight * val;
 
-		val  = ((ForceLoc[1]) * phi(in,0)+ fluxy*phi(in,0))*fac;
-		val -= Stress(_XY_,0) * dphiXY(0,in);
-		val -= Stress(_YY_,0) * dphiXY(1,in);//-pressure*dphiXY(1,in);
-		ef(in*nstate+1,0) += weight * val;
+		if(this->fwhichinternalforce == 0)
+        {
+          val  =this->ffactor*((ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0));
+          val -= Stress(_XX_,0) * dphiXY(0,in);
+          val -= Stress(_XY_,0) * dphiXY(1,in);
+          ef(in*nstate+0,0) += weight * val;
+
+          val  = this->ffactor*((ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0));
+          val -= Stress(_XY_,0) * dphiXY(0,in);
+          val -= Stress(_YY_,0) * dphiXY(1,in);
+          ef(in*nstate+1,0) += weight * val;
+        }
+        if(this->fwhichinternalforce == 1)
+        {
+
+          val=0.;
+          val -= Stress(_XX_,0) * dphiXY(0,in);
+          val -= Stress(_XY_,0) * dphiXY(1,in);
+          ef(in*nstate+0,0) += weight * val;
+
+
+          val=0.;
+          val -= Stress(_XY_,0) * dphiXY(0,in);
+          val -= Stress(_YY_,0) * dphiXY(1,in);
+          ef(in*nstate+1,0) += weight * val;
+        }
+        if(this->fwhichinternalforce == 2)
+        {
+          val  =this->ffactor*((ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0));
+          ef(in*nstate+0,0) += weight * val;
+          val  = this->ffactor*((ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0));
+          ef(in*nstate+1,0) += weight * val;
+        }
+
 
 		for( int jn = 0; jn < phr; jn++)
 		{
@@ -502,7 +528,7 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 
   ptindex = 0;
 	int nstate = NStateVariables();
-	REAL val;/*,val1,val2,val3,val4*/;
+	REAL val=0.;/*,val1,val2,val3,val4*/;
 
   TPZManVector<STATE,3> ForceLoc(this->fForce);
   if(this->fForcingFunction)
@@ -515,37 +541,6 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
 	{
 		if(this->fwhichinternalforce == 0)
         {
-          val  =((ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0));
-          val -= Stress(_XX_,0) * dphiXY(0,in);
-          val -= Stress(_XY_,0) * dphiXY(1,in);
-          ef(in*nstate+0,0) += weight * val;
-
-          val  = ((ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0));
-          val -= Stress(_XY_,0) * dphiXY(0,in);
-          val -= Stress(_YY_,0) * dphiXY(1,in);
-          ef(in*nstate+1,0) += weight * val;
-        }
-        if(this->fwhichinternalforce == 1)
-        {
-
-          val -= Stress(_XX_,0) * dphiXY(0,in);
-          val -= Stress(_XY_,0) * dphiXY(1,in);
-          ef(in*nstate+0,0) += weight * val;
-
-
-          val -= Stress(_XY_,0) * dphiXY(0,in);
-          val -= Stress(_YY_,0) * dphiXY(1,in);
-          ef(in*nstate+1,0) += weight * val;
-        }
-        if(this->fwhichinternalforce == 2)
-        {
-          val  =((ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0));
-          ef(in*nstate+0,0) += weight * val;
-          val  = ((ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0));
-          ef(in*nstate+1,0) += weight * val;
-        }
-        if(this->fwhichinternalforce == 3)
-        {
           val  =this->ffactor*((ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0));
           val -= Stress(_XX_,0) * dphiXY(0,in);
           val -= Stress(_XY_,0) * dphiXY(1,in);
@@ -555,7 +550,27 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
           val -= Stress(_XY_,0) * dphiXY(0,in);
           val -= Stress(_YY_,0) * dphiXY(1,in);
           ef(in*nstate+1,0) += weight * val;
-          cout << "FACTOR << " << this->ffactor <<endl;
+        }
+        if(this->fwhichinternalforce == 1)
+        {
+
+          val=0.;
+          val -= Stress(_XX_,0) * dphiXY(0,in);
+          val -= Stress(_XY_,0) * dphiXY(1,in);
+          ef(in*nstate+0,0) += weight * val;
+
+
+          val=0.;
+          val -= Stress(_XY_,0) * dphiXY(0,in);
+          val -= Stress(_YY_,0) * dphiXY(1,in);
+          ef(in*nstate+1,0) += weight * val;
+        }
+        if(this->fwhichinternalforce == 2)
+        {
+          val  =this->ffactor*((ForceLoc[0]) * phi(in,0)+ fluxx * phi(in,0));
+          ef(in*nstate+0,0) += weight * val;
+          val  = this->ffactor*((ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0));
+          ef(in*nstate+1,0) += weight * val;
         }
 
 

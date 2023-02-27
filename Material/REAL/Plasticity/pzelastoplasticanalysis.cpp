@@ -36,9 +36,9 @@
 
 #include "pzlog.h"
 
-//typedef TPZPlasticStepVoigt<TPZMohrCoulombVoigt,TPZElasticResponse> LEMC;
+typedef TPZPlasticStepVoigt<TPZMohrCoulombVoigt,TPZElasticResponse> LEMC;
 
-typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
+//typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
 typedef   TPZMatElastoPlastic2D <LEMC, TPZElastoPlasticMem > plasticmat;
 
 #ifdef LOG4CXX
@@ -391,8 +391,9 @@ void TPZElastoPlasticAnalysis::LoadSolution(TPZFMatrix<STATE> & loadsol)
     LoadSolution();
 }
 REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter) {
+
     REAL error = 2.*tol+1.;
-    REAL A = 0.1, B = 2., L = 0, M = 0.;
+    REAL A = 0.1, B = 20., L = 0, M = 0.;
     TPZFMatrix<STATE> ak, bk, lambdak, muk, Interval;
     REAL NormResLambda = 0., NormResMu = 0.;
     //ak = Wn + 0.1 * DeltaW
@@ -410,7 +411,7 @@ REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatri
     int KeptVal = -1; //0 means I have residual(labmda); 1 means I have residual(mu); -1 means I have nothing
     while(error > tol && iter < niter) {
         iter++;
-
+    //cout << "a  " << std::endl;
         if (KeptVal != 0) {
             L = 0.382*(B-A)+A;
             //lambdak = ak + 0.382*(bk-ak)
@@ -438,7 +439,10 @@ REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatri
             muk *= 0.618;
             muk += ak;
             LoadSolution(muk);
+            //cout << "b  " << std::endl;
+            //muk.Print(std::cout);
             this->AssembleResidual();
+            //cout << "c " << std::endl;
             NormResMu = Norm(fRhs);
         }
 
@@ -810,7 +814,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         }
 
  
-        
+        //cout << "a  " << std::endl;
         if (linesearch) {
             TPZFMatrix<STATE> nextSol;
             //REAL LineSearchTol = 1e-3 * Norm(fSolution);
@@ -824,6 +828,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
             sol += prevsol;
         }
 
+        //cout << "b  " << std::endl;
         prevsol -= fSolution;
         //REAL normDeltaSol = Norm(prevsol)/unorm0;
         REAL normu = Norm(prevsol);
@@ -831,6 +836,7 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         prevsol = fSolution;
         this->LoadSolution(fSolution);
         this->AssembleResidual();
+        //cout << "c  " << std::endl;
         REAL normf  = Norm(fRhs);
         cout << "Iteracao n : " << (iter) << " : normas |Delta(Un)| e |Delta(rhs)/rhs0| : " << normu << " / " << normf/normrhs0 << " | tol = "<<tol << endl;
         a = iter < numiter ;
@@ -1146,7 +1152,8 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 {
 
     plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
-
+//    material->SetLoadFactor(1.);
+std::ofstream eout("debug.txt");
     REAL lamb=1000,diff2=0.1;
     Assemble();
     int counterout=1;
@@ -1156,18 +1163,31 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
         int counter=1;
         REAL err1=10.,err2=10.,rtol=0.001;
         do {
+            material->SetLoadFactor(1.);
             material->SetWhichLoadVector(0);
 			Assemble();
+            eout << "FB+FI original "<<endl;
+            fRhs.Print(eout);
 
             TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
 
             material->SetWhichLoadVector(2);
-            AssembleResidual();
+            material->SetLoadFactor(1.);
+            Assemble();
             TPZFMatrix<STATE> FBODY =fRhs;
+            eout << "FB  "<<endl;
+            fRhs.Print(eout);
 
-            material->SetWhichLoadVector(1);
-            AssembleResidual();
+            material->SetLoadFactor(0.);
+            material->SetWhichLoadVector(0);
+            Assemble();
             TPZFMatrix<STATE> FINT =fRhs;
+            eout << "FI  "<<endl;
+            fRhs.Print(eout);
+
+            TPZFMatrix<REAL> sum =FBODY+FINT;
+            eout << "FB+FI soma "<<endl;
+            sum.Print(eout);
 
 
             TPZFMatrix<REAL> R = FBODY;
