@@ -117,30 +117,30 @@ int main()
 {
 
 
-    int porder=3;
-    TPZGeoMesh *gmesh0 = CreateSimpleGMesh (  );
-    TPZCompMesh *cmesh0 = CreateSimpleCMesh ( gmesh0,porder );
-    TPZElastoPlasticAnalysis *anal0 =  CreateSimpleAnal ( cmesh0,false );
-
-    LoadingRamp ( cmesh0,1. );
-    std::ofstream outnewton("saida-newton.txt");
-
-    int neq = cmesh0->NEquations();
-    REAL tol = 0.001;
-    int numiter =5;
-    REAL tol2 = 0.001;
-    int numiter2 =5;
-    REAL l =0.1;
-
-    bool linesearch = false;
-    bool checkconv=false;
-    int iters;
-    //anal0->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
-    //anal0->IterativeProcess(outnewton, tol, numiter,  linesearch,  checkconv,iters);
-    GravityIncrease ( cmesh0 );
-
-
-    return 0;
+     int porder=2;
+//     TPZGeoMesh *gmesh0 = CreateSimpleGMesh (  );
+//     TPZCompMesh *cmesh0 = CreateSimpleCMesh ( gmesh0,porder );
+//     TPZElastoPlasticAnalysis *anal0 =  CreateSimpleAnal ( cmesh0,false );
+//
+//     LoadingRamp ( cmesh0,1. );
+//     std::ofstream outnewton("saida-newton.txt");
+//
+//     int neq = cmesh0->NEquations();
+//     REAL tol = 0.001;
+//     int numiter =5;
+//     REAL tol2 = 0.001;
+//     int numiter2 =5;
+//     REAL l =0.1;
+//
+//     bool linesearch = false;
+//     bool checkconv=false;
+//     int iters;
+//     //anal0->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
+//     //anal0->IterativeProcess(outnewton, tol, numiter,  linesearch,  checkconv,iters);
+//     GravityIncrease ( cmesh0 );
+//
+//
+//     return 0;
 
 
 
