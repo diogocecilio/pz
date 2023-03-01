@@ -498,6 +498,7 @@ public:
 	void EigenValue(TPZTensor<T> &eigenval)const;
 	
 	
+	void EigenValue(TPZManVector<T,3> &eigenval)const;
 	/**
 	 * Returns the tensor eigenvalues and derivatives through an analytical approach
 	 */
@@ -1664,6 +1665,45 @@ void TPZTensor<T>::EigenValue(TPZTensor<T> &eigenval)const
 	eigenval.XX()= (T(-2.)*sqrt(Q)*cos(THETA/T(3.))) + I1/T(3.);
 	eigenval.YY()= (T(-2.)*sqrt(Q)*cos((THETA+T(2.*M_PI))/T(3.))) + I1/T(3.);
 	eigenval.ZZ()= (T(-2.)*sqrt(Q)*cos((THETA-T(2.*M_PI))/T(3.))) + I1/T(3.);
+}
+
+
+template <class T>
+void TPZTensor<T>::EigenValue(TPZManVector<T,3> &eigenval)const
+{
+	eigenval.Resize(3);
+	T I1(this->I1()),
+	I2(this->I2()),
+	I3(this->I3());
+
+	//    if(I1<T(1.e-6))I1=T(1.e-6);
+	//    if(I2<T(1.e-6))I2=T(1.e-6);
+	//    if(I3<T(1.e-6))I3=T(1.e-6);
+
+	T R,THETA,Q,temp,temp2;
+	//    T verif;
+	R = ( T(-2.)*(I1*I1*I1)+ T(9.)*I1*I2 - T(27.)* I3 )/54.;
+	Q = ( (I1*I1) - (T(3.)*I2) )/T(9.);
+	temp2 = (sqrt(Q*Q*Q));
+	if(fabs(temp2)<1.e-6)temp2=1.e-6;
+	temp = R/temp2;
+	if(temp <= T(-1.))
+	{
+		temp*=0.9999999999;
+	}
+	if(temp >= T(1.))
+	{
+		temp*=0.9999999999;
+	}
+	THETA = acos(temp);
+
+	if(THETA >= T(2*M_PI) || THETA<= T(2*M_PI))
+	{
+		THETA*=0.999999999;
+	}
+	eigenval[0]= (T(-2.)*sqrt(Q)*cos(THETA/T(3.))) + I1/T(3.);
+	eigenval[1]= (T(-2.)*sqrt(Q)*cos((THETA+T(2.*M_PI))/T(3.))) + I1/T(3.);
+	eigenval[2]= (T(-2.)*sqrt(Q)*cos((THETA-T(2.*M_PI))/T(3.))) + I1/T(3.);
 }
 
 //template <class T>

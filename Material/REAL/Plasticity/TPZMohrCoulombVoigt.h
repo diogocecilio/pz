@@ -144,6 +144,12 @@ public:
 
     void ProjectSigmaDep ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew);
 
+    void ProjectSigmaDep2( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew );
+
+    bool CheckOrder(TPZManVector<REAL,3>  eigenvalues);
+
+    TPZManVector<REAL,3> EigenVal(TPZTensor<REAL> & tensor);
+
     inline void FlowVector(TPZTensor<REAL> &sigma,REAL & a, REAL & dadt, REAL & d2Adt,TPZTensor<REAL> &flowvec)
     {
 
@@ -203,25 +209,42 @@ public:
     {
         //tensor.Print(std::cout);
         REAL J2 =tensor.J2();
+
+        if( J2 < 0.000000001)
+        {
+           J2=0.000000001;
+        }
+
         REAL denom=pow(J2,1.5);
-        if(denom*(-1)>0 && fabs(denom)<1.e-6)denom=-1.e-6;
-        if(denom*(-1)<0 && fabs(denom)<1.e-6)denom=-1.e-6;
-        REAL val = (2.598076211353316*tensor.J3())/denom;
-        if(val>=1.)
+        REAL val = (-2.598076211353316*tensor.J3())/denom;
+
+        if(val>0.99 )
         {
-               return -0.3333333333333333 * M_PI/2.;
+            return 1./3.*asin(0.99);
+
+        }else if(val<-0.99){
+
+            return 1./3.*asin(-0.99);
         }
-        else
-        {
-            if(val<=-1.)
-            {
-                return 0.3333333333333333 * M_PI/2.;
-            }
-            else
-            {
-                return -0.3333333333333333*asin(val);
-            }
-        }
+
+        return 1./3.*asin(val);
+
+
+//         if(val>=1.)
+//         {
+//                return -0.3333333333333333 * M_PI/2.;
+//         }
+//         else
+//         {
+//             if(val<=-1.)
+//             {
+//                 return 0.3333333333333333 * M_PI/2.;
+//             }
+//             else
+//             {
+//                 return -0.3333333333333333*asin(val);
+//             }
+//         }
     }
 
     TPZTensor<REAL> FlowVectorMain(TPZTensor<REAL> & tensor)

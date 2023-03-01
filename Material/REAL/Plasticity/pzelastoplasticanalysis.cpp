@@ -393,7 +393,7 @@ void TPZElastoPlasticAnalysis::LoadSolution(TPZFMatrix<STATE> & loadsol)
 REAL TPZElastoPlasticAnalysis::LineSearch(const TPZFMatrix<STATE> &Wn, TPZFMatrix<STATE> DeltaW, TPZFMatrix<STATE> &NextW, REAL tol, int niter) {
 
     REAL error = 2.*tol+1.;
-    REAL A = 0.1, B = 20., L = 0, M = 0.;
+    REAL A = 0.1, B = 2., L = 0, M = 0.;
     TPZFMatrix<STATE> ak, bk, lambdak, muk, Interval;
     REAL NormResLambda = 0., NormResMu = 0.;
     //ak = Wn + 0.1 * DeltaW

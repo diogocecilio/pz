@@ -138,9 +138,9 @@ int main()
 //     //anal0->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
 //     //anal0->IterativeProcess(outnewton, tol, numiter,  linesearch,  checkconv,iters);
 //     GravityIncrease ( cmesh0 );
-//
-//
-//     return 0;
+
+
+//    return 0;
 
 
 
@@ -1218,7 +1218,7 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
 void GravityIncrease ( TPZCompMesh * cmesh )
 {
 
-    REAL FS=0.1,FSmax=1000.,FSmin=0.,tol=0.01;
+    REAL FS=1.,FSmax=1000.,FSmin=0.,tol=0.01;
     int neq = cmesh->NEquations();
     int maxcount=100;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );

@@ -443,163 +443,14 @@ bool TPZMohrCoulombVoigt::ReturnMapApex ( TPZTensor<REAL> &sigma_trial, TPZTenso
 {
     REAL ccotanphi = fc*cos(fPhi)/sin(fPhi);
     sigma_proj.XX()=ccotanphi;sigma_proj.YY()=ccotanphi;sigma_proj.ZZ()=ccotanphi;
-    TPZFMatrix<REAL> dumb(6,6,1.e-12);
-    dep=dumb;
+    TPZFMatrix<REAL> dumb(6,6,0.);
+    TPZFMatrix<REAL> cmat=fER.GetElasticMatrixReal();
+    REAL young = fER.E();
+    dep=cmat*(0.001);
     return true;
 }
 
-
-
-// void TPZMohrCoulombVoigt::ProjectSigmaDep ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew )
-// {
-//
-//
-//     REAL I1 = sigma_trial.I1();
-//     REAL J2 = sigma_trial.J2();
-//     REAL f1=0.;
-//
-//     REAL a;
-//     REAL dadt = dAdt(sigma_trial);
-//     REAL d2adt = d2Adt(sigma_trial);
-//
-//
-//     a =A(sigma_trial);
-//     Yield(sigma_trial,a,f1);
-//
-//     if(f1>0)
-//     {
-//         TPZTensor<REAL> avec,bvec;
-//         REAL dlamb=0.;
-//         REAL epsbarnew=0.;
-//
-//          dlamb = ReturnMapPlane ( sigma_trial, sigma_proj,dep,  epsbarnew);
-//          //sigma_proj.Print(std::cout);
-//
-//         FlowVector(sigma_trial,a,dadt,d2adt,avec);
-//
-//
-//         REAL aa =A(sigma_proj);
-//         Yield(sigma_proj,aa,f1);
-//
-//         //cout <<"aa = "<< aa << std::endl;
-//        //sigma_proj.Print(std::cout);
-//        //cout <<"f1 = "<< f1 << std::endl;
-//
-//         if(fabs(f1)<0.001)
-//         {
-//             //cout<< "projetou na f1";
-//             return;
-//         }
-//         else
-//         {
-//             REAL D2 = -tan(3.* theta(sigma_trial))/(2.*J2);
-//             REAL D3 = -sqrt(3.)/( 2.*pow(J2,1.5)* cos(3.* theta(sigma_trial ) ));
-//             TPZTensor<REAL> di1 = sigma_trial.dI1();
-//             TPZTensor<REAL> dj2 = sigma_trial.dJ2();
-//             TPZTensor<REAL> dj3 = sigma_trial.dJ3();
-//             //dj2.Print(std::cout);
-//             dj2*=D2;
-//             dj3*=D3;
-//             dj2+=dj3;
-//             TPZFMatrix<REAL> cc;
-//             dj2.FromTensorToNRmatrix(cc);
-//             //FromTensorToMatVoigt(dj2,cc);
-//             TPZFMatrix<REAL>  temp,amat,temp2,cmat,avecmat,ccT;
-//             //ccT.Print(std::cout);
-//             cc.Transpose(&ccT);
-//             //FromTensorToMatVoigt(avec,avecmat);
-//             avec.FromTensorToNRmatrix(avecmat);
-//
-//             cmat=fER.GetElasticMatrix();
-//
-//             cmat.Multiply(avecmat,temp);
-//
-//             ccT.Multiply(temp,temp2);
-//
-//             temp2*=-dlamb;
-//
-//             REAL dt = temp2.Get(0,0)*180./M_PI;
-//
-//             if(dt<0)
-//             {
-//
-//                 ReturnMapRightEdge(sigma_trial, sigma_proj,dep, epsbarnew);
-//
-//                 //cout <<"sigproj rigth = "<< std::endl;
-//                 //sigma_proj.Print(std::cout);
-//
-//
-//                 REAL a2=A2(sigma_proj);
-//                 REAL da2dt = dA2dt(sigma_proj);
-//                 REAL d2a2dt = d2A2dt(sigma_proj);
-//
-//                 FlowVector(sigma_proj,a2,da2dt,d2a2dt,bvec);
-//
-//                 TPZFMatrix<REAL> avecmat,bvecmat;
-//
-//                 avec.FromTensorToNRmatrix(avecmat);
-//                 //FromTensorToMatVoigt(avec,avecmat);
-//                 bvec.FromTensorToNRmatrix(bvecmat);
-//                 //FromTensorToMatVoigt(bvec,bvecmat);
-//                 //cout <<"avec "<< std::endl;
-//                 //avecmat.Print(std::cout);
-//                 //cout <<"bvec "<< std::endl;
-//                 //bvecmat.Print(std::cout);
-//
-//                 REAL dot = Dot(avecmat,bvecmat);
-//                 REAL pronorm=Norm(bvecmat)*Norm(bvecmat);
-//                 REAL val=dot/pronorm;
-//                 //if(val<-1)val=-1.;
-//                 //if(val>1)val=1.;
-//                 //REAL beta=acos(val)*180/M_PI;
-//                 if(fabs(val)<0.000174533)//acos(0.000174533) = 89.99 graus
-//                 {
-//                     //cout<< "projetou apex";
-//                     ReturnMapApex(sigma_trial, sigma_proj,dep, epsbarnew);
-//                 }
-//                 //cout<< "projetou na rigth";
-//             }
-//             else
-//             {
-//                 ReturnMapLeftEdge(sigma_trial, sigma_proj,dep, epsbarnew);
-//
-//                 REAL a2=A2(theta(sigma_proj));
-//                 REAL da2dt = dA2dt(sigma_proj);
-//                 REAL d2a2dt = d2A2dt(sigma_proj);
-//
-//                 FlowVector(sigma_proj,a2,da2dt,d2a2dt,bvec);
-//
-//                 TPZFMatrix<REAL> avecmat,bvecmat;
-//                 avec.FromTensorToNRmatrix(avecmat);
-//                 //FromTensorToMatVoigt(avec,avecmat);
-//                 bvec.FromTensorToNRmatrix(bvecmat);
-//                 //FromTensorToMatVoigt(bvec,bvecmat);
-//
-//                 REAL dot = Dot(avecmat,bvecmat);
-//                 REAL pronorm=Norm(bvecmat)*Norm(bvecmat);
-//                 REAL val=dot/pronorm;
-//                 //if(val<-1)val=-1.;
-//                 //if(val>1)val=1.;
-//                 //REAL beta=acos(val)*180/M_PI;
-//                  if(fabs(val)<0.000174533)///acos(0.000174533) = 89.99 graus
-//                 {
-//                     //cout<< "projetou apex";
-//                     ReturnMapApex(sigma_trial, sigma_proj,dep, epsbarnew);
-//                 }
-//                 //cout<< "projetou na left";
-//             }
-//         }
-//     }
-//     else
-//     {
-//         sigma_proj=sigma_trial;
-//         dep=fER.GetElasticMatrix();
-//         epsbarnew=0;
-//
-//     }
-//
-// }
-void TPZMohrCoulombVoigt::ProjectSigmaDep ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew )
+void TPZMohrCoulombVoigt::ProjectSigmaDep2 ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew )
 {
     bool flag;
 
@@ -616,35 +467,15 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep ( TPZTensor<REAL> &sigma_trial, TPZTen
         REAL dlamb=0.;
         REAL epsbarnew=0.;
 
-//cout << "a = "  <<endl;
-         dlamb = ReturnMapPlane ( sigma_trial, sigma_proj,dep,  epsbarnew);
-//cout << "b = "  <<endl;
+        dlamb = ReturnMapPlane ( sigma_trial, sigma_proj,dep,  epsbarnew);
 
-         ab = FlowVectorMain(sigma_proj);
-         bvec1 = FlowVectorLeft(sigma_proj);
+        ab = FlowVectorMain(sigma_proj);
 
-         bvec2 = FlowVectorRight(sigma_proj);
+         REAL beta1;
 
-         //cout << "avec = " << avec <<endl;
-
-         //cout << "bvec1 = " << bvec1 <<endl;
-
-         //cout << "bvec2 = " << bvec2 <<endl;
-
-         REAL beta1,beta2;
-
-         //REAL temp = avec.Norm()*bvec1.Norm();
-
-         //cout << "temp = "<<temp <<endl;
-
-         beta1= acos( avec.Dot(ab)/(avec.Norm()*ab.Norm()) )*180/M_PI;
-        //beta1= acos( avec.Dot(bvec1)/(avec.Norm()*bvec1.Norm()) )*180/M_PI;
-
-        beta2= acos( avec.Dot(bvec2)/(avec.Norm()*bvec2.Norm()) )*180/M_PI;
-
+        beta1= acos( avec.Dot(ab)/(avec.Norm()*ab.Norm()) )*180/M_PI;
 
         //cout << "beta1 = " << beta1 <<endl;
-        //cout << "beta2 = " << beta2 <<endl;
 
         REAL f1proj = FMain(sigma_proj);
 
@@ -670,9 +501,9 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep ( TPZTensor<REAL> &sigma_trial, TPZTen
             cc=D2*dj2mat+D3*dj3mat;
 
             TPZFMatrix<REAL>  temp,amat,temp2,cmat,avecmat,ccT;
-            //ccT.Print(std::cout);
+
             cc.Transpose(&ccT);
-            //FromTensorToMatVoigt(avec,avecmat);
+
             avec.FromTensorToNRmatrix(avecmat);
 
             cmat=fER.GetElasticMatrixReal();
@@ -684,52 +515,23 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep ( TPZTensor<REAL> &sigma_trial, TPZTen
             temp2*=-dlamb;
 
             REAL dt = temp2.Get(0,0)*180./M_PI;
-
             if(dt<0)
             {
-
                 flag= ReturnMapRightEdge(sigma_trial, sigma_proj,dep, epsbarnew);
-
-                bvec = FlowVectorRight(sigma_proj);
-
-                REAL dot = avec.Dot(bvec);
-                REAL pronorm=avec.Norm()*bvec.Norm();
-                REAL val=dot/pronorm;
-
-                //if(fabs(val)<0.000174533)//acos(0.000174533) = 89.99 graus
                 if(beta1>89.99)
                 {
-                    //cout<< "projetou apex";
-                    //cout << "i = "  <<endl;
                    flag= ReturnMapApex(sigma_trial, sigma_proj,dep, epsbarnew);
-
                 }
-                //cout<< "projetou na rigth";
             }
             else
             {
-                //cout << "g = "  <<endl;
                 flag= ReturnMapLeftEdge(sigma_trial, sigma_proj,dep, epsbarnew);
-                //cout << "h = "  <<endl;
-                bvec = FlowVectorLeft(sigma_proj);
-                REAL dot = avec.Dot(bvec);
-                REAL pronorm=avec.Norm()*bvec.Norm();
-                REAL val=dot/pronorm;
-                //cout<< "projetou na rigth";
-                 //if(fabs(val)<0.000174533)///acos(0.000174533) = 89.99 graus
                 if(beta1>89.99)
                 {
-                    //cout<< "projetou apex";
-                    //cout << "i = "  <<endl;
                    flag= ReturnMapApex(sigma_trial, sigma_proj,dep, epsbarnew);
-
-
                 }
-                //cout<< "projetou na left";
             }
-
         }
-
     }
     else
     {
@@ -742,3 +544,109 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep ( TPZTensor<REAL> &sigma_trial, TPZTen
     }
 
 }
+
+
+void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew )
+{
+    epsbarnew=0.;
+
+    //cout << "sigma_trial"<< sigma_trial <<endl;
+    REAL phi = FMain( sigma_trial );
+    if ( phi <= 0. ) {
+        //cout << "Elastic"<<endl;
+        sigma_proj=sigma_trial;
+        dep=fER.GetElasticMatrixReal();
+        epsbarnew=0;
+        return;
+    }
+
+    TPZManVector<REAL,3>  eigenvaltrial= EigenVal(sigma_trial);
+    REAL sinpsi = sin(fPhi);
+    REAL val = ( 1-sinpsi ) *eigenvaltrial[0]-2.*eigenvaltrial[1]+ ( 1+sinpsi ) *eigenvaltrial[2];
+    bool rigth;
+    if(val>=0)
+    {
+        rigth=true;
+    }else{
+        rigth=false;
+
+    }
+    REAL dlamb = ReturnMapPlane ( sigma_trial, sigma_proj,dep,  epsbarnew);
+    TPZManVector<REAL,3> trval,prval;
+    sigma_proj.EigenValue(prval);
+
+    //cout << "sigma_proj"<< sigma_proj <<endl;
+
+
+    REAL f1proj = FMain(sigma_proj);
+    if(fabs(f1proj)<0.001 )
+    {
+        //cout<< "projetou na f1 = " << f1proj << endl;
+        //cout << "Main"<<endl;
+        //dep=fER.GetElasticMatrixReal();
+        return;
+
+    }
+
+
+    if ( rigth) {
+       //cout << "ERightEdge"<<endl;
+        bool flag= ReturnMapRightEdge(sigma_trial, sigma_proj,dep, epsbarnew);
+
+    } else {
+        //cout << "ELeftEdge"<<endl;
+        bool flag= ReturnMapLeftEdge(sigma_trial, sigma_proj,dep, epsbarnew);
+
+    }
+
+//     REAL sz=sigma_trial.ZZ();
+//     REAL s,diff1,diff2;
+//     diff1=fabs(sz-eigenvaltrial[0]);
+//     diff2=fabs(sz-eigenvaltrial[2]);
+//     if(diff1<diff2)
+//     {
+//         s=-1.;
+//     }else{
+//         s=1.;
+//     }
+//     REAL perturb=sz+0.1*s*(eigenvaltrial[0]-eigenvaltrial[2]);
+//     sigma_trial.ZZ()=perturb;
+//
+//     REAL sz2=sigma_proj.ZZ();
+//     diff1=fabs(sz-eigenvaltrial[0]);
+//     diff2=fabs(sz-eigenvaltrial[2]);
+//     if(diff1<diff2)
+//     {
+//         s=-1.;
+//     }else{
+//         s=1.;
+//     }
+//     TPZManVector<REAL,3>  eigenvalproj= EigenVal(sigma_proj);
+//     perturb=sz2+0.1*s*(eigenvalproj[0]-eigenvalproj[2]);
+//     sigma_proj.ZZ()=perturb;
+
+    TPZTensor<REAL> aa,ab;
+    aa = FlowVectorMain(sigma_trial);
+    ab = FlowVectorMain(sigma_proj);
+    REAL beta= acos( aa.Dot(ab)/(aa.Norm()*ab.Norm()) )*180/M_PI;
+    if ( beta>89.99) {
+        //cout << "APEX"<<endl;
+        //cout << "prval"<< prval << endl;
+        bool flag= ReturnMapApex(sigma_trial, sigma_proj,dep, epsbarnew);
+
+    }
+//dep=fER.GetElasticMatrixReal();
+
+}
+
+ bool TPZMohrCoulombVoigt::CheckOrder(TPZManVector<REAL,3>  eigenvalues)
+ {
+    return (eigenvalues[0]  >= eigenvalues[1]  &&  eigenvalues[1] >=  eigenvalues[2]);
+ }
+TPZManVector<REAL,3>  TPZMohrCoulombVoigt::EigenVal(TPZTensor<REAL> & tensor)
+ {
+    TPZTensor<REAL>::TPZDecomposed DecompSig;
+	tensor.EigenSystem(DecompSig);
+	TPZManVector<REAL,3> eigenvalues(DecompSig.fEigenvalues);
+    return eigenvalues;
+ }

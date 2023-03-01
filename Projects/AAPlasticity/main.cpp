@@ -140,68 +140,79 @@ void MaterialPointMohrCoulomb2() {
     REAL epsbarnew = 0.;
      TPZFMatrix<REAL> dep;
      TPZTensor<REAL> sigma_trial,sigma_proj,a,b;
+
+
+    //MAIN
     sigma_trial.XX()=3891.34;
     sigma_trial.YY()=3059.69;
     sigma_trial.ZZ()=3406.01;
     sigma_trial.XZ()=0;
     sigma_trial.YZ()=0;
     sigma_trial.XY()=168.535;
+    mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    sigma_proj.Print(std::cout);
+    dep.Print(std::cout);
+
+
+    //RIGTH
+    sigma_trial.XX()=5226.4;
+    sigma_trial.YY()=4860.25;
+    sigma_trial.ZZ()=4942.46;
+    sigma_trial.XZ()=0;
+    sigma_trial.YZ()=0;
+    sigma_trial.XY()=-219.96;
+    mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    sigma_proj.Print(std::cout);
+    dep.Print(std::cout);
+
+
+    //APEX
+    sigma_trial.XX()=5024.51;
+    sigma_trial.YY()=4666.28;
+    sigma_trial.ZZ()=4748.49;
+    sigma_trial.XZ()=0;
+    sigma_trial.YZ()=0;
+    sigma_trial.XY()=-194.931;
+    mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    sigma_proj.Print(std::cout);
+    dep.Print(std::cout);
 
 
 
-     mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    mc_cohesion    =490.;
+    mc_phi         = ( 20.0*M_PI/180 );
+    mc_psi         = mc_phi;
+    nu = 0.48;
+    E = 10000000;
 
-     sigma_proj.Print(std::cout);
-     dep.Print(std::cout);
-//
-//
-    // epsttr = {-7.1436465404952029 10^-5, -5.4913608546659984 10^-5,
- // 1.1423294530637051 10^-4, 0, 0, (3.7632073167565092) 10^-4};
+    ER.SetUp( E, nu );
+    TPZMohrCoulombVoigt *mc2 = new  TPZMohrCoulombVoigt(mc_phi,mc_phi,mc_cohesion,ER);
 
-//     TPZTensor<REAL> eps;
-//     eps.XX()=-7.1436465404952029e-5;
-//     eps.YY()=-5.4913608546659984e-5;
-//     eps.ZZ()=1.1423294530637051e-4;
-//     eps.XZ()=0;
-//     eps.YZ()=0;
-//     eps.XY()=0.5*3.7632073167565092e-4;
-//
-//     ER.ComputeStress(eps,sigma_trial);
-//     sigma_trial.Print(std::cout);
+    //LEFT
+    sigma_trial.XX()=-1465.15;
+    sigma_trial.YY()=-1353.51;
+    sigma_trial.ZZ()=-210.626;
+    sigma_trial.XZ()=0;
+    sigma_trial.YZ()=0;
+    sigma_trial.XY()=1271.35;
+    mc2->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    //mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
+    sigma_proj.Print(std::cout);
+    dep.Print(std::cout);
 
-//     sigma_trial.XX()=-1465.15;
-//     sigma_trial.YY()=-1353.51;
-//     sigma_trial.ZZ()=-210.626;
-//     sigma_trial.XZ()=0;
-//     sigma_trial.YZ()=0;
-//     sigma_trial.XY()=1271.35;
-//     mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
-//     //mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
-//     sigma_proj.Print(std::cout);
-//     dep.Print(std::cout);
-//
-//     sigma_trial.XX()=5226.4;
-//     sigma_trial.YY()=4860.25;
-//     sigma_trial.ZZ()=4942.46;
-//     sigma_trial.XZ()=0;
-//     sigma_trial.YZ()=0;
-//     sigma_trial.XY()=-219.96;
-//     mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
-//     mc->ReturnMapRightEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
-//    sigma_proj.Print(std::cout);
-//    dep.Print(std::cout);
+// epsttr = {-7.1436465404952029 10^-5, -5.4913608546659984 10^-5,
+// 1.1423294530637051 10^-4, 0, 0, (3.7632073167565092) 10^-4};
 
+    TPZTensor<REAL> eps;
+    eps.XX()=-7.1436465404952029e-5;
+    eps.YY()=-5.4913608546659984e-5;
+    eps.ZZ()=1.1423294530637051e-4;
+    eps.XZ()=0;
+    eps.YZ()=0;
+    eps.XY()=0.5*3.7632073167565092e-4;
 
-//     //sigtr = {5024.51,4666.28,4748.49,0.,0.,-194.931}
-//     sigma_trial.XX()=5024.51;
-//     sigma_trial.YY()=4666.28;
-//     sigma_trial.ZZ()=4748.49;
-//     sigma_trial.XZ()=0;
-//     sigma_trial.YZ()=0;
-//     sigma_trial.XY()=-194.931;
-//     mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
-//     sigma_proj.Print(std::cout);
-//     dep.Print(std::cout);
+    ER.ComputeStress(eps,sigma_trial);
+    sigma_trial.Print(std::cout);
 
 }
 
