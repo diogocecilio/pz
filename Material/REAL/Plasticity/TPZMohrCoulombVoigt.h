@@ -200,14 +200,9 @@ public:
     }
 
 
-    REAL PhiInvars ( TPZTensor<REAL> tensor )
-    {
-
-    }
 
     REAL theta(TPZTensor<REAL> tensor)
     {
-        //tensor.Print(std::cout);
         REAL J2 =tensor.J2();
 
         if( J2 < 0.000000001)
@@ -218,33 +213,17 @@ public:
         REAL denom=pow(J2,1.5);
         REAL val = (-2.598076211353316*tensor.J3())/denom;
 
-        if(val>0.9999 )
+        if(val>0.999999 )
         {
-            return 1./3.*asin(0.9999);
+            return 1./3.*asin(0.999999);
 
-        }else if(val<-0.9999){
+        }else if(val<-0.999999){
 
-            return 1./3.*asin(-0.9999);
+            return 1./3.*asin(-0.999999);
         }
 
         return 1./3.*asin(val);
 
-
-//         if(val>=1.)
-//         {
-//                return -0.3333333333333333 * M_PI/2.;
-//         }
-//         else
-//         {
-//             if(val<=-1.)
-//             {
-//                 return 0.3333333333333333 * M_PI/2.;
-//             }
-//             else
-//             {
-//                 return -0.3333333333333333*asin(val);
-//             }
-//         }
     }
 
     TPZTensor<REAL> FlowVectorMain(TPZTensor<REAL> & tensor)

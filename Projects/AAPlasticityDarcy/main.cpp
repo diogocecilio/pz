@@ -88,7 +88,7 @@ void PrintMat ( std::string out,TPZFMatrix<REAL> mat );
 
 TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder );
 
-
+void SolveRamp(TPZCompMesh * cmesh);
 void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor );
 
 template <class T>
@@ -187,8 +187,8 @@ int main()
         }
         
         cout << "\n Gravity Increase routine.. " << endl;
-        GravityIncrease ( cmeshgi );
-
+        //GravityIncrease ( cmeshgi );
+        SolveRamp(cmeshgi);
         return 0;
         
         cout << "\n Post Processing gravity increase... " << endl;
@@ -211,6 +211,51 @@ int main()
 
     return 0;
 }
+
+
+void SolveRamp(TPZCompMesh * cmesh)
+{
+    int maxiter=100;
+    REAL tol=1.;
+    bool linesearch=true;
+    bool checkconv=false;
+    int steps=40;
+    REAL finalload = 5.;
+    std::string vtkFile ="tcentrifuga-p2.vtk";
+    std::ofstream outloadu("loadvup2.nb");
+    outloadu << "plot = {";
+    TPZPostProcAnalysis  * postproc = new TPZPostProcAnalysis();
+    REAL g0=1.;
+    vector<double> loadvec = {0.1,0.15,0.2,0.3,0.4,0.5};
+
+    for(int iter=0;iter<loadvec.size();iter++)loadvec[iter]*=g0;
+
+    findnodalsol(cmesh);
+
+    for(int iloadstep=0; iloadstep<100; iloadstep++)
+    {
+
+        TPZElastoPlasticAnalysis  * analysis =  CreateAnal(cmesh,true);
+        //REAL load = iloadstep*finalload/steps;
+        REAL load = loadvec[iloadstep];
+        //REAL load = iloadstep;
+        cout << " \n --------- iloadstep  = "<< iloadstep  << " |  load  = "<< load << " gtrial/g0 = "<< load/g0 <<endl;
+        LoadingRamp(cmesh,load);
+        int iters;
+        bool conv = analysis->IterativeProcess(std::cout,tol,maxiter,linesearch,checkconv,iters);
+        if(conv==false)
+        {
+            cout << "newton failed to converge!";
+            break;
+        }
+
+        analysis->AcceptSolution();
+
+    }
+
+
+}
+
 TPZElastoPlasticAnalysis * CreateSimpleAnal ( TPZCompMesh *cmesh,bool optimize )
 {
     int numthreads=0;
@@ -1218,7 +1263,7 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
 void GravityIncrease ( TPZCompMesh * cmesh )
 {
 
-    REAL FS=1.,FSmax=1000.,FSmin=0.,tol=0.01;
+    REAL FS=0.1,FSmax=2.,FSmin=0.,tol=0.01;
     int neq = cmesh->NEquations();
     int maxcount=100;
     TPZFMatrix<REAL> displace ( neq,1 ),displace0 ( neq,1 );

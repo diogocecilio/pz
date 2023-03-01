@@ -724,30 +724,19 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
 
     }
 
-
-    if ( rigth) {
-       //cout << "ERightEdge"<<endl;
-        bool flag= ReturnMapRightEdge(sigma_trial, sigma_proj,dep, epsbarnew);
-
-    } else {
-        //cout << "ELeftEdge"<<endl;
-        bool flag= ReturnMapLeftEdge(sigma_trial, sigma_proj,dep, epsbarnew);
-
+    REAL sz=sigma_trial.ZZ();
+    REAL s,diff1,diff2;
+    diff1=fabs(sz-eigenvaltrial[0]);
+    diff2=fabs(sz-eigenvaltrial[2]);
+    if(diff1<diff2)
+    {
+        s=-1.;
+    }else{
+        s=1.;
     }
+    REAL perturb=sz+0.1*s*(eigenvaltrial[0]-eigenvaltrial[2]);
+    sigma_trial.ZZ()=perturb;
 
-//     REAL sz=sigma_trial.ZZ();
-//     REAL s,diff1,diff2;
-//     diff1=fabs(sz-eigenvaltrial[0]);
-//     diff2=fabs(sz-eigenvaltrial[2]);
-//     if(diff1<diff2)
-//     {
-//         s=-1.;
-//     }else{
-//         s=1.;
-//     }
-//     REAL perturb=sz+0.1*s*(eigenvaltrial[0]-eigenvaltrial[2]);
-//     sigma_trial.ZZ()=perturb;
-//
 //     REAL sz2=sigma_proj.ZZ();
 //     diff1=fabs(sz-eigenvaltrial[0]);
 //     diff2=fabs(sz-eigenvaltrial[2]);
@@ -760,6 +749,18 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
 //     TPZManVector<REAL,3>  eigenvalproj= EigenVal(sigma_proj);
 //     perturb=sz2+0.1*s*(eigenvalproj[0]-eigenvalproj[2]);
 //     sigma_proj.ZZ()=perturb;
+
+    if ( rigth) {
+       //cout << "ERightEdge"<<endl;
+        bool flag= ReturnMapRightEdge(sigma_trial, sigma_proj,dep, epsbarnew);
+
+    } else {
+        //cout << "ELeftEdge"<<endl;
+        bool flag= ReturnMapLeftEdge(sigma_trial, sigma_proj,dep, epsbarnew);
+
+    }
+
+
 
     TPZTensor<REAL> aa,ab;
     aa = FlowVectorMain(sigma_trial);
