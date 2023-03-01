@@ -188,6 +188,7 @@ void MaterialPointMohrCoulomb2() {
     ER.SetUp( E, nu );
     TPZMohrCoulombVoigt *mc2 = new  TPZMohrCoulombVoigt(mc_phi,mc_phi,mc_cohesion,ER);
 
+    //sigtr = {-1465.15,-1353.51,-210.626,0.,0.,1271.35}
     //LEFT
     sigma_trial.XX()=-1465.15;
     sigma_trial.YY()=-1353.51;

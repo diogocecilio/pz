@@ -218,13 +218,13 @@ public:
         REAL denom=pow(J2,1.5);
         REAL val = (-2.598076211353316*tensor.J3())/denom;
 
-        if(val>0.99 )
+        if(val>0.9999 )
         {
-            return 1./3.*asin(0.99);
+            return 1./3.*asin(0.9999);
 
-        }else if(val<-0.99){
+        }else if(val<-0.9999){
 
-            return 1./3.*asin(-0.99);
+            return 1./3.*asin(-0.9999);
         }
 
         return 1./3.*asin(val);

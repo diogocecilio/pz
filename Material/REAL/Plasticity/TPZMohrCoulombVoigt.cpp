@@ -145,7 +145,7 @@ REAL TPZMohrCoulombVoigt::ReturnMapPlane (  TPZTensor<REAL> &sigma_trial, TPZTen
       return dlvoigt;
 }
 
-
+/*
 bool TPZMohrCoulombVoigt::ReturnMapLeftEdge ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew)
 {
     TPZTensor<REAL> avec,bvec;
@@ -291,8 +291,149 @@ bool TPZMohrCoulombVoigt::ReturnMapLeftEdge ( TPZTensor<REAL> &sigma_trial, TPZT
 
     return true;
 
-}
+}*/
 
+bool TPZMohrCoulombVoigt::ReturnMapLeftEdge ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew)
+{
+    TPZTensor<REAL> avec,bvec;
+    TPZFMatrix<REAL> cmat = fER.GetElasticMatrixReal();
+
+
+     REAL a =A(sigma_trial);
+     REAL dadt = dAdt(sigma_trial);
+     REAL d2adt = d2Adt(sigma_trial);
+
+     avec=FlowVectorMain(sigma_trial);
+
+     REAL a2 =A3(sigma_trial);
+     REAL da2dt = dA3dt(sigma_trial);
+     REAL d2a2dt = d2A3dt(sigma_trial);
+
+     bvec=FlowVectorLeft(sigma_trial);
+
+     TPZFMatrix<REAL> temp,temp2,temp3,temp4;
+
+     avec.FromTensorToNRmatrix(temp);
+     //FromTensorToMatVoigt(avec,temp);
+     cmat.Multiply(temp,temp2);
+     REAL ax = Dot(temp,temp2);
+
+
+     bvec.FromTensorToNRmatrix(temp);
+     //FromTensorToMatVoigt(bvec,temp);
+     cmat.Multiply(temp,temp2);
+     REAL bx =Dot(temp,temp2);
+
+
+     avec.FromTensorToNRmatrix(temp);
+     bvec.FromTensorToNRmatrix(temp2);
+
+     cmat.Multiply(temp2,temp3);
+     REAL dx = Dot(temp,temp3);
+
+     REAL f11,f22;
+
+     f11= FMain(sigma_trial);
+     f22=FLeft(sigma_trial);
+
+   REAL q = ax*bx - dx*dx;
+   REAL  dl11 = (bx*f11 - dx*f22)/(ax* bx - dx*dx);
+   REAL dl22 = (ax*f22 - dx*f11)/(ax*bx - dx*dx);
+//cout << "bb "  <<endl;
+
+    avec.FromTensorToNRmatrix(temp);
+    bvec.FromTensorToNRmatrix(temp2);
+   //FromTensorToMatVoigt(avec,temp);
+   //FromTensorToMatVoigt(bvec,temp2);
+   cmat.Multiply(temp,temp3);
+   cmat.Multiply(temp2,temp4);
+   temp3*=-dl11;
+   temp4*=-dl22;
+
+   temp3+=temp4;
+
+   sigma_proj.CopyFrom(temp3);
+   //FromMatToTensor(temp3,sigma_proj);
+   sigma_proj+=sigma_trial;
+
+   TPZFMatrix<REAL> dadsig1 = dAdsig(sigma_trial,  a, dadt, d2adt);
+   TPZFMatrix<REAL> dadsig2 = dAdsig(sigma_trial,  a2, da2dt, d2a2dt);
+
+   //Outer[Times, avec, avec]
+
+    TPZFMatrix<REAL> avectemp,avectempT,bvectemp,bvectempT,aaT,abT,baT,bbT;
+
+    avec.FromTensorToNRmatrix(avectemp);
+    bvec.FromTensorToNRmatrix(bvectemp);
+    //FromTensorToMatVoigt(avec,avectemp);
+    //FromTensorToMatVoigt(bvec,bvectemp);
+
+    avectemp.Transpose(&avectempT);
+    bvectemp.Transpose(&bvectempT);
+
+    //Outer[Times, avec, avec]
+    avectemp.Multiply(avectempT,aaT);
+    //Outer[Times, avec, bvec]
+    avectemp.Multiply(bvectempT,abT);
+    //Outer[Times, bvec, avec]
+    bvectemp.Multiply(avectempT,baT);
+    //Outer[Times, bvec, bvec]
+    bvectemp.Multiply(bvectempT,bbT);
+
+    TPZFMatrix<REAL> cmataaT,cmataaTcmat,cmatabT,cmatabTcmat,cmatbaT,cmatbaTcmat,cmatbbT,cmatbbTcmat,tempfinal,et2;
+
+    //cmat.Outer[Times, avec, avec]
+    cmat.Multiply(aaT,cmataaT);
+    //cmat.Outer[Times, avec, avec].cmat
+    cmataaT.Multiply(cmat,cmataaTcmat);
+
+    cmataaTcmat*=bx;
+
+    cmat.Multiply(abT,cmatabT);
+    cmatabT.Multiply(cmat,cmatabTcmat);
+
+    cmatabTcmat*=dx;
+
+
+    cmat.Multiply(baT,cmatbaT);
+    cmatbaT.Multiply(cmat,cmatbaTcmat);
+
+    cmatbaTcmat*=dx;
+
+    cmat.Multiply(bbT,cmatbbT);
+    cmatbbT.Multiply(cmat,cmatbbTcmat);
+
+    cmatbbTcmat*=ax;
+
+    tempfinal=cmataaTcmat;
+
+    tempfinal-=cmatabTcmat;
+    tempfinal-=cmatbaTcmat;
+    tempfinal+=cmatbbTcmat;
+
+    tempfinal*=1./q;
+
+    et2=cmat;
+
+    et2-=tempfinal;
+
+    TPZFMatrix<REAL> T(6,6,0.);
+    T(0,0)=1.;T(1,1)=1.;T(2,2)=1.;T(3,3)=1.;T(4,4)=1.;T(5,5)=1.;
+
+    TPZFMatrix<REAL> partea,parteb;
+    dadsig1.Multiply(cmat,partea);
+    dadsig2.Multiply(cmat,parteb);
+    partea*=-dl11;
+    parteb*=-dl22;
+    T+=partea;
+    T+=parteb;
+
+    et2.Multiply(T,dep);
+    //cout << "cc "  <<endl;
+
+    return true;
+
+}
 bool TPZMohrCoulombVoigt::ReturnMapRightEdge ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew)
 {
     //cout << "aa "  <<endl;
@@ -572,11 +713,6 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
 
     }
     REAL dlamb = ReturnMapPlane ( sigma_trial, sigma_proj,dep,  epsbarnew);
-    TPZManVector<REAL,3> trval,prval;
-    sigma_proj.EigenValue(prval);
-
-    //cout << "sigma_proj"<< sigma_proj <<endl;
-
 
     REAL f1proj = FMain(sigma_proj);
     if(fabs(f1proj)<0.001 )
