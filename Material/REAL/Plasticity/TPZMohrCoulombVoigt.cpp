@@ -584,11 +584,52 @@ bool TPZMohrCoulombVoigt::ReturnMapApex ( TPZTensor<REAL> &sigma_trial, TPZTenso
 {
     REAL ccotanphi = fc*cos(fPhi)/sin(fPhi);
     sigma_proj.XX()=ccotanphi;sigma_proj.YY()=ccotanphi;sigma_proj.ZZ()=ccotanphi;
+    sigma_proj.XZ()=0.;sigma_proj.XY()=0.;sigma_proj.YZ()=0.;
     TPZFMatrix<REAL> dumb(6,6,0.);
     TPZFMatrix<REAL> cmat=fER.GetElasticMatrixReal();
     REAL young = fER.E();
-    dep=cmat*(0.1);
+    cmat*=0.;
+    dep=cmat;
     return true;
+
+// TPZFMatrix<REAL> cmat=fER.GetElasticMatrixReal();
+//     const REAL K = fER.K(), G = fER.G();
+//     const REAL sinphi = sin ( fPhi );
+//     const REAL sinpsi = sin ( fPsi );
+//     const REAL cosphi = cos ( fPhi );
+//     const REAL cotphi = 1./tan ( fPhi );
+//     TPZManVector<REAL,3>  sigmatrial= EigenVal(sigma_trial);
+//     REAL ptrnp1 = 0.;
+//     for ( int i = 0; i < 3; i++ ) {
+//         ptrnp1 +=  sigmatrial[i] ;
+//     }
+//     ptrnp1 /= 3.;
+//     REAL DEpsPV = 0.;
+//     REAL epsbarnp1 = epsbarnew;
+//     REAL c=fc,H=0.;
+//
+//     REAL alpha = cos ( fPhi ) /sin ( fPsi );
+//
+//     REAL res = c*cotphi-ptrnp1;
+//     REAL pnp1;
+//
+//
+//     const REAL d =  K ;
+//     DEpsPV -= res/d;
+//
+//     pnp1 = ptrnp1 - K  * DEpsPV;
+//
+//
+//     sigma_proj.XX()=pnp1;sigma_proj.YY()=pnp1;sigma_proj.ZZ()=pnp1;
+//     sigma_proj.XZ()=0.;sigma_proj.XY()=0.;sigma_proj.YZ()=0.;
+//
+//     cmat*=0.0000001;
+//     dep=cmat;
+//
+//
+//
+//     return true; // If it is in this ReturnMap it surely is this type of ReturnMap (ProjectSigma manages this)
+
 }
 
 void TPZMohrCoulombVoigt::ProjectSigmaDep2 ( TPZTensor<REAL> &sigma_trial, TPZTensor<REAL> &sigma_proj,TPZFMatrix<REAL>&dep, REAL &epsbarnew )
@@ -718,8 +759,8 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
     if(fabs(f1proj)<0.001 )
     {
         //cout<< "projetou na f1 = " << f1proj << endl;
-        //cout << "Main"<<endl;
-        dep=fER.GetElasticMatrixReal();
+       // cout << "Main"<<endl;
+        //dep=fER.GetElasticMatrixReal();
         return;
 
     }
@@ -755,19 +796,19 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
         bool flag= ReturnMapRightEdge(sigma_trial, sigma_proj,dep, epsbarnew);
 
     } else {
-        //cout << "ELeftEdge"<<endl;
+       // cout << "ELeftEdge"<<endl;
         bool flag= ReturnMapLeftEdge(sigma_trial, sigma_proj,dep, epsbarnew);
 
     }
 
 
-dep=fER.GetElasticMatrixReal();
+//dep=fER.GetElasticMatrixReal();
     TPZTensor<REAL> aa,ab;
     aa = FlowVectorMain(sigma_trial);
     ab = FlowVectorMain(sigma_proj);
     REAL beta= acos( aa.Dot(ab)/(aa.Norm()*ab.Norm()) )*180/M_PI;
     if ( beta>89.99) {
-        //cout << "APEX"<<endl;
+       // cout << "APEX"<<endl;
         //cout << "prval"<< prval << endl;
         bool flag= ReturnMapApex(sigma_trial, sigma_proj,dep, epsbarnew);
 

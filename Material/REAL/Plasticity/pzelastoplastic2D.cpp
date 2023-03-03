@@ -267,6 +267,14 @@ void TPZMatElastoPlastic2D<T,TMEM>::Contribute(TPZMaterialData &data, REAL weigh
           val  = this->ffactor*((ForceLoc[1]) * phi(in,0)+ fluxy* phi(in,0));
           ef(in*nstate+1,0) += weight * val;
         }
+        if(this->fwhichinternalforce ==3)
+        {
+          val  =0.;
+          ef(in*nstate+0,0) += weight * val;
+          val  = 0.;
+          ef(in*nstate+1,0) += weight * val;
+        }
+
 
 
 		for( int jn = 0; jn < phr; jn++)

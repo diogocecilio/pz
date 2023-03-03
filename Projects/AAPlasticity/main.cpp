@@ -130,12 +130,12 @@ void MaterialPointMohrCoulomb2() {
     REAL mc_phi         = ( 20.0*M_PI/180 );
     REAL mc_psi         = mc_phi;
 
-    TPZElasticResponse ER;
+    TPZElasticResponse ER1,ER;
     REAL nu = 0.49;
     REAL E = 20000;
 
-    ER.SetUp( E, nu );
-    TPZMohrCoulombVoigt *mc = new  TPZMohrCoulombVoigt(mc_phi,mc_phi,mc_cohesion,ER);
+    ER1.SetUp( E, nu );
+    TPZMohrCoulombVoigt *mc = new  TPZMohrCoulombVoigt(mc_phi,mc_phi,mc_cohesion,ER1);
 //plane
     REAL epsbarnew = 0.;
      TPZFMatrix<REAL> dep;
@@ -203,18 +203,58 @@ void MaterialPointMohrCoulomb2() {
 
 // epsttr = {-7.1436465404952029 10^-5, -5.4913608546659984 10^-5,
 // 1.1423294530637051 10^-4, 0, 0, (3.7632073167565092) 10^-4};
+//   COMPUTATION OF CONSISTENT TANGENT
+//  STRAT(1) =    7.0294619068830503E-003
+//  STRAT(2) =   -6.8689910785806954E-003
+//  STRAT(3) =    2.9690834955523302E-002
+//  STRAT(4) =   -6.5052130349130266E-019
+
+
 
     TPZTensor<REAL> eps;
-    eps.XX()=-7.1436465404952029e-5;
-    eps.YY()=-5.4913608546659984e-5;
-    eps.ZZ()=1.1423294530637051e-4;
+    eps.XX()=0.0070294619068830503;
+    eps.YY()=-0.0068689910785806954;
+    eps.ZZ()=0;
     eps.XZ()=0;
     eps.YZ()=0;
-    eps.XY()=0.5*3.7632073167565092e-4;
+    eps.XY()=0.029690834955523302;
 
-    ER.ComputeStress(eps,sigma_trial);
+    ER1.ComputeStress(eps,sigma_trial);
     sigma_trial.Print(std::cout);
+    ER1.ComputeStrain(sigma_trial,eps);
+    eps.Print(std::cout);
 
+    mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    //mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
+    sigma_proj.Print(std::cout);
+    dep.Print(std::cout);
+
+    //APEX
+//      STRAT(1) =    7.8305688066371872E-003
+//  STRAT(2) =    1.0079926856965267E-002
+//  STRAT(3) =    5.2194184151934539E-002
+//  STRAT(4) =   -1.8627525059542946E-017
+//  PSTRS(1) =    1346.2639355326537
+//  PSTRS(2) =    1346.2639355326537
+//  PSTRS(3) =    1346.2639355326537
+
+       // TPZTensor<REAL> eps;
+    eps.XX()=0.0078305688066371872;
+    eps.YY()=0.010079926856965267;
+    eps.ZZ()=0;
+    eps.XZ()=0;
+    eps.YZ()=0;
+    eps.XY()=0.052194184151934539;
+
+    ER1.ComputeStress(eps,sigma_trial);
+    sigma_trial.Print(std::cout);
+    ER1.ComputeStrain(sigma_trial,eps);
+    eps.Print(std::cout);
+
+    mc2->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    //mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
+    sigma_proj.Print(std::cout);
+    dep.Print(std::cout);
 }
 
 int main()

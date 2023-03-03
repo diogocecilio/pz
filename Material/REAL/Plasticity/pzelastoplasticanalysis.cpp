@@ -1150,7 +1150,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 
  void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2,REAL l, bool linesearch)
 {
-
+cout << " entrou" << endl;
     plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
 //    material->SetLoadFactor(1.);
 std::ofstream eout("debug.txt");
@@ -1158,49 +1158,40 @@ std::ofstream eout("debug.txt");
     Assemble();
     int counterout=1;
     do {
+        cout << " a" << endl;
         TPZFMatrix<REAL> dw(fSolution);
         dw.Zero();
         int counter=1;
         REAL err1=10.,err2=10.,rtol=0.001;
         do {
-            material->SetLoadFactor(1.);
-            material->SetWhichLoadVector(0);
-			Assemble();
-            eout << "FB+FI original "<<endl;
-            fRhs.Print(eout);
-
-            TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
+            cout << " b" << endl;
 
             material->SetWhichLoadVector(2);
-            material->SetLoadFactor(1.);
+            material->SetLoadFactor(lamb);
             Assemble();
+
+            TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
             TPZFMatrix<STATE> FBODY =fRhs;
-            eout << "FB  "<<endl;
-            fRhs.Print(eout);
 
-            material->SetLoadFactor(0.);
-            material->SetWhichLoadVector(0);
+            material->SetLoadFactor(1.);
+            material->SetWhichLoadVector(1);
             Assemble();
+
             TPZFMatrix<STATE> FINT =fRhs;
-            eout << "FI  "<<endl;
-            fRhs.Print(eout);
 
-            TPZFMatrix<REAL> sum =FBODY+FINT;
-            eout << "FB+FI soma "<<endl;
-            sum.Print(eout);
+            TPZFMatrix<REAL> R;
+
+            R = FBODY - FINT ;
 
 
-            TPZFMatrix<REAL> R = FBODY;
-            R = lamb * FBODY - FINT ;
-
-
-            int type=5;
+            int type=0;
 
             TPZFMatrix<REAL> dws,dwb,dww;
 
+            cout << " c" << endl;
             SolveEigenSparse ( type,KG, R, dws );
             SolveEigenSparse ( type,KG, FBODY, dwb );
-
+            cout << " d" << endl;
             REAL dlamb = computelamda( dwb, dws, dw, l );
 
             lamb += dlamb;
@@ -1224,7 +1215,7 @@ cout << " counterout = " << counterout << " counter = " << counter <<  " lamb = 
 
         counterout++;
     } while ( counterout <= 5 && fabs ( diff2 ) > tol );
-
+cout << " saiu" << endl;
 }
 // CompEl create Functions setup
 
