@@ -187,8 +187,8 @@ int main()
         }
         
         cout << "\n Gravity Increase routine.. " << endl;
-        //GravityIncrease ( cmeshgi );
-        SolveRamp(cmeshgi);
+        GravityIncrease ( cmeshgi );
+        //SolveRamp(cmeshgi);
         return 0;
         
         cout << "\n Post Processing gravity increase... " << endl;

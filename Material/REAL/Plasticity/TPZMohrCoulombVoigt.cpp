@@ -587,7 +587,7 @@ bool TPZMohrCoulombVoigt::ReturnMapApex ( TPZTensor<REAL> &sigma_trial, TPZTenso
     TPZFMatrix<REAL> dumb(6,6,0.);
     TPZFMatrix<REAL> cmat=fER.GetElasticMatrixReal();
     REAL young = fER.E();
-    dep=cmat*(0.001);
+    dep=cmat*(0.1);
     return true;
 }
 
@@ -719,23 +719,23 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
     {
         //cout<< "projetou na f1 = " << f1proj << endl;
         //cout << "Main"<<endl;
-        //dep=fER.GetElasticMatrixReal();
+        dep=fER.GetElasticMatrixReal();
         return;
 
     }
 
-    REAL sz=sigma_trial.ZZ();
-    REAL s,diff1,diff2;
-    diff1=fabs(sz-eigenvaltrial[0]);
-    diff2=fabs(sz-eigenvaltrial[2]);
-    if(diff1<diff2)
-    {
-        s=-1.;
-    }else{
-        s=1.;
-    }
-    REAL perturb=sz+0.1*s*(eigenvaltrial[0]-eigenvaltrial[2]);
-    sigma_trial.ZZ()=perturb;
+//     REAL sz=sigma_trial.ZZ();
+//     REAL s,diff1,diff2;
+//     diff1=fabs(sz-eigenvaltrial[0]);
+//     diff2=fabs(sz-eigenvaltrial[2]);
+//     if(diff1<diff2)
+//     {
+//         s=-1.;
+//     }else{
+//         s=1.;
+//     }
+//     REAL perturb=sz+0.1*s*(eigenvaltrial[0]-eigenvaltrial[2]);
+//     sigma_trial.ZZ()=perturb;
 
 //     REAL sz2=sigma_proj.ZZ();
 //     diff1=fabs(sz-eigenvaltrial[0]);
@@ -761,7 +761,7 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
     }
 
 
-
+dep=fER.GetElasticMatrixReal();
     TPZTensor<REAL> aa,ab;
     aa = FlowVectorMain(sigma_trial);
     ab = FlowVectorMain(sigma_proj);
@@ -772,7 +772,7 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
         bool flag= ReturnMapApex(sigma_trial, sigma_proj,dep, epsbarnew);
 
     }
-//dep=fER.GetElasticMatrixReal();
+
 
 }
 
