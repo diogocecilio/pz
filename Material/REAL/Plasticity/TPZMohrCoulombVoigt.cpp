@@ -87,6 +87,8 @@ REAL TPZMohrCoulombVoigt::ReturnMapPlane (  TPZTensor<REAL> &sigma_trial, TPZTen
 //
       REAL dlvoigt=f1;
       TPZFMatrix<REAL> cmat = fER.GetElasticMatrixReal();
+     ///     TPZFMatrix<REAL> cmat;
+  ///  fER.ElasticMat(cmat);
 //
     //  cmat.Print(std::cout);
 
@@ -297,6 +299,8 @@ bool TPZMohrCoulombVoigt::ReturnMapLeftEdge ( TPZTensor<REAL> &sigma_trial, TPZT
 {
     TPZTensor<REAL> avec,bvec;
     TPZFMatrix<REAL> cmat = fER.GetElasticMatrixReal();
+      //  TPZFMatrix<REAL> cmat;
+    //fER.ElasticMat(cmat);
 
 
      REAL a =A(sigma_trial);
@@ -439,6 +443,8 @@ bool TPZMohrCoulombVoigt::ReturnMapRightEdge ( TPZTensor<REAL> &sigma_trial, TPZ
     //cout << "aa "  <<endl;
     TPZTensor<REAL> avec,bvec;
     TPZFMatrix<REAL> cmat = fER.GetElasticMatrixReal();
+    //TPZFMatrix<REAL> cmat;
+    //fER.ElasticMat(cmat);
      REAL I1 = sigma_trial.I1();
      REAL J2 = sigma_trial.J2();
 
@@ -587,6 +593,8 @@ bool TPZMohrCoulombVoigt::ReturnMapApex ( TPZTensor<REAL> &sigma_trial, TPZTenso
     sigma_proj.XZ()=0.;sigma_proj.XY()=0.;sigma_proj.YZ()=0.;
     TPZFMatrix<REAL> dumb(6,6,0.);
     TPZFMatrix<REAL> cmat=fER.GetElasticMatrixReal();
+    //TPZFMatrix<REAL> cmat;
+    //fER.ElasticMat(cmat);
     REAL young = fER.E();
     cmat*=0.;
     dep=cmat;
@@ -689,6 +697,7 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep2 ( TPZTensor<REAL> &sigma_trial, TPZTe
             avec.FromTensorToNRmatrix(avecmat);
 
             cmat=fER.GetElasticMatrixReal();
+            //fER.ElasticMat(cmat);
 
             cmat.Multiply(avecmat,temp);
 
@@ -720,6 +729,7 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep2 ( TPZTensor<REAL> &sigma_trial, TPZTe
         sigma_proj=sigma_trial;
         //cout << "k = "  <<endl;
         dep=fER.GetElasticMatrixReal();
+        //fER.ElasticMat(dep);
         //cout << "l = "  <<endl;
         epsbarnew=0;
 
@@ -738,6 +748,7 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
         //cout << "Elastic"<<endl;
         sigma_proj=sigma_trial;
         dep=fER.GetElasticMatrixReal();
+        //fER.ElasticMat(dep);
         epsbarnew=0;
         return;
     }
@@ -756,11 +767,11 @@ void TPZMohrCoulombVoigt::ProjectSigmaDep( TPZTensor<REAL> &sigma_trial, TPZTens
     REAL dlamb = ReturnMapPlane ( sigma_trial, sigma_proj,dep,  epsbarnew);
 
     REAL f1proj = FMain(sigma_proj);
-    if(fabs(f1proj)<0.001 )
+    if(fabs(f1proj)<0.0001 )
     {
         //cout<< "projetou na f1 = " << f1proj << endl;
        // cout << "Main"<<endl;
-        //dep=fER.GetElasticMatrixReal();
+//        dep=fER.GetElasticMatrixReal();
         return;
 
     }

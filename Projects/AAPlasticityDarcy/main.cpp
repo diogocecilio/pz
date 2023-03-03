@@ -37,8 +37,8 @@
 
 using namespace std;
 
-typedef TPZPlasticStepVoigt<TPZMohrCoulombVoigt,TPZElasticResponse> LEMC;
-//typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
+//typedef TPZPlasticStepVoigt<TPZMohrCoulombVoigt,TPZElasticResponse> LEMC;
+typedef TPZPlasticStepPV<TPZYCMohrCoulombPV, TPZElasticResponse> LEMC;
 
 
 typedef   TPZMatElastoPlastic2D <LEMC, TPZElastoPlasticMem > plasticmat;
@@ -121,26 +121,27 @@ int main()
     TPZGeoMesh *gmesh0 = CreateSimpleGMesh (  );
     TPZCompMesh *cmesh0 = CreateSimpleCMesh ( gmesh0,porder );
     TPZElastoPlasticAnalysis *anal0 =  CreateSimpleAnal ( cmesh0,false );
-
-    LoadingRamp ( cmesh0,1. );
+//
+     LoadingRamp ( cmesh0,1. );
     std::ofstream outnewton("saida-newton.txt");
-
+//
     int neq = cmesh0->NEquations();
     REAL tol = 0.001;
     int numiter =5;
     REAL tol2 = 0.001;
     int numiter2 =5;
-    REAL l =0.1;
+    REAL l =1.;
 
-    bool linesearch = false;
+    bool linesearch = true;
     bool checkconv=false;
     int iters;
-    anal0->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
-    //anal0->IterativeProcess(outnewton, tol, numiter,  linesearch,  checkconv,iters);
-    GravityIncrease ( cmesh0 );
-
-
-   return 0;
+    cout << "a " << endl;
+     anal0->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
+//     //anal0->IterativeProcess(outnewton, tol, numiter,  linesearch,  checkconv,iters);
+//     //GravityIncrease ( cmesh0 );
+//
+//
+    return 0;
 
 
 
@@ -187,7 +188,10 @@ int main()
         }
         
         cout << "\n Gravity Increase routine.. " << endl;
-        GravityIncrease ( cmeshgi );
+        TPZElastoPlasticAnalysis  * anal0 = CreateAnal ( cmeshgi,true );
+        LoadingRamp ( cmeshgi,1. );
+        anal0->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
+        //GravityIncrease ( cmeshgi );
         //SolveRamp(cmeshgi);
         return 0;
         
@@ -263,8 +267,8 @@ TPZElastoPlasticAnalysis * CreateSimpleAnal ( TPZCompMesh *cmesh,bool optimize )
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
-    //TPZSkylineStructMatrix matskl ( cmesh );
-    TPZFStructMatrix matskl ( cmesh );
+    TPZSkylineStructMatrix matskl ( cmesh );
+   // TPZFStructMatrix matskl ( cmesh );
 
     //matskl.SetNumThreads ( numthreads );
 
@@ -855,24 +859,29 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
     string file;
- 
-    if(betax==30)
-    {
-         file ="/home/diogo/projects/pz/data/h10-beta30.msh";
-    }
-    if(betax==45)
-    {
-         file ="/home/diogo/projects/pz/data/h10-beta45.msh";
-    }
-    if(betax==60)
-    {
-         file ="/home/diogo/projects/pz/data/h10-beta60.msh";
-    }
-    if(betax==90)
-    {
-         file ="/home/diogo/projects/pz/data/h10-beta90.msh";
-    }
 
+
+
+    file ="/home/diogo/projects/pz/data/quad-gid2.msh";
+
+ 
+//     if(betax==30)
+//     {
+//          file ="/home/diogo/projects/pz/data/h10-beta30.msh";
+//     }
+//     if(betax==45)
+//     {
+//          file ="/home/diogo/projects/pz/data/h10-beta45.msh";
+//     }
+//     if(betax==60)
+//     {
+//          file ="/home/diogo/projects/pz/data/h10-beta60.msh";
+//     }
+//     if(betax==90)
+//     {
+//          file ="/home/diogo/projects/pz/data/h10-beta90.msh";
+//     }
+//
 
 
     readgidmesh read = readgidmesh ( file );
