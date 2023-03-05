@@ -221,7 +221,7 @@ void MaterialPointMohrCoulomb2() {
 
     ER1.ComputeStress(eps,sigma_trial);
     sigma_trial.Print(std::cout);
-    ER1.ComputeStrain(sigma_trial,eps);
+    ER1.ComputeDeformation(sigma_trial,eps);
     eps.Print(std::cout);
 
     mc->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
@@ -248,13 +248,49 @@ void MaterialPointMohrCoulomb2() {
 
     ER1.ComputeStress(eps,sigma_trial);
     sigma_trial.Print(std::cout);
-    ER1.ComputeStrain(sigma_trial,eps);
+    ER1.ComputeDeformation(sigma_trial,eps);
     eps.Print(std::cout);
 
     mc2->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
     //mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
     sigma_proj.Print(std::cout);
     dep.Print(std::cout);
+
+//       COMPUTATION OF CONSISTENT TANGENT
+//  STRAT(1) =   -1.2560424036224354E-003
+//  STRAT(2) =    7.5770078874204600E-004
+//  STRAT(3) =   -3.0306513266847217E-004
+//  STRAT(4) =    1.6664811388913960E-003
+//  STRES(1) =   -1365.4721783903917
+//  STRES(2) =    5.2231187181352698
+//  STRES(3) =   -103.14372598287557
+//  STRES(4) =    12.941143522832135
+//  PSTRS(1) =    12.941143522817548
+//  PSTRS(2) =   -1373.1902031950738
+//  PSTRS(3) =    12.941143522832135
+//  left edge!
+//    32223855.441684347          15924468.551031800          1175295.9405182868
+//    15924468.551031813          7886427.8720841026          656076.03957261727
+//    1175295.9405182854          656076.03957261611          379406.06107736612
+//         6                     0.461805E-11                 0.142580E-05
+
+    eps.XX()=-0.0012560424036224354;
+    eps.YY()=0.00075770078874204600;
+    eps.ZZ()=0.001666481138891396;
+    eps.XZ()=0;
+    eps.YZ()=0;
+    eps.XY()=-0.00030306513266847217;
+
+    ER.ComputeStress(eps,sigma_trial);
+    sigma_trial.Print(std::cout);
+    ER.ComputeDeformation(sigma_trial,eps);
+    eps.Print(std::cout);
+
+    mc2->ProjectSigmaDep(sigma_trial, sigma_proj,dep,  epsbarnew);
+    //mc->ReturnMapLeftEdge ( sigma_trial, sigma_proj,dep,  epsbarnew);
+    sigma_proj.Print(std::cout);
+    dep.Print(std::cout);
+
 }
 
 int main()

@@ -141,6 +141,11 @@ void InsertBC(TPZFMatrix<REAL> &stiff, TPZFMatrix<REAL> rhs)
 //   ];
 }
 
+REAL dot(TPZFMatrix<REAL>a,TPZFMatrix<REAL>b)
+{
+
+}
+
 REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<REAL>& dw, REAL& l )
 {
 
@@ -149,20 +154,20 @@ REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<RE
     int sz = dwb.Rows();
     REAL aa = 0.;
 
-    aa += Dot(dwb,dwb);
+    aa = Dot(dwb,dwb);
 
     REAL bb = 0.;
 
-    TPZFMatrix<REAL> dwcopy = dw;
+    TPZFMatrix<REAL> dwcopy;
 
-    dwcopy += dws;
+    dwcopy = dw+dws;
 
-    bb += Dot(dwb,dwcopy);
+    bb = Dot(dwb,dwcopy);
 
     bb *= 2;
     REAL cc = 0.;
 
-    cc += Dot(dwcopy,dwcopy);
+    cc= Dot(dwcopy,dwcopy);
 
     cc -= l * l;
     REAL delta = bb * bb - 4. * aa * cc;
@@ -170,22 +175,24 @@ REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<RE
     REAL dlamb1;
 
 
+    cout << "delta = " << delta << endl;
+    cout << "aa = " << aa << endl;
+    cout << "bb = " << bb << endl;
+    cout << "cc = " << cc << endl;
     if ( fabs ( aa ) >1.e-12 && delta>0 ) {
         dlamb2 = ( -bb + sqrt ( delta ) ) / ( 2. * aa ); //maior
         dlamb1= ( -bb - sqrt ( delta ) ) / ( 2. * aa ); //menor
         //return dlamb1;
-        //cout << "dlamb1" <<dlamb1 << " dlamb2 = "<< dlamb2 << endl;
+        cout << "dlamb1" <<dlamb1 << " dlamb2 = "<< dlamb2 << endl;
     } else {
         if ( bb != 0 ) {
-        //cout << "-cc/bb" <<-cc/bb << endl;
+        cout << "-cc/bb" <<-cc/bb << endl;
         return -cc/bb;
     } else {
-        //cout << "(-bb ) / (2. * aa)" <<(-bb ) / (2. * aa)<< endl;
+        cout << "(-bb ) / (2. * aa)" <<(-bb ) / (2. * aa)<< endl;
         return ( -bb ) / ( 2. * aa );
     }
     }
-
-
 
 
     //page 111, eq. 4.118 - Souza Neto
@@ -206,10 +213,10 @@ REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<RE
 
 
     if ( sol1.Get(0,0)>sol2.Get(0,0) ) {
-        //cout << "return 1 " << endl;
+        cout << "return 1 " << endl;
         return dlamb1;
     } else {
-        //cout << "return 2 " << endl;
+        cout << "return 2 " << endl;
         return dlamb2;
     }
 }

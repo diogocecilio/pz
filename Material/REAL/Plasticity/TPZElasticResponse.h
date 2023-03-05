@@ -109,7 +109,7 @@ public:
         sigma.Identity();
         sigma.Multiply ( trace,fLambda );
         sigma.Add ( epsilon,2.*fMu );
-        DebugStop();
+        //DebugStop();
     }
 
     /**
@@ -124,7 +124,7 @@ public:
         epsilon.Identity();
         epsilon.Multiply ( trace,Fac );
         epsilon.Add ( sigma,1./ ( 2.*fMu ) );
-        DebugStop();
+        //DebugStop();
     }
 
 //     template <class T>
@@ -171,6 +171,7 @@ public:
     {
         REAL Mu2    = 2 * fMu;
 
+        Kef.Resize(6,6);
         Kef.Zero();
 
         Kef ( _XX_, _XX_ ) += fLambda;
@@ -185,7 +186,7 @@ public:
 
         int i;
         for ( i = 0; i < 6; i++ ) Kef ( i, i ) += Mu2;
-        DebugStop();
+        //DebugStop();
     }
 
 
@@ -287,7 +288,7 @@ public:
         C ( _XY_,_YZ_ ) = 0.;
         C ( _XY_,_XY_ ) = G;
 
-DebugStop();
+
         return C;
     }
 
@@ -351,6 +352,7 @@ DebugStop();
 
 TPZFMatrix<REAL> GetInvElasticMatrixReal()
 {
+   // DebugStop();
         TPZFMatrix<REAL> C ( 6, 6, 0. );
         REAL G = fMu;
         REAL K = fLambda+2.*G/3.;
@@ -452,7 +454,7 @@ TPZFMatrix<T> GetInvElasticMatrix() const
         C ( _XZ_,_XX_ ) = 0;
         C ( _XZ_,_YY_ ) = 0;
         C ( _XZ_,_ZZ_ ) = 0;
-        C ( _XZ_,_XZ_ ) = 1./(2. * G);
+        C ( _XZ_,_XZ_ ) = 1./( G);
         C ( _XZ_,_YZ_ ) = 0.;
         C ( _XZ_,_XY_ ) = 0.;
 
@@ -461,7 +463,7 @@ TPZFMatrix<T> GetInvElasticMatrix() const
         C ( _YZ_,_YY_ ) = 0;
         C ( _YZ_,_ZZ_ ) = 0;
         C ( _YZ_,_XZ_ ) = 0.;
-        C ( _YZ_,_YZ_ ) =1./(2. * G);
+        C ( _YZ_,_YZ_ ) =1./( G);
         C ( _YZ_,_XY_ ) = 0.;
 
 
@@ -470,11 +472,11 @@ TPZFMatrix<T> GetInvElasticMatrix() const
         C ( _XY_,_ZZ_ ) = 0;
         C ( _XY_,_XZ_ ) = 0.;
         C ( _XY_,_YZ_ ) = 0.;
-        C ( _XY_,_XY_ ) = 1./(2. * G);
+        C ( _XY_,_XY_ ) = 1./( G);
 
 
         return C;
-        DebugStop();
+        //DebugStop();
     }
     REAL fLambda;
     REAL fMu;
