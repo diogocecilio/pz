@@ -175,21 +175,21 @@ REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<RE
     REAL dlamb1;
 
 
-    cout << "delta = " << delta << endl;
-    cout << "aa = " << aa << endl;
-    cout << "bb = " << bb << endl;
-    cout << "cc = " << cc << endl;
+    //cout << "delta = " << delta << endl;
+    //cout << "aa = " << aa << endl;
+    //cout << "bb = " << bb << endl;
+    //cout << "cc = " << cc << endl;
     if ( fabs ( aa ) >1.e-12 && delta>0 ) {
         dlamb2 = ( -bb + sqrt ( delta ) ) / ( 2. * aa ); //maior
         dlamb1= ( -bb - sqrt ( delta ) ) / ( 2. * aa ); //menor
         //return dlamb1;
-        cout << "dlamb1" <<dlamb1 << " dlamb2 = "<< dlamb2 << endl;
+        //cout << "dlamb1" <<dlamb1 << " dlamb2 = "<< dlamb2 << endl;
     } else {
         if ( bb != 0 ) {
-        cout << "-cc/bb" <<-cc/bb << endl;
+        //cout << "-cc/bb" <<-cc/bb << endl;
         return -cc/bb;
     } else {
-        cout << "(-bb ) / (2. * aa)" <<(-bb ) / (2. * aa)<< endl;
+        //cout << "(-bb ) / (2. * aa)" <<(-bb ) / (2. * aa)<< endl;
         return ( -bb ) / ( 2. * aa );
     }
     }
@@ -213,14 +213,38 @@ REAL  computelamda ( TPZFMatrix<REAL>& dwb, TPZFMatrix<REAL>& dws, TPZFMatrix<RE
 
 
     if ( sol1.Get(0,0)>sol2.Get(0,0) ) {
-        cout << "return 1 " << endl;
+        //cout << "return 1 " << endl;
         return dlamb1;
     } else {
-        cout << "return 2 " << endl;
+        //cout << "return 2 " << endl;
         return dlamb2;
     }
 }
 
+
+REAL  computelamda0 ( TPZFMatrix<REAL>& dwb,  TPZFMatrix<REAL>& dw, REAL& l )
+{
+    REAL tempsign;
+    TPZFMatrix<REAL> dwt,solsig;
+    dw.Transpose ( &dwt );
+    dwt.Multiply ( dwb,solsig );
+    REAL scal = solsig.Get(0,0);
+    REAL signum=0;
+    //page 111, eq. 4.123 - Souza Neto //verificar sinal
+    if ( scal>0 ) {
+        signum=-1;
+    } else {
+        signum=1;
+    }
+
+    TPZFMatrix<REAL> dwbt, aparam;
+    dwb.Transpose ( &dwbt );
+    dwbt.Multiply ( dwb, aparam );
+
+    return signum*l/sqrt ( aparam.Get(0,0) ) ;
+
+
+}
     
 protected:	
 	

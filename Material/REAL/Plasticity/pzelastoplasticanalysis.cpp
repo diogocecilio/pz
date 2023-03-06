@@ -1192,73 +1192,103 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
     plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
 
     int steps=20;
-    REAL lambda=20.;
+    REAL lambda=0.;
 
 
-    TPZFMatrix<REAL> dw,dws,dwb,dww;
+    TPZFMatrix<REAL> dw,dws,dwb,dww,displace;
+    dw=fSolution;
+    dw.Zero();
+
+
+    //solve K dwb = fb
+    cout << " a   " <<endl;
+    material->SetWhichLoadVector(2);
+    material->SetLoadFactor(1.);
+    Assemble();
+    TPZFMatrix<REAL> FBODY=Rhs();
+    dw=Solution();
+    displace=Solution();
+    dw.Zero();
+    displace.Zero();
 
     while(counterout<steps)
     {
 
+        //Assemble();
         cout << " load step  = " << counterout << " load factor  = " << lambda <<  endl;
-        int counter=1;
+        int counter=0;
 
-
-        dw=fSolution;
         dw.Zero();
+
         while( counter<10 )
         {
-            cout << " a   " <<endl;
-            material->SetWhichLoadVector(2);
+
+           // material->SetWhichLoadVector(2);
+            //material->SetLoadFactor(1.);
+            //Assemble();
+            Rhs()=FBODY;
+            Solve();
+            dwb = Solution();
+//             material->SetWhichLoadVector(2);
+//             material->SetLoadFactor(1.);
+//             Assemble();
+//             Solve();
+//             dwb = fSolution;
+
+
+//             cout <<"dwb  " <<endl;
+//             TPZFMatrix<REAL>  toprint1;
+//             dwb.Transpose(&toprint1);
+//             toprint1.Print(std::cout);
+
+            ////solve K dwb = lambda fb-fi
+            material->SetWhichLoadVector(0);
             material->SetLoadFactor(lambda);
             Assemble();
-            TPZFMatrix<REAL> fbody = fRhs;
             Solve();
-            dwb = fSolution;
+            dws = Solution();
+            TPZFMatrix<REAL> residual = Rhs();
 
 
-            cout <<"dwb  " <<endl;
-            TPZFMatrix<REAL>  toprint1;
-            dwb.Transpose(&toprint1);
-            toprint1.Print(std::cout);
-
-            material->SetWhichLoadVector(1);
-            Assemble();
-            TPZFMatrix<REAL> fint = fRhs;
-            TPZFMatrix<REAL> residual = fbody-fint;
-            fRhs=residual;
-            Solve();
-            dws = fSolution;
-
-            cout <<"dws  " <<endl;
-            TPZFMatrix<REAL>  toprint;
-            dws.Transpose(&toprint);
-            toprint.Print(std::cout);
 
 
-            REAL dlamb= computelamda ( dwb, dws,  dw,  l );
+//             cout <<"dws  " <<endl;
+//             TPZFMatrix<REAL>  toprint;
+//             dws.Transpose(&toprint);
+//             toprint.Print(std::cout);
+
+            REAL dlamb=0.;
+            if(counter==0)
+            {
+                dlamb= computelamda0 ( dwb, dw,l );
+            }else{
+                 dlamb= computelamda ( dwb, dws,  dw,  l );
+            }
 
             lambda += dlamb;
+
+            if(fabs(dlamb)<0.01)break;
 
             dww = dwb*dlamb+dws;
 
             dw += dww;
 
-            LoadSolution(dw);
+            displace+=dww;
 
-            cout <<"dw  " <<endl;
-            TPZFMatrix<REAL>  toprint2;
-            dw.Transpose(&toprint2);
-            toprint2.Print(std::cout);
+            LoadSolution(displace);
 
-            cout << " counter  = " << counter <<" normrhs = " << Norm(residual) << " normdu = " << Norm(dww) << " dlamb = "<< dlamb << endl;
-
+//             cout <<"dw  " <<endl;
+//             TPZFMatrix<REAL>  toprint2;
+//             dw.Transpose(&toprint2);
+//             toprint2.Print(std::cout);
+            cout << " counter  = " << counter <<" normrhs = " << Norm(residual) << " normdu = " << Norm(dww) << " lambda = "<< lambda << " dlamb = "<< dlamb << endl;
             counter++;
-
-            cout << " d   " <<endl;
+//            cout << " d   " <<endl;
         }
 
 
+        LoadSolution(displace);
+        AcceptSolution();
         counterout++;
     }
 

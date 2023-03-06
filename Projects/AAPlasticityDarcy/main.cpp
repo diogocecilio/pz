@@ -130,7 +130,7 @@ int main()
     int numiter =5;
     REAL tol2 = 0.001;
     int numiter2 =5;
-    REAL l =1.;
+    REAL l =0.1;
 
     bool linesearch = true;
     bool checkconv=false;
@@ -323,7 +323,7 @@ TPZCompMesh * CreateSimpleCMesh ( TPZGeoMesh * gmesh,int porder )
 
     material->SetId ( 1 );
 
-    material->SetLoadFactor(1.);
+    material->SetLoadFactor(0.);
     material->SetWhichLoadVector(0);//option to compute the total internal force vecor fi=(Bt sigma+ N (b+gradu))
 
     cmesh->InsertMaterialObject ( material );
