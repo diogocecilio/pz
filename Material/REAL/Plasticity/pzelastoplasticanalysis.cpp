@@ -1220,7 +1220,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
 
         dw.Zero();
 
-        while( counter<10 )
+        REAL residualrhs=10;
+        while( counter<50 && residualrhs>tol2 )
         {
 
 
@@ -1228,24 +1229,24 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
             material->SetWhichLoadVector(0);
             material->SetLoadFactor(lambda);
             Assemble();
-            TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
-            cout << "KG nates = "<<endl;
-            KG->Print(std::cout);
-            Solve();
-            dws = Solution();
+            //TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
+            //cout << "KG nates = "<<endl;
+            //KG->Print(std::cout);
+            this->fSolver->Solve(fRhs,dws);
+
             TPZFMatrix<REAL> residual = Rhs();
-            fSolution.Zero();
+            //fSolution.Zero();
+            //fRhs.Zero();
+            //KG->Zero();
 
+            //material->SetWhichLoadVector(0);
+           // material->SetLoadFactor(1.);
+            //Assemble();
+            ////cout << "KG depois = "<<endl;
+            //KG = this->fSolver->Matrix();
+            //KG->Print(std::cout);
+            this->fSolver->Solve(FBODY,dwb);
 
-            material->SetWhichLoadVector(2);
-            material->SetLoadFactor(1.);
-            Assemble();
-            cout << "KG depois = "<<endl;
-            KG = this->fSolver->Matrix();
-            KG->Print(std::cout);
-            //Rhs()=FBODY;
-            Solve();
-            dwb = Solution();
 
 //             material->SetWhichLoadVector(2);
 //             material->SetLoadFactor(1.);
@@ -1280,7 +1281,7 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
 
             lambda += dlamb;
 
-            if(fabs(dlamb)<0.01)break;
+           // if(fabs(dlamb)<0.01)break;
 
             dww = dwb*dlamb+dws;
 
@@ -1294,7 +1295,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
 //             TPZFMatrix<REAL>  toprint2;
 //             dw.Transpose(&toprint2);
 //             toprint2.Print(std::cout);
-            cout << " counter  = " << counter <<" normrhs = " << Norm(residual) << " normdu = " << Norm(dww) << " lambda = "<< lambda << " dlamb = "<< dlamb << endl;
+            residualrhs=Norm(residual);
+            cout << " counter  = " << counter <<" normrhs = " <<residualrhs << " normdu = " << Norm(dww) << " lambda = "<< lambda << " dlamb = "<< dlamb << endl;
             counter++;
 //            cout << " d   " <<endl;
         }
