@@ -565,14 +565,15 @@ void TPZElasticityMaterial::ContributeBC(TPZMaterialData &data,REAL weight,
 
 
         case 3: // Directional Null Dirichlet - displacement is set to null in the non-null vector component direction
-            for(in = 0 ; in < phr; in++) {
-                ef(nstate*in+0,0) += BIGNUMBER *  bc.Val2()(0,0) * phi(in,0) * weight;
-                ef(nstate*in+1,0) += BIGNUMBER *  bc.Val2()(1,0) * phi(in,0) * weight;
-                for (jn = 0 ; jn < phr; jn++) {
-                    ek(nstate*in+0,nstate*jn+0) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * bc.Val2()(0,0);
-                    ek(nstate*in+1,nstate*jn+1) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * bc.Val2()(1,0);
-                }//jn
-            }//in
+
+    for(in = 0 ; in < phr; in++) {
+      ef(2*in+0,0) += BIGNUMBER *   bc.Val2()(0,0) * phi(in,0) * weight;
+      ef(2*in+1,0) += BIGNUMBER *   bc.Val2()(1,0) * phi(in,0) * weight;
+      for (jn = 0 ; jn < phr; jn++) {
+        ek(2*in+0,2*jn+0) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * bc.Val2()(0,0);
+        ek(2*in+1,2*jn+1) += BIGNUMBER * phi(in,0) * phi(jn,0) * weight * bc.Val2()(1,0);
+      }//jn
+    }//in
             break;
 
 

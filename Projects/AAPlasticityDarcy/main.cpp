@@ -117,7 +117,7 @@ int main()
 {
 
 
-     int porder=2;
+     int porder=1;
     TPZGeoMesh *gmesh0 = CreateSimpleGMesh (  );
     TPZCompMesh *cmesh0 = CreateSimpleCMesh ( gmesh0,porder );
     TPZElastoPlasticAnalysis *anal0 =  CreateSimpleAnal ( cmesh0,false );
@@ -432,7 +432,7 @@ TPZGeoMesh * CreateSimpleGMesh ( )
 
     gmesh->BuildConnectivity();
 
-        for ( int d = 0; d<5; d++ ) {
+        for ( int d = 0; d<1; d++ ) {
         int nel = gmesh->NElements();
         TPZManVector<TPZGeoEl *> subels;
         for ( int iel = 0; iel<nel; iel++ ) {

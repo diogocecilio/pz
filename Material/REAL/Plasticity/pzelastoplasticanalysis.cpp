@@ -1223,12 +1223,30 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
         while( counter<10 )
         {
 
-           // material->SetWhichLoadVector(2);
-            //material->SetLoadFactor(1.);
-            //Assemble();
-            Rhs()=FBODY;
+
+
+            material->SetWhichLoadVector(0);
+            material->SetLoadFactor(lambda);
+            Assemble();
+            TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
+            cout << "KG nates = "<<endl;
+            KG->Print(std::cout);
+            Solve();
+            dws = Solution();
+            TPZFMatrix<REAL> residual = Rhs();
+            fSolution.Zero();
+
+
+            material->SetWhichLoadVector(2);
+            material->SetLoadFactor(1.);
+            Assemble();
+            cout << "KG depois = "<<endl;
+            KG = this->fSolver->Matrix();
+            KG->Print(std::cout);
+            //Rhs()=FBODY;
             Solve();
             dwb = Solution();
+
 //             material->SetWhichLoadVector(2);
 //             material->SetLoadFactor(1.);
 //             Assemble();
@@ -1242,12 +1260,7 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
 //             toprint1.Print(std::cout);
 
             ////solve K dwb = lambda fb-fi
-            material->SetWhichLoadVector(0);
-            material->SetLoadFactor(lambda);
-            Assemble();
-            Solve();
-            dws = Solution();
-            TPZFMatrix<REAL> residual = Rhs();
+
 
 
 
