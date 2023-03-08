@@ -108,31 +108,33 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 
 REAL findnodalsol(TPZCompMesh *cmesh);
 
-int betax=45;
-REAL gammasolo=20.;
-REAL gammaaugua=0.;
-bool water=false;
+int betax;
+REAL gammasolo;
+REAL gammaaugua;
+bool water;
+REAL coesaofiu;
+REAL phifiu;
 
 int main()
 {
 
 
-     int porder=3;
+//     int porder=1;
 //     TPZGeoMesh *gmesh0 = CreateSimpleGMesh (  );
 //     TPZCompMesh *cmesh0 = CreateSimpleCMesh ( gmesh0,porder );
 //     TPZElastoPlasticAnalysis *anal0 =  CreateSimpleAnal ( cmesh0,false );
 // //
 //      LoadingRamp ( cmesh0,1. );
-    std::ofstream outnewton("saida-newton.txt");
-//
-//    int neq = cmesh0->NEquations();
-    REAL tol = 0.001;
-    int numiter =5;
-    REAL tol2 = 0.001;
-    int numiter2 =5;
-    REAL l =1.;
-//
-     bool linesearch = true;
+//     std::ofstream outnewton("saida-newton.txt");
+// //
+// //    int neq = cmesh0->NEquations();
+//     REAL tol = 0.001;
+//     int numiter =5;
+//     REAL tol2 = 0.001;
+//     int numiter2 =5;
+//     REAL l =1.;
+// //
+//      bool linesearch = true;
 //     bool checkconv=false;
 //     int iters;
 //     cout << "a " << endl;
@@ -144,74 +146,68 @@ int main()
 //     return 0;
 
 
+    int porder=2;
+    int nref=0;
+
+    betax=45;//30,45,60,90
+    gammasolo=20.;
+    gammaaugua=10.;
+    water=true;
+    coesaofiu=10.;
+    phifiu=30.*M_PI/180;
+
+    REAL tolfs = 1.e-2;
+    int numiterfs =20;
+    REAL tolres = 1.e-3;
+    int numiterres =20;
+    REAL l =2.;
+    REAL lambda0=0.1;
+
+    TPZGeoMesh *gmesh = CreateGMeshGid ( nref);
 
 
-
-    TPZGeoMesh *gmesh = CreateGMeshGid ( 0 );
-
+    string vtk = "Darcyx.vtk";
 
 
-
-    string vtk = "Darcyx.vtk"; 
-    
-    
     TPZPostProcAnalysis * postprocdeter = new TPZPostProcAnalysis();
     TPZPostProcAnalysis * postprocdetergim = new TPZPostProcAnalysis();
     std::string vtkFiled ="vtkfolder/deterministicflux.vtk";
     std::string vtkFiledgim ="vtkfolder/outvtk.vtk";
 
-    //Rain Load
-    int steps=0;
-    REAL totalload,load,delta;
-    totalload=0.0002;//m/s
-    totalload=-1.;//m/s
-    delta=totalload/steps;
-    load=0.;
-    //Deterministic
-	for(int iload=0;iload<=steps;iload++)
- 	{
-        TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
-        TPZCompMesh *cmeshsrm = CreateCMesh ( gmesh,porder );
-        TPZCompMesh *cmeshgi = CreateCMesh ( gmesh,porder );
-        //cout << "\n --------- iload = "<< iload << " | load = "<< load << endl;
-        //cout << "\n Setting Load.. " << endl;
-        //LoadingRampRainFall ( darcycompmesh,  load );
 
-        if(water==true)
-        {
-            cout << "\n Solving Darcy... " << endl;
-            SolveDarcyProlem(darcycompmesh, vtk);
-        
-            cout << "\n Setting flux in mechanic comp mesh... " << endl;
-            //SetFlux(cmeshsrm,darcycompmesh);
-            SetFlux(cmeshgi,darcycompmesh);
-        }
-        
-        cout << "\n Gravity Increase routine.. " << endl;
-        TPZElastoPlasticAnalysis  * anal0 = CreateAnal ( cmeshgi,true );
-        LoadingRamp ( cmeshgi,1. );
-        anal0->IterativeProcessArcLength(outnewton,tol,numiter,tol2,numiter2,l,linesearch);
-        //GravityIncrease ( cmeshgi );
-        //SolveRamp(cmeshgi);
-        return 0;
-        
-        cout << "\n Post Processing gravity increase... " << endl;
-    	CreatePostProcessingMesh ( postprocdetergim, cmeshgi );
-    	Post ( postprocdetergim,vtkFiledgim );
-        
-        //cout << "\n Strength reduction routine.. " << endl;
-    	//ShearRed ( cmeshsrm );
-        
-        //cout << "\n Post Processing... " << endl;
-    	//CreatePostProcessingMesh ( postprocdeter, cmeshsrm );
-    	//Post ( postprocdeter,vtkFiled );
-        
-        load+=delta;
-	}
+    TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
+    TPZCompMesh *cmeshsrm = CreateCMesh ( gmesh,porder );
+    TPZCompMesh *cmeshgi = CreateCMesh ( gmesh,porder );
+
+    if(water==true)
+    {
+        cout << "\n Solving Darcy... " << endl;
+        SolveDarcyProlem(darcycompmesh, vtk);
+
+        cout << "\n Setting flux in mechanic comp mesh... " << endl;
+        //SetFlux(cmeshsrm,darcycompmesh);
+        SetFlux(cmeshgi,darcycompmesh);
+    }
+
+    cout << "\n Gravity Increase routine.. " << endl;
+    TPZElastoPlasticAnalysis  * anal0 = CreateAnal ( cmeshgi,true );
+    //anal0->SetBiCGStab(30,10e-6);
+    //anal0->SetBiCGStab_Jacobi(30,10e-6);
+    LoadingRamp ( cmeshgi,1. );
+    std::ofstream outnewton("saida-newton.txt");
+
+    chrono::steady_clock sc;
+    auto start = sc.now();
+    anal0->IterativeProcessArcLength(tolfs,numiterfs,tolres,numiterres,l,lambda0);
+    //GravityIncrease ( cmeshgi );
+    auto end = sc.now();
+    auto time_span = static_cast<chrono::duration<double>> ( end - start );
+    cout << "|  IterativeProcessArcLength time =  " << time_span.count()<< std::endl;
 
 
-    std::cout << "FINISHED!" << std::endl;
-
+    cout << "\n Post Processing gravity increase... " << endl;
+    CreatePostProcessingMesh ( postprocdetergim, cmeshgi );
+    Post ( postprocdetergim,vtkFiledgim );
 
     return 0;
 }
@@ -570,8 +566,8 @@ void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
             disp[0]  = hw*gammaaugua;
         }
         //cout << " disp[0] = "<< disp[0] << endl;
-        
-        
+
+
 
 }
 // void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
@@ -588,19 +584,19 @@ void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
 //             //cout << " yy = "<< yy << endl;
 //             disp[0]  =   gamma * hw/(H-hw)* yy ;
 //             val=disp[0];
-//             
+//
 //         }
 //         else{
 //             disp[0]  = hw*gamma;
 //         }
 //         //cout << " disp[0] = "<< disp[0] << endl;
-//         
-//         
-// 
+//
+//
+//
 // }
 
 REAL findnodalsol(TPZCompMesh *cmesh){
- 
+
     //b[0] = 39.2265;
     //b[1] = 40.;
 TPZGeoMesh * gmesh =  cmesh->Reference();
@@ -612,22 +608,22 @@ TPZGeoMesh * gmesh =  cmesh->Reference();
 int id;
  int nels = gmesh->NElements();
  for(int iel=0;iel<nels;iel++){
-	 
-	 	
+
+
 		 TPZVec<REAL> qsi(dim,0.);
 	 	 TPZGeoEl * gel = gmesh->ElementVec()[iel];
-		 
-		 TPZCompEl * cel = gel->Reference();
-		 
 
-		 
+		 TPZCompEl * cel = gel->Reference();
+
+
+
 		 if(gel->MaterialId()<0)continue;
 		 bool check = gel->ComputeXInverse(xd,qsi,1.e-5);
-		 
+
 		 if(check==true)
    		{
-	
-        	
+
+
 // 	   		cout << "elemento encontrado"<<endl;
 // 			cout << "index do elemento = " <<gel->Index() <<endl;
 			int nnodes=gel->NNodes();
@@ -649,17 +645,17 @@ int id;
         			TPZMaterialData data;
 
         			data.fNeedsSol = true;
-		
+
         			intel->InitMaterialData ( data );
-					
+
 					intel->ComputeRequiredData ( data, qsi );
-					
+
 // 					cout << " data.sol  = "<<data.sol     << endl;
 					return data.sol[0][1];
 				}
 			}
 
-			
+
 		}
 }
 
@@ -686,7 +682,7 @@ void SolveDarcyProlem(TPZCompMesh *cmesh,string vtk)
 
     PostDarcy(analysis,vtk);
 
-    
+
 }
 
 void PostDarcy(TPZAnalysis * analysis,string vtk)
@@ -743,26 +739,26 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     // Condition of contours
     TPZFMatrix<STATE>  val1 ( 2,2,0. );
     TPZFMatrix<STATE>  val2 ( 2,1,0. );
-	
+
 	TPZAutoPointer<TPZFunction<STATE> > pressure = new TPZDummyFunction<STATE>(ForcingBCPressao);
-    
+
 	TPZAutoPointer<TPZFunction<STATE> > rhs = new TPZDummyFunction<STATE>(Forcing);
-    
+
     //material->SetForcingFunction(rhs);
-    
+
 //     REAL big = TPZMaterial::gBigNumber;
      TPZMaterial * BCond0 = material->CreateBC ( material, -3, 0, val1, val2 );//tr
      BCond0->SetForcingFunction(pressure);
 
      TPZMaterial * BCond1 = material->CreateBC ( material, -4, 0, val1, val2 );//ramp
      BCond1->SetForcingFunction(pressure);
-	 
+
 	//val2(0,0)=-1;
 	TPZMaterial * BCond2 = material->CreateBC ( material, -5, 0, val1, val2 );//tl
 	BCond2->SetForcingFunction(pressure);
 
-     
-	 
+
+
 
 
     cmesh->InsertMaterialObject(BCond0);
@@ -773,8 +769,8 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
     cmesh->AutoBuild();
     cmesh->AdjustBoundaryElements();
     cmesh->CleanUpUnconnectedNodes();
-    
-    
+
+
 	//LoadingRampRainFall ( cmesh,  1. );
 
     return cmesh;
@@ -783,17 +779,17 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
 void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor )
 {
 //      REAL big = TPZMaterial::gBigNumber;
-// //     
+// //
 //     auto * bc1 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-3));
 //     bc1->Val1()(0,0)=factor;
-    
+
     auto * bc2 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-4));
 	bc2->Val2()(0,0)=factor;
-    
+
 	auto * bc3 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-5));
 	bc3->Val2()(0,0)=factor;
-    
-    
+
+
 
 }
 
@@ -803,18 +799,18 @@ void ComputeSolution(TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dph
     const int numdof = cel->Material()->NStateVariables();
 	const int ncon = cel->NConnects();
     TPZFMatrix<STATE> &MeshSol = cel->Mesh()->Solution();
-	 
-	
+
+
     long numbersol = MeshSol.Cols();
     sol.Resize(numbersol);
     dsol.Resize(numbersol);
-	
+
     for (long is=0 ; is<numbersol; is++) {
         sol[is].Resize(numdof);
         sol[is].Fill(0.);
         dsol[is].Redim(dim, numdof);
         dsol[is].Zero();
-        
+
     }
 
     TPZBlock<STATE> &block = cel->Mesh()->Block();
@@ -827,8 +823,8 @@ void ComputeSolution(TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZFMatrix<REAL> &dph
 		for(int jn=0; jn<dfvar; jn++) {
             for (int is=0; is<numbersol; is++) {
 
-                sol[is][iv%numdof] += (STATE)phi(iv/numdof,0)*MeshSol(pos+jn,is);   
-				
+                sol[is][iv%numdof] += (STATE)phi(iv/numdof,0)*MeshSol(pos+jn,is);
+
                 for(d=0; d<dim; d++){
                     dsol[is](d,iv%numdof) += (STATE)dphix(d,iv/numdof)*MeshSol(pos+jn,is);
                 }
@@ -862,26 +858,26 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 
 
 
-    file ="/home/diogo/projects/pz/data/quad-gid2.msh";
+ //   file ="/home/diogo/projects/pz/data/quad-gid2.msh";
 
- 
-//     if(betax==30)
-//     {
-//          file ="/home/diogo/projects/pz/data/h10-beta30.msh";
-//     }
-//     if(betax==45)
-//     {
-//          file ="/home/diogo/projects/pz/data/h10-beta45.msh";
-//     }
-//     if(betax==60)
-//     {
-//          file ="/home/diogo/projects/pz/data/h10-beta60.msh";
-//     }
-//     if(betax==90)
-//     {
-//          file ="/home/diogo/projects/pz/data/h10-beta90.msh";
-//     }
-//
+
+    if(betax==30)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta30.msh";
+    }
+    if(betax==45)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta45.msh";
+    }
+    if(betax==60)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta60.msh";
+    }
+    if(betax==90)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta90.msh";
+    }
+
 
 
     readgidmesh read = readgidmesh ( file );
@@ -925,18 +921,18 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
         read.FindIdsInPath ( pathbottom, idstoprigth );
         idsvec.push_back ( idstoprigth );
     }else{
-        
+
         a = b;
         b[0] = 37.5;
         b[1] = 30.;
         read.Line ( a, b, ndivs, pathbottom );
         read.FindIdsInPath ( pathbottom, idstoprigth );
         idsvec.push_back ( idstoprigth );
-        
+
     }
 
-    
-    
+
+
     if(betax==30)
     {
         a = b;
@@ -955,7 +951,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
         read.FindIdsInPath ( pathbottom, idsramp );
         idsvec.push_back ( idsramp );
     }
-    
+
     if(betax==60)
     {
         a = b;
@@ -965,7 +961,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
         read.FindIdsInPath ( pathbottom, idsramp );
         idsvec.push_back ( idsramp );
     }
-    
+
     if(betax==90)
     {
         a = b;
@@ -974,9 +970,9 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
         read.Line ( a, b, ndivs, pathbottom );
         read.FindIdsInPath ( pathbottom, idsramp );
         idsvec.push_back ( idsramp );
-    } 
+    }
 
-    
+
     a = b;
     b[0] = 0.;
     b[1] = 40.;
@@ -1099,8 +1095,8 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     // Mohr Coulomb data
    // REAL mc_cohesion    = 68;//kpa
     //REAL mc_phi         = ( 50.0*M_PI/180 );
-	REAL mc_cohesion    = 10;//kpa
-    REAL mc_phi         = ( 30.*M_PI/180 );
+	REAL mc_cohesion    = coesaofiu;//kpa
+    REAL mc_phi         = phifiu;
     REAL mc_psi         = mc_phi;
 
     /// ElastoPlastic Material using Mohr Coulomb
@@ -1458,7 +1454,7 @@ void ShearRed ( TPZCompMesh * cmesh)
 #include "TPZSpStructMatrix.h"
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
-    int numthreads=12;
+    int numthreads=2;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 
@@ -1473,16 +1469,17 @@ TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
     TPZStepSolver<STATE> step;
     step.SetDirect ( ELDLt );
 	//step.SetDirect ( ENoDecompose );
-   // step.SetDirect ( ECholesky );
+    //step.SetDirect ( ECholesky );
+    //step.SetDirect ( ELL );
     analysis->SetSolver ( step );
 
-    long neq = cmesh->NEquations();
-    TPZVec<long> activeEquations;
-    analysis->GetActiveEquations ( activeEquations );
-    TPZEquationFilter filter ( neq );
-    filter.SetActiveEquations ( activeEquations );
-    matskl.EquationFilter() = filter;
-    analysis->SetStructuralMatrix ( matskl );
+//     long neq = cmesh->NEquations();
+//     TPZVec<long> activeEquations;
+//     analysis->GetActiveEquations ( activeEquations );
+//     TPZEquationFilter filter ( neq );
+//     filter.SetActiveEquations ( activeEquations );
+//     matskl.EquationFilter() = filter;
+//     analysis->SetStructuralMatrix ( matskl );
 
     //step.SetDirect(ECholesky);
     analysis->SetSolver ( step );
@@ -1495,7 +1492,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 
     //int nels0 = incmesh->NElements();
     int nels0 = plasticCmesh->NElements();
-    
+
     //incmesh->Solution().Print(std::cout);
 
     TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
@@ -1506,7 +1503,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
     if ( pMatWithMem2 ) {
         pMatWithMem2->SetUpdateMem ( true );
     }
-    
+
     int globpt=0;
     for ( int iel=0; iel<nels0; iel++ ) {
 
@@ -1514,21 +1511,21 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
         TPZCompEl *celplastic = plasticCmesh->Element ( iel );
         TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
 
-        
+
         TPZGeoEl *gelplastic = celplastic->Reference();
-        
+
         TPZCompEl *celdarcy = incmesh->Element ( iel );
        // cout << "\n out2.. " << endl;
         //if(!celdarcy)continue;
-        
+
         TPZGeoEl *geldarcy = celdarcy->Reference();
         //if(!geldarcy)continue;
-        
+
         int indexdarcy = geldarcy->Index();
-        
+
         int indexplastic = gelplastic->Index();
-        
-        
+
+
         TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celdarcy );
 
 
@@ -1536,7 +1533,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 
 
 
-        
+
         TPZManVector<REAL,3> point ( 3,0. );
 
         TPZMaterialData data,data1;
@@ -1548,7 +1545,7 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
         REAL weight=0;
         int nint = intpoints.NPoints();
 
-        
+
         if(celplastic->Material()->Id()!=1 || celdarcy->Material()->Id()!=1)
         {
            // cout << "\n Boundary El "<<endl;
@@ -1556,14 +1553,14 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
            // cout << "\n celdarcy->Material()->Id() = "<< celdarcy->Material()->Id()<<endl;
             continue;
         }
-        
+
         if(indexdarcy!=indexplastic)
         {
             cout << "\n indexdarcy = "<< indexdarcy<<endl;
             cout << "\n indexplastic = "<< indexplastic<<endl;
             DebugStop();
         }
-        
+
         if(celplastic->Material()->Id() != celdarcy->Material()->Id())
         {
             cout << "\n Different material IDs "<<endl;
@@ -1571,28 +1568,28 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
             cout << "\n celdarcy->Material()->Id() = "<< celdarcy->Material()->Id()<<endl;
             DebugStop();
         }
-       
+
 
         TPZTensor<REAL> epst,epsp;
         for ( long ip =0; ip<nint; ip++ ) {
-            
+
             intpoints.Point ( ip, point, weight );
             data.intLocPtIndex = ip;
-            
+
             intelplastic->ComputeRequiredData ( data, point );
             intelrandom1->ComputeRequiredData ( data1, point );
-            
+
             TPZMaterial *mat= celdarcy->Material();
-            
+
             TPZVec<REAL> flux,pressure;
             int varid =7;//flux
             mat->Solution(data1,varid,flux);
-            
+
             varid =1;//pressure
             mat->Solution(data1,varid,pressure);
-            
+
             TPZFMatrix<REAL> flow = data1.dsol[0];
-            
+
             if(fabs(data1.detjac-data.detjac)>1.e-3)
             {
                 cout << "\n Different det jacs "<<endl;
@@ -1610,24 +1607,24 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
                 DebugStop();
             }
 
-            
+
             data.intGlobPtIndex = globpt;
-            
+
             mem[globpt].fPlasticState.fflux.Resize ( 2 );
             //mem[globpt].fPlasticState.fflux[0]=data1.dsol[0][0];
             //mem[globpt].fPlasticState.fflux[1]=data1.dsol[0][1];
             mem[globpt].fPlasticState.fflux[0]=flux[0];
             mem[globpt].fPlasticState.fflux[1]=flux[1];
             mem[globpt].fPlasticState.fpressure=pressure[0];
-            
+
             globpt++;
-            
+
         }
 
-        
+
         //pMatWithMem2->SetUpdateMem ( false );
     }
-    
+
     pMatWithMem2->SetUpdateMem ( false );
 
     plasticCmesh->Solution().Zero();

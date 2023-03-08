@@ -780,8 +780,6 @@ bool TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 
 //        fSolution.Redim(0,0);
         Assemble();
-        
-
 
         chrono::steady_clock sc;
         auto start = sc.now();
@@ -1181,95 +1179,191 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 //
 // }
 
-void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2,REAL l, bool linesearch){
 
-    REAL diff=10.;
+//THIS IS WORKING
+// void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2,REAL l, bool linesearch){
+//
+//     REAL diff=10.;
+//     std::ofstream eout("debug.txt");
+//     std::ofstream eout2("debug2.nb");
+//
+//     int counterout=0;
+//
+//     plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
+//
+//     REAL lambda=0.;
+//     REAL lambdan=0.;
+//     REAL l0=l;
+//
+//
+//     TPZFMatrix<REAL> dw,dws,dwb,dww,displace,displacen;
+//     dw=fSolution;
+//     dw.Zero();
+//
+//
+//     //solve K dwb = fb
+//     cout << " a   " <<endl;
+//     material->SetWhichLoadVector(2);
+//     material->SetLoadFactor(1.);
+//     Assemble();
+//     TPZFMatrix<REAL> FBODY=Rhs();
+//     dw=Solution();
+//     displace=Solution();
+//     dw.Zero();
+//     displace.Zero();
+//
+//     while(counterout<numiter && diff>tol)
+//     {
+//
+//         displacen=displace;
+//         lambdan=lambda;
+//         cout << " load step  = " << counterout+1 << " load factor  = " << lambda << " diff = " << diff << " l = " << l <<  endl;
+//         int counter=0;
+//
+//         //l=l0;
+//         dw.Zero();
+//
+//         REAL residualrhs=10;
+//         while( counter<numiter2 && residualrhs>tol2 )
+//         {
+//
+//             material->SetWhichLoadVector(0);
+//             material->SetLoadFactor(lambda);
+//             Assemble();
+//
+//             this->fSolver->Solve(fRhs,dws);
+//
+//             TPZFMatrix<REAL> residual = Rhs();
+//
+//             residualrhs=Norm(residual);
+//
+//             this->fSolver->Solve(FBODY,dwb);
+//
+//
+//             REAL dlamb=0.;
+//             if(counter==0)
+//             {
+//                 dlamb= computelamda0 ( dwb, dw,l );
+//             }else{
+//                  dlamb= computelamda ( dwb, dws,  dw,  l );
+//             }
+//
+//             lambda += dlamb;
+//
+//
+//
+//
+//
+//             dww = dwb*dlamb+dws;
+//
+//             dw += dww;
+//
+//             displace+=dww;
+//
+//             cout << " counter  = " << counter+1 <<" normrhs = " <<residualrhs << " normdu = " << Norm(dww) << " lambda = "<< lambda << " dlamb = "<< dlamb << " l = " << l << endl;
+//             counter++;
+//
+//             LoadSolution(displace);
+//
+//         }
+//
+//
+//         diff=fabs(lambda-lambdan);
+//         LoadSolution(displace);
+//         AcceptSolution();
+//         counterout++;
+//     }
+//
+// }
+
+
+void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0){
+
+    REAL diff=1000.;
     std::ofstream eout("debug.txt");
     std::ofstream eout2("debug2.nb");
 
-    int counterout=1;
+    int counterout=0;
 
     plasticmat * material= dynamic_cast<plasticmat *> ( fCompMesh->FindMaterial ( 1 ) );
 
-    int steps=20;
-    REAL lambda=0.;
+    REAL lambda=lambda0;
+    REAL lambdan=lambda;
 
 
-    TPZFMatrix<REAL> dw,dws,dwb,dww,displace;
+    TPZFMatrix<REAL> dw,dws,dwb,dww,displace,displacen;
     dw=fSolution;
     dw.Zero();
 
 
-    //solve K dwb = fb
     cout << " a   " <<endl;
     material->SetWhichLoadVector(2);
     material->SetLoadFactor(1.);
-    Assemble();
+    AssembleResidual();
     TPZFMatrix<REAL> FBODY=Rhs();
     dw=Solution();
     displace=Solution();
     dw.Zero();
     displace.Zero();
 
-    while(counterout<steps)
+    REAL normfbody=Norm(FBODY);
+
+    cout << "normfbody = " << normfbody << endl;
+
+    displacen=displace;
+    while(counterout<numiter && diff>tol)
     {
 
-        //Assemble();
-        cout << " load step  = " << counterout << " load factor  = " << lambda <<  endl;
+        cout << " load step  = " << counterout+1 << " load factor  = " << lambda << " diff = " << diff << " l = " << l <<  endl;
         int counter=0;
 
         dw.Zero();
 
-        REAL residualrhs=10;
-        while( counter<50 && residualrhs>tol2 )
+        bool conv=true;
+
+        REAL residualrhs=10.;
+        REAL normrhsn=10.e12;
+
+        REAL diffnorm=0.;
+
+        while( counter<numiter2 && residualrhs>tol2 )
         {
+            chrono::steady_clock sc;
 
-
-
+            auto start = sc.now();
             material->SetWhichLoadVector(0);
             material->SetLoadFactor(lambda);
+
             Assemble();
-            //TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
-            //cout << "KG nates = "<<endl;
-            //KG->Print(std::cout);
+            auto end = sc.now();
+            auto time_span = static_cast<chrono::duration<double>> ( end - start );
+            //cout << "| time to assemble=  " << time_span.count()<< std::endl;
+
+            start = sc.now();
             this->fSolver->Solve(fRhs,dws);
+            end = sc.now();
+            time_span = static_cast<chrono::duration<double>> ( end - start );
+            //cout << "| time to solve=  " << time_span.count()<< std::endl;
+
 
             TPZFMatrix<REAL> residual = Rhs();
-            //fSolution.Zero();
-            //fRhs.Zero();
-            //KG->Zero();
 
-            //material->SetWhichLoadVector(0);
-           // material->SetLoadFactor(1.);
-            //Assemble();
-            ////cout << "KG depois = "<<endl;
-            //KG = this->fSolver->Matrix();
-            //KG->Print(std::cout);
+            normrhsn=residualrhs;
+
+            residualrhs=Norm(residual);
+
+            diffnorm=residualrhs-normrhsn;
+
             this->fSolver->Solve(FBODY,dwb);
 
-
-//             material->SetWhichLoadVector(2);
-//             material->SetLoadFactor(1.);
-//             Assemble();
-//             Solve();
-//             dwb = fSolution;
-
-
-//             cout <<"dwb  " <<endl;
-//             TPZFMatrix<REAL>  toprint1;
-//             dwb.Transpose(&toprint1);
-//             toprint1.Print(std::cout);
-
-            ////solve K dwb = lambda fb-fi
+//             if((residualrhs> normfbody*5 && counter>5) || counter>=numiter2-1 || (diffnorm>30.&&counter>5) )
+//             {
+//                 cout <<"-----Failed to converge! "<< " residualrhs  = " <<residualrhs <<" diffnormn1 = " <<diffnorm  <<endl;
+//                 conv=false;
+//                 break;
+//             }
 
 
-
-
-
-//             cout <<"dws  " <<endl;
-//             TPZFMatrix<REAL>  toprint;
-//             dws.Transpose(&toprint);
-//             toprint.Print(std::cout);
 
             REAL dlamb=0.;
             if(counter==0)
@@ -1281,33 +1375,69 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL 
 
             lambda += dlamb;
 
-           // if(fabs(dlamb)<0.01)break;
-
             dww = dwb*dlamb+dws;
 
             dw += dww;
 
             displace+=dww;
 
+            REAL normdu=Norm(dww) ;
+
+            cout << " counter  = " << counter+1 <<" normrhs = " <<residualrhs << " normdu = " << normdu << " lambda = "<< lambda << " dlamb = "<< dlamb << " l = " << l << endl;
+
+            if( (diffnorm>10 && counter>3) || normdu>10.)
+            {
+                cout <<"-----Failed to converge! "<< " residualrhs  = " <<residualrhs <<" diffnormn1 = " <<diffnorm  <<endl;
+                //if(normdu>10)return;
+                conv=false;
+               // if(lambda<0)lambda=lambdan;
+                //if(lambda<lambdan)lambda=lambdan;
+                break;
+            }
+
+            counter++;
+
             LoadSolution(displace);
 
-//             cout <<"dw  " <<endl;
-//             TPZFMatrix<REAL>  toprint2;
-//             dw.Transpose(&toprint2);
-//             toprint2.Print(std::cout);
-            residualrhs=Norm(residual);
-            cout << " counter  = " << counter <<" normrhs = " <<residualrhs << " normdu = " << Norm(dww) << " lambda = "<< lambda << " dlamb = "<< dlamb << endl;
-            counter++;
-//            cout << " d   " <<endl;
+
+        }
+        if(conv==false)
+        {
+
+            if(l<1.e-6)break;
+            //lambda=lambdan;
+            fSolution.Zero();
+            fRhs.Zero();
+            displace.Zero();
+            LoadSolution(displacen);
+            l*=0.5;
+        }else{
+            diff=fabs(lambda-lambdan);
+            //LoadSolution(displace);
+            AcceptSolution();
+            REAL delta=1.e-6;
+            //lambda-=1.1*tol;
+            if(lambda<lambdan)lambda=lambdan;
+            int ndesi=10;
+            l*=REAL(ndesi)/counter;
+            displacen=displace;
+            lambdan=lambda;
+            if(l>3.)
+            {
+                l=3.;
+            }
         }
 
 
-        LoadSolution(displace);
-        AcceptSolution();
+
         counterout++;
     }
 
+    AcceptSolution();
+    cout << "lambda = "<<lambdan << endl;
+
 }
+
 
 //  void TPZElastoPlasticAnalysis::IterativeProcessArcLength(std::ostream &out,REAL tol,int numiter,REAL tol2,int numiter2,REAL l, bool linesearch)
 // {
