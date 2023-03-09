@@ -152,15 +152,17 @@ int main()
     betax=45;//30,45,60,90
     gammasolo=20.;
     gammaaugua=10.;
-    water=true;
+    water=false;
+    if(!water)gammaaugua=0.;
+    cout<<"gamma agua = "<<gammaaugua <<endl;
     coesaofiu=10.;
     phifiu=30.*M_PI/180;
 
-    REAL tolfs = 1.e-2;
+    REAL tolfs = 1.e-3;
     int numiterfs =20;
     REAL tolres = 1.e-3;
     int numiterres =20;
-    REAL l =2.;
+    REAL l =1.;
     REAL lambda0=0.1;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( nref);
@@ -778,10 +780,7 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
 
 void LoadingRampRainFall ( TPZCompMesh * cmesh,  REAL factor )
 {
-//      REAL big = TPZMaterial::gBigNumber;
-// //
-//     auto * bc1 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-3));
-//     bc1->Val1()(0,0)=factor;
+
 
     auto * bc2 = dynamic_cast<TPZBndCond *> (cmesh->FindMaterial(-4));
 	bc2->Val2()(0,0)=factor;

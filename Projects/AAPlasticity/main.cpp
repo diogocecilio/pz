@@ -219,7 +219,8 @@ void MaterialPointMohrCoulomb2() {
     eps.YZ()=0;
     eps.XY()=0.029690834955523302;
 
-    ER1.ComputeStress(eps,sigma_trial);
+    //ER1.ComputeStress(eps,sigma_trial);
+    ER1.Compute(eps,sigma_trial);
     sigma_trial.Print(std::cout);
     ER1.ComputeDeformation(sigma_trial,eps);
     eps.Print(std::cout);
@@ -246,7 +247,8 @@ void MaterialPointMohrCoulomb2() {
     eps.YZ()=0;
     eps.XY()=0.052194184151934539;
 
-    ER1.ComputeStress(eps,sigma_trial);
+    //ER1.ComputeStress(eps,sigma_trial);
+    ER1.Compute(eps,sigma_trial);
     sigma_trial.Print(std::cout);
     ER1.ComputeDeformation(sigma_trial,eps);
     eps.Print(std::cout);
@@ -281,7 +283,8 @@ void MaterialPointMohrCoulomb2() {
     eps.YZ()=0;
     eps.XY()=-0.00030306513266847217;
 
-    ER.ComputeStress(eps,sigma_trial);
+    //ER.ComputeStress(eps,sigma_trial);
+    ER.Compute(eps,sigma_trial);
     sigma_trial.Print(std::cout);
     ER.ComputeDeformation(sigma_trial,eps);
     eps.Print(std::cout);

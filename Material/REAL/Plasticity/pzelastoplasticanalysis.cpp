@@ -1405,7 +1405,7 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
         {
 
             if(l<1.e-6)break;
-            //lambda=lambdan;
+            lambda=lambdan;
             fSolution.Zero();
             fRhs.Zero();
             displace.Zero();

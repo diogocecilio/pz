@@ -36,8 +36,8 @@ void TPZPlasticStepVoigt<YC_t, ER_t>::ApplyStrainComputeDep(const TPZTensor<REAL
     //FromTensorToMatVoigt(epsTr,tempeps);
     epsTr.FromTensorToNRmatrix(tempeps);
 
-    fER.ComputeStress(epsTr,sigtr);
-    //fER.Compute(epsTr,sigtr);
+    //fER.ComputeStress(epsTr,sigtr);
+    fER.Compute(epsTr,sigtr);
 
     // ReturMap in the principal values
     STATE nextalpha = -0.;

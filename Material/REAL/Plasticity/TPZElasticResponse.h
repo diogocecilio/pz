@@ -186,37 +186,37 @@ public:
 
         int i;
         for ( i = 0; i < 6; i++ ) Kef ( i, i ) += Mu2;
-        //DebugStop();
+        DebugStop();
     }
 
 
-    void ComputeStress (  TPZTensor<REAL> & epsilon, TPZTensor<REAL> & sigma )
-    {
-        TPZFMatrix<REAL> cmat,tempsig,tempeps;
-
-        epsilon.FromTensorToNRmatrix(tempeps);
-
-        cmat = GetElasticMatrixReal();
-
-        cmat.Multiply(tempeps,tempsig);
-
-        sigma.CopyFrom(tempsig);
-
-    }
-
-    void ComputeStrain (  TPZTensor<REAL> & sigma, TPZTensor<REAL> & epsilon )
-    {
-        TPZFMatrix<REAL> tempsig,tempeps,inverse;
-
-        sigma.FromTensorToNRmatrix(tempsig);
-
-        inverse = GetInvElasticMatrixReal();
-
-        inverse.Multiply(tempsig,tempeps);
-
-        epsilon.CopyFrom(tempeps);
-
-    }
+//     void ComputeStress (  TPZTensor<REAL> & epsilon, TPZTensor<REAL> & sigma )
+//     {
+//         TPZFMatrix<REAL> cmat,tempsig,tempeps;
+//
+//         epsilon.FromTensorToNRmatrix(tempeps);
+//
+//         cmat = GetElasticMatrixReal();
+//
+//         cmat.Multiply(tempeps,tempsig);
+//
+//         sigma.CopyFrom(tempsig);
+//
+//     }
+//
+//     void ComputeStrain (  TPZTensor<REAL> & sigma, TPZTensor<REAL> & epsilon )
+//     {
+//         TPZFMatrix<REAL> tempsig,tempeps,inverse;
+//
+//         sigma.FromTensorToNRmatrix(tempsig);
+//
+//         inverse = GetInvElasticMatrixReal();
+//
+//         inverse.Multiply(tempsig,tempeps);
+//
+//         epsilon.CopyFrom(tempeps);
+//
+//     }
 //     TPZFMatrix<REAL> GetElasticMatrix()
 //     {
 //         TPZFMatrix<REAL> C ( 6, 6, 0. );
@@ -234,63 +234,6 @@ public:
 //
 //         return C;
 //     }
-
-    template <class T>
-    TPZFMatrix<T> GetElasticMatrix()const
-    {
-        TPZFMatrix<T> C ( 6, 6, 0. );
-        T G = fMu;
-        T K = fLambda+2.*G/3.;
-        C ( _XX_,_XX_ ) = ( 4. * G ) / 3. + K;
-        C ( _XX_,_YY_ ) = - ( ( 2. * G ) / 3. ) + K;
-        C ( _XX_,_ZZ_ ) = - ( ( 2. * G ) / 3. ) + K;
-        C ( _XX_,_XZ_ ) = 0.;
-        C ( _XY_,_YZ_ ) = 0.;
-        C ( _XX_,_XY_ ) = 0.;
-
-
-        C ( _YY_,_XX_ ) = - ( ( 2. * G ) / 3. ) + K;
-        C ( _YY_,_YY_ ) = ( 4. * G ) / 3. + K;
-        C ( _YY_,_ZZ_ ) = - ( ( 2. * G ) / 3. ) + K;
-        C ( _YY_,_XZ_ ) = 0.;
-        C ( _YY_,_YZ_ ) = 0.;
-        C ( _YY_,_XY_ ) = 0.;
-
-
-        C ( _ZZ_,_XX_ ) = - ( ( 2. * G ) / 3. ) + K;
-        C ( _ZZ_,_YY_ ) = - ( ( 2. * G ) / 3. ) + K;
-        C ( _ZZ_,_ZZ_ ) = ( 4. * G ) / 3. + K;
-        C ( _ZZ_,_XZ_ ) = 0.;
-        C ( _ZZ_,_YZ_ ) = 0.;
-        C ( _ZZ_,_XY_ ) = 0.;
-
-
-        C ( _XZ_,_XX_ ) = 0;
-        C ( _XZ_,_YY_ ) = 0;
-        C ( _XZ_,_ZZ_ ) = 0;
-        C ( _XZ_,_XZ_ ) = G;
-        C ( _XZ_,_YZ_ ) = 0.;
-        C ( _XZ_,_XY_ ) = 0.;
-
-
-        C ( _YZ_,_XX_ ) = 0.;
-        C ( _YZ_,_YY_ ) = 0.;
-        C ( _YZ_,_ZZ_ ) = 0.;
-        C ( _YZ_,_XZ_ ) = 0.;
-        C ( _YZ_,_YZ_ ) =G;
-        C ( _YZ_,_XY_ ) = 0.;
-
-
-        C ( _XY_,_XX_ ) = 0;
-        C ( _XY_,_YY_ ) = 0;
-        C ( _XY_,_ZZ_ ) = 0;
-        C ( _XY_,_XZ_ ) = 0.;
-        C ( _XY_,_YZ_ ) = 0.;
-        C ( _XY_,_XY_ ) = G;
-
-
-        return C;
-    }
 
 
     TPZFMatrix<REAL> GetElasticMatrixReal()const

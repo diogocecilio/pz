@@ -156,11 +156,12 @@ int main()
 	
 	int samples=1000;
 	
-	int porder=2;
+	int porder=1;
 	
 	string namefolder;
 	
-	TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+	//TPZGeoMesh* gmesh = CreateGMeshGid ( 0 );
+    TPZGeoMesh* gmesh =CreateGMesh(0);
 		
 
 	TPZManVector<TPZCompMesh*,2> vecmesh = SettingCreateFilds(gmesh, porder, samples,namefolder,true);
@@ -911,7 +912,7 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh * gmesh,int porder 
 
 TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder )
 {
-    int expansionorder=300;
+    int expansionorder=10;
     REAL Lx=20.;
     REAL Ly=2.;
     REAL Lz=1.;
@@ -948,14 +949,35 @@ void Post ( TPZPostProcAnalysis * postproc,std::string vtkFile )
     postproc->PostProcess ( 0 );
 }
 
-
-TPZGeoMesh * CreateGMeshGid2 ( int ref )
+TPZGeoMesh * CreateGMeshGid ( int ref )
 {
 
-
-	string file ="/home/diogo/projects/pz/data/h10-beta45-287.msh";
+    string file;
 
     REAL delta= 1.e-6;
+    int betax=45;
+
+
+ //   file ="/home/diogo/projects/pz/data/quad-gid2.msh";
+
+
+    if(betax==30)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta30.msh";
+    }
+    if(betax==45)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta45.msh";
+    }
+    if(betax==60)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta60.msh";
+    }
+    if(betax==90)
+    {
+         file ="/home/diogo/projects/pz/data/h10-beta90.msh";
+    }
+
 
 
     readgidmesh read = readgidmesh ( file );
@@ -976,39 +998,84 @@ TPZGeoMesh * CreateGMeshGid2 ( int ref )
 
     a[0] = 0.;
     a[1] = 0.;
-    b[0] = 50.;
+    b[0] = 75.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsbottom ,delta);
     idsvec.push_back ( idsbottom );
 
     a = b;
-    b[0] = 50.;
-    b[1] = 10.;
+    b[0] = 75.;
+    b[1] = 30.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idsright ,delta);
     idsvec.push_back ( idsright );
 
+//para demais
+    if(betax==30 || betax==45 || betax ==60)
+    {
+        a = b;
+        b[0] = 45.;
+        b[1] = 30.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idstoprigth,delta );
+        idsvec.push_back ( idstoprigth );
+    }else{
 
-    a = b;
-    b[0] = 30.;
-    b[1] = 10.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
-    idsvec.push_back ( idstoprigth );
-////h10-beta 45
-    a = b;
-    b[0] = 20.;
-    b[1] = 20.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp,delta );
-    idsvec.push_back ( idsramp );
- 
-	
+        a = b;
+        b[0] = 37.5;
+        b[1] = 30.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idstoprigth ,delta);
+        idsvec.push_back ( idstoprigth );
+
+    }
+
+
+
+    if(betax==30)
+    {
+        a = b;
+        b[0] = 27.675;
+        b[1] = 40.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idsramp ,delta);
+        idsvec.push_back ( idsramp );
+    }
+    if(betax==45)
+    {
+        a = b;
+        b[0] = 35.;
+        b[1] = 40.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idsramp ,delta);
+        idsvec.push_back ( idsramp );
+    }
+
+    if(betax==60)
+    {
+        a = b;
+        b[0] = 39.2265;
+        b[1] = 40.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idsramp,delta );
+        idsvec.push_back ( idsramp );
+    }
+
+    if(betax==90)
+    {
+        a = b;
+        b[0] = 37.5;
+        b[1] = 40.;
+        read.Line ( a, b, ndivs, pathbottom );
+        read.FindIdsInPath ( pathbottom, idsramp,delta );
+        idsvec.push_back ( idsramp );
+    }
+
 
     a = b;
     b[0] = 0.;
-    b[1] = 20.;
+    b[1] = 40.;
     read.Line ( a, b, ndivs, pathbottom );
     read.FindIdsInPath ( pathbottom, idstopleft,delta );
     idsvec.push_back ( idstopleft );
@@ -1017,194 +1084,7 @@ TPZGeoMesh * CreateGMeshGid2 ( int ref )
     b[0] = 0.;
     b[1] = 0.;
     read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft ,delta);
-    idsvec.push_back ( idsleft );
-
-
-    // for(int i=0;i<idsbottom.size();i++)cout << idsvec[3][i] << endl;
-
-    const std::string name ( "Slope Problem " );
-
-    TPZGeoMesh *gmesh  =  new TPZGeoMesh();
-
-    gmesh->SetName ( name );
-    gmesh->SetDimension ( 2 );
-
-    TPZVec<REAL> coord ( 2 );
-
-    vector<vector<double>> co;
-
-    int ncoords = meshcoords.Rows();
-    co.resize ( ncoords );
-    for ( int i=0; i<ncoords; i++ ) {
-        co[i].resize ( 2 );
-        co[i][0]=meshcoords ( i,0 );
-        co[i][1]=meshcoords ( i,1 );
-    }
-    vector<vector<int>> topol;
-
-    int ntopol = meshtopology.Rows();
-    topol.resize ( ntopol );
-
-    for ( int i=0; i<ntopol; i++ ) {
-        topol[i].resize ( meshtopology.Cols() );
-        for ( int j=0; j<meshtopology.Cols(); j++ ) {
-            topol[i][j]=meshtopology ( i,j );
-        }
-    }
-
-    gmesh->NodeVec().Resize ( co.size() );
-
-    for ( int inode=0; inode<co.size(); inode++ ) {
-        coord[0] = co[inode][0];
-        coord[1] = co[inode][1];
-        gmesh->NodeVec() [inode] = TPZGeoNode ( inode, coord, *gmesh );
-    }
-    if ( meshtopology.Cols() ==4 ) {
-        TPZVec <long> TopoQuad ( 4 );
-        for ( int iel=0; iel<topol.size(); iel++ ) {
-            TopoQuad[0] = topol[iel][0];
-            TopoQuad[1] = topol[iel][1];
-            TopoQuad[2] = topol[iel][2];
-            TopoQuad[3] = topol[iel][3];
-            new TPZGeoElRefPattern< pzgeom::TPZGeoQuad> ( iel, TopoQuad, 1,*gmesh );
-        }
-    }
-
-    if ( meshtopology.Cols() ==3 ) {
-        TPZVec <long> TopoTri ( 3 );
-        for ( int iel=0; iel<topol.size(); iel++ ) {
-            TopoTri[0] =topol[iel][0];
-            TopoTri[1] =topol[iel][1];
-            TopoTri[2] =topol[iel][2];
-            new TPZGeoElRefPattern< pzgeom::TPZGeoTriangle> ( iel, TopoTri, 1,*gmesh );
-        }
-    }
-
-    if ( meshtopology.Cols() !=3 && meshtopology.Cols() !=4 ) {
-        DebugStop();
-    }
-    TPZVec <long> TopoLine ( 2 );
-    int id = topol.size();
-    id++;
-
-    for ( int ivec=0; ivec<idsvec.size(); ivec++ ) {
-        int nodes = idsvec[ivec].size();
-        for ( int inode=0; inode<nodes-1; inode++ ) {
-            TopoLine[0] = idsvec[ivec][inode];
-            TopoLine[1] = idsvec[ivec][inode+1];
-            new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( id, TopoLine, - ( ivec+1 ), *gmesh );
-        }
-    }
-
-
-    gmesh->BuildConnectivity();
-    for ( int d = 0; d<ref; d++ ) {
-        int nel = gmesh->NElements();
-        TPZManVector<TPZGeoEl *> subels;
-        for ( int iel = 0; iel<nel; iel++ ) {
-            TPZGeoEl *gel = gmesh->ElementVec() [iel];
-            gel->Divide ( subels );
-        }
-    }
-    // gmesh->Print(std::cout);
-    std::ofstream files ( "ge.vtk" );
-    TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
-
-    return gmesh;
-}
-
-TPZGeoMesh * CreateGMeshGid ( int ref )
-{
-
-
-
-    // string file ="/home/diogo/projects/pz/data/mesh-teste-pz-fromathematica2.msh";
-    //string file ="/home/diogo/projects/pz/data/quad-gid.msh";
-    // string file ="/home/diogo/projects/pz/data/gid-tri-2.msh";
-   // string file ="/home/diogo/projects/pz/data/gid-tri-1kels.msh";
-//string file ="/home/diogo/projects/pz/data/gid-tri-2kels.msh";
-//string file ="/home/diogo/projects/pz/data/gid-tri-4k.msh";
-//string file ="/home/diogo/projects/pz/data/gid-tri-2k.msh";
-string file ="/home/diogo/projects/pz/data/h10-beta45.msh";
-//string file ="/home/diogo/projects/pz/data/h10-beta60.msh";
-
-    REAL delta = 10.e-6;
-
-    readgidmesh read = readgidmesh ( file );
-    read.ReadMesh();
-    TPZFMatrix<int> meshtopology = read.GetTopology();
-    TPZFMatrix<REAL> meshcoords = read.GetCoords();
-    std::vector<std::vector< std::vector<double > > > allcoords = read.GetAllCoords();
-
-    int ndivs = 10000;
-    TPZFMatrix<REAL> pathbottom, pathleft, pathright, pathdisplace;
-    std::vector<int>  idsbottom, idsleft, idsright, idstoprigth,idsramp,idstopleft;
-
-    std::vector<std::vector<int>> idsvec;
-
-
-    TPZManVector<REAL,2> a ( 2 ), b ( 2 );
-
-
-    a[0] = 0.;
-    a[1] = 0.;
-    b[0] = 75.;
-    b[1] = 0.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsbottom,delta );
-    idsvec.push_back ( idsbottom );
-
-    a = b;
-    b[0] = 75.;
-    b[1] = 30.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsright,delta );
-    idsvec.push_back ( idsright );
-
-
-    a = b;
-    b[0] = 45.;
-    b[1] = 30.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstoprigth,delta );
-    idsvec.push_back ( idstoprigth );
-////h10-beta 45
-    a = b;
-    b[0] = 35.;
-    b[1] = 40.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsramp,delta );
-    idsvec.push_back ( idsramp );
-
-//h10-beta 30
-// 	a = b;
-//     b[0] = 27.675;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
-//h10-beta 60	
-// 	a = b;
-//     b[0] = 39.2265;
-//     b[1] = 40.;
-//     read.Line ( a, b, ndivs, pathbottom );
-//     read.FindIdsInPath ( pathbottom, idsramp );
-//     idsvec.push_back ( idsramp );
-	
-
-    a = b;
-    b[0] = 0.;
-    b[1] = 40.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idstopleft, delta);
-    idsvec.push_back ( idstopleft );
-
-    a = b;
-    b[0] = 0.;
-    b[1] = 0.;
-    read.Line ( a, b, ndivs, pathbottom );
-    read.FindIdsInPath ( pathbottom, idsleft ,delta);
+    read.FindIdsInPath ( pathbottom, idsleft,delta );
     idsvec.push_back ( idsleft );
 
 
