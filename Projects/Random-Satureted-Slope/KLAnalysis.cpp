@@ -174,7 +174,7 @@ void KLAnalysis::Solve()
     {
         for(int irow=0; irow<nrows; irow++)
         {
-            vecpz(irow,icol)=fEigenVectors[icol](irow,0);
+            vecpz(irow,icol)=sqrt(val(icol))*vec.col(icol)(irow);
         }
     }
     LoadSolution(vecpz);

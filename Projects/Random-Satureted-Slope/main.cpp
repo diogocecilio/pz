@@ -42,6 +42,13 @@
 #include "TPBSpStructMatrix.h"
 #include "TPZSpStructMatrix.h"
 
+#include "KLMaterial.h"
+#include "KLStrMatrix.h"
+#include "KLAnalysis.h"
+#include "KLInterpolationSpace.h"
+#include "KLRandomField.h"
+#include <sys/stat.h>
+#include <thread>
 
 using namespace std;
 
@@ -90,6 +97,12 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 
 TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples );
 
+TPZFMatrix<REAL> CreateLogNormalRandomField(TPZFMatrix<REAL> PHI, REAL mean, REAL cov,int samples);
+
+TPZCompMesh * CreateCMeshRF( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M );
+
+TPZFMatrix<REAL> SolveKL(TPZGeoMesh* gmesh,REAL porder,REAL lx,REAL ly,  int type, int M);
+
 void ComputeDeterministic();
 
 int betax;
@@ -100,18 +113,136 @@ REAL gammasolo;
 REAL gammaaugua;
 int main()
 {
+    int porder=2;
+    int nref=3;
 
+    TPZGeoMesh *gmesh = CreateGMesh ( nref);
 
-    ComputeDeterministic();
+    REAL lx=20.;
+    REAL ly=2.;
+    int type=3;
+    int M=30;
+    REAL mean=20.;
+    REAL cov=0.2;
+    int samples=10;
+
+    TPZFMatrix<REAL> phi= SolveKL( gmesh, porder, lx, ly,   type,  M);
+
+    //phi.Print(std::cout);
+
+    //TPZFMatrix<REAL> hhat= CreateLogNormalRandomField(phi,  mean,  cov,samples);
+
+    //hhat.Print(std::cout);
+
+   // TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh,porder );
+
+//      int dim = cmesh->Reference()->Dimension();
+//      KLAnalysis * klanal = new KLAnalysis ( cmesh );
+//
+//      KLMaterial * mat = dynamic_cast<KLMaterial*> ( cmesh->ElementVec() [0]->Material() );
+//      klanal->SetExpansionOrder ( mat->GetExpansioOrder() );
+//      klanal->Solve();
+
+   // ComputeDeterministic();
 
     return 0;
 }
 
+TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M )
+{
+    int expansionorder=M;
+    REAL Lz=1.;
+    int id=1;
+    int dim = gmesh->Dimension();
+
+    //gmesh->ResetReference();
+    TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
+    KLMaterial * klmat = new KLMaterial ( id,lx,ly,Lz,dim,type,expansionorder );
+
+    cmesh->SetDefaultOrder ( porder );
+    cmesh->SetDimModel ( dim );
+    cmesh->InsertMaterialObject ( klmat );
+    cmesh->SetAllCreateFunctionsContinuous();
+    cmesh->AutoBuild();
+    cmesh->AdjustBoundaryElements();
+    cmesh->CleanUpUnconnectedNodes();
+    return cmesh;
+}
+
+TPZFMatrix<REAL> SolveKL(TPZGeoMesh* gmesh,REAL porder,REAL lx,REAL ly,  int type, int M)
+{
+     TPZCompMesh * cmesh = CreateCMeshRF (  gmesh, porder, lx, ly,  type,  M );
+
+     KLAnalysis * klanal = new KLAnalysis ( cmesh );
+
+     KLMaterial * mat = dynamic_cast<KLMaterial*> ( cmesh->ElementVec() [0]->Material() );
+
+     klanal->SetExpansionOrder ( mat->GetExpansioOrder() );
+
+     klanal->Solve();
+
+     TPZFMatrix<REAL> sol = klanal->Solution();
+
+     TPZFMatrix<REAL> hhat= CreateLogNormalRandomField(sol,  20,  0.2,1000);
+
+     //hhat.Print(std::cout);
+
+     cmesh->LoadSolution(hhat);
+
+     string file ="vtkfolder/outkl.vtk";
+     klanal->Post ( file,2,0 );
+
+     return sol;
+}
+
+
+TPZFMatrix<REAL> CreateLogNormalRandomField(TPZFMatrix<REAL> PHI, REAL mean, REAL cov,int samples)
+{
+    TPZFMatrix<REAL>  PHIt;
+
+     PHI.Transpose ( &PHIt );
+
+     int M = PHI.Cols();
+
+     cout << "M = " << M <<endl;
+
+     std::normal_distribution<double> distribution ( 0., 1. );
+
+    TPZFMatrix<REAL>  THETA ( M, samples, 0. );
+    for ( int isample = 0; isample < samples; isample++ ) {
+        for ( int irdvar = 0; irdvar < M; irdvar++ ) {
+            std::random_device rd{};
+            std::mt19937 generator{ rd() };
+            REAL xic = distribution ( generator );
+            REAL xiphi = distribution ( generator );
+            THETA(irdvar,isample) = xic;
+        }
+    }
+
+
+      TPZFMatrix<REAL>  hhat;
+
+      PHI.Multiply( THETA, hhat );
+
+    REAL sdev = cov * mean;
+    REAL xi = sqrt ( log ( 1 + pow ( ( sdev / mean ),2 ) ) );
+    REAL lambda = log ( mean ) - xi * xi / 2.;
+    for ( int i = 0; i < hhat.Rows(); i++ ) {
+        for ( int j = 0; j < hhat.Cols(); j++ ) {
+			REAL temp =  hhat(i,j);
+            hhat(i,j) = exp ( lambda + xi * temp );
+        }
+    }
+
+     return hhat;
+}
+
+
 
 void ComputeDeterministic()
 {
-    int porder=2;
-    int nref=3;
+    int porder=1;
+    int nref=2;
 
     betax=45;//30,45,60,90
     gammasolo=20.;
@@ -193,59 +324,8 @@ void ForcingBCPressao(const TPZVec<REAL> &pt, TPZVec<STATE> &disp){
         }
 
 }
-/*
-TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples )
-{
 
-    TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh,porder );
-    TPZCompMesh * cmesh2 =  CreateCMeshRF ( gmesh,porder );
 
-    //TPZCompMesh * cmesh (&slopeA.GetCurrentConfig()->fCMesh);
-    //TPZCompMesh * cmesh2(&slopeA.GetCurrentConfig()->fCMesh);
-    //cmesh->Print ( std::cout );
-    //InsertMat ( cmesh, porder );
-    //cmesh->Print ( std::cout );
-    //InsertMat ( cmesh2, porder );
-    int dim = cmesh->Reference()->Dimension();
-    KLAnalysis * klanal = new KLAnalysis ( cmesh );
-    //TPZAnalysis *analysis = new TPZAnalysis (cmesh);
-    //analysis->SolveKL();
-    KLMaterial * mat = dynamic_cast<KLMaterial*> ( cmesh->ElementVec() [0]->Material() );
-    klanal->SetExpansionOrder ( mat->GetExpansioOrder() );
-    klanal->Solve();
-
-    string file ="rffolder/out-eigenfunctions.vtk";
-    klanal->Post ( file,dim,0 );
-
-    TPZManVector<TPZCompMesh *,2> vecmesh ( 2 );
-
-    TPZVec<REAL> mean ( 2 );
-    TPZVec<REAL> cov ( 2 );
-    mean[0]=10.;
-    mean[1]=30.*M_PI/180.;
-    cov[0]=0.3;
-    cov[1]=0.2;
-    REAL corsscorrelation = -0.5;
-    KLRandomField * klf = new KLRandomField ( cmesh,klanal,mean,cov,samples,corsscorrelation );
-    TPZVec<TPZFMatrix<REAL>> hhat;
-    cout << "Creating Log-Normal Random Fields "<<endl;
-    hhat = klf->CreateLogNormalRandomField();
-
-    //hhat[0].Print ( "coes" );
-    cmesh->LoadSolution ( hhat[0] );
-    //TPZCompMesh * cmesh2(cmesh);
-    cmesh2->LoadSolution ( hhat[1] );
-    vecmesh[0]=cmesh;
-    vecmesh[1]=cmesh2;
-
-    file ="rffolder/out-coessssP2.vtk";
-    klanal->Post ( file,dim,0 );
-    KLAnalysis * klanal2 = new KLAnalysis ( cmesh2 );
-    cmesh2->LoadSolution ( hhat[1] );
-    file ="rffolder/out-phissss.vtk";
-    klanal2->Post ( file,dim,0 );
-    return vecmesh;
-}*/
 
 
 void SolveDarcyProlem(TPZCompMesh *cmesh,string vtk)
@@ -460,7 +540,19 @@ TPZGeoMesh *  CreateGMesh ( int ref )
 
 
     gmesh->BuildConnectivity();
-    for ( int d = 0; d<ref; d++ ) {
+//     for ( int d = 0; d<ref; d++ ) {
+//         int nel = gmesh->NElements();
+//         TPZManVector<TPZGeoEl *> subels;
+//         for ( int iel = 0; iel<nel; iel++ ) {
+//             if(iel==4||iel==2||iel==6||iel==5)
+//             {
+//                 TPZGeoEl *gel = gmesh->ElementVec() [iel];
+//                 gel->Divide ( subels );
+//
+//             }
+//         }
+//     }
+        for ( int d = 0; d<ref; d++ ) {
         int nel = gmesh->NElements();
         TPZManVector<TPZGeoEl *> subels;
         for ( int iel = 0; iel<nel; iel++ ) {
@@ -468,6 +560,11 @@ TPZGeoMesh *  CreateGMesh ( int ref )
             gel->Divide ( subels );
         }
     }
+
+    //gel->HasSubElement();
+
+    std::ofstream files ( "ge.vtk" );
+    TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
 
     return gmesh;
 }
@@ -860,7 +957,7 @@ void PostProcessVariables ( TPZStack<std::string> &scalNames, TPZStack<std::stri
 
 TPZElastoPlasticAnalysis * CreateAnal ( TPZCompMesh *cmesh,bool optimize )
 {
-    int numthreads=2;
+    int numthreads=12;
 
     TPZElastoPlasticAnalysis * analysis =  new TPZElastoPlasticAnalysis ( cmesh ); // Create analysis
 

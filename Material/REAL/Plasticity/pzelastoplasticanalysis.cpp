@@ -1311,7 +1311,7 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
     cout << "normfbody = " << normfbody << endl;
 
     displacen=displace;
-    while(counterout<numiter && diff>tol)
+    do
     {
 
         cout << " load step  = " << counterout+1 << " load factor  = " << lambda << " diff = " << diff << " l = " << l <<  endl;
@@ -1326,23 +1326,23 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
 
         REAL diffnorm=0.;
 
-        while( counter<numiter2 && residualrhs>tol2 )
+        do
         {
             chrono::steady_clock sc;
 
-            auto start = sc.now();
+            //auto start = sc.now();
             material->SetWhichLoadVector(0);
             material->SetLoadFactor(lambda);
 
             Assemble();
-            auto end = sc.now();
-            auto time_span = static_cast<chrono::duration<double>> ( end - start );
+            //auto end = sc.now();
+            //auto time_span = static_cast<chrono::duration<double>> ( end - start );
             //cout << "| time to assemble=  " << time_span.count()<< std::endl;
 
-            start = sc.now();
+            //start = sc.now();
             this->fSolver->Solve(fRhs,dws);
-            end = sc.now();
-            time_span = static_cast<chrono::duration<double>> ( end - start );
+            //end = sc.now();
+            //time_span = static_cast<chrono::duration<double>> ( end - start );
             //cout << "| time to solve=  " << time_span.count()<< std::endl;
 
 
@@ -1355,15 +1355,6 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
             diffnorm=residualrhs-normrhsn;
 
             this->fSolver->Solve(FBODY,dwb);
-
-//             if((residualrhs> normfbody*5 && counter>5) || counter>=numiter2-1 || (diffnorm>30.&&counter>5) )
-//             {
-//                 cout <<"-----Failed to converge! "<< " residualrhs  = " <<residualrhs <<" diffnormn1 = " <<diffnorm  <<endl;
-//                 conv=false;
-//                 break;
-//             }
-
-
 
             REAL dlamb=0.;
             if(counter==0)
@@ -1385,13 +1376,10 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
 
             cout << " counter  = " << counter+1 <<" normrhs = " <<residualrhs << " normdu = " << normdu << " lambda = "<< lambda << " dlamb = "<< dlamb << " l = " << l << endl;
 
-            if( (diffnorm>10 && counter>3) || normdu>10.)
+            if( (diffnorm>100 && counter>3) || normdu>10.)
             {
-                cout <<"-----Failed to converge! "<< " residualrhs  = " <<residualrhs <<" diffnormn1 = " <<diffnorm  <<endl;
-                //if(normdu>10)return;
+                cout <<"-----Failed to converge! "<< " residualrhs  = " <<residualrhs <<" diffnorm = " <<diffnorm  <<endl;
                 conv=false;
-               // if(lambda<0)lambda=lambdan;
-                //if(lambda<lambdan)lambda=lambdan;
                 break;
             }
 
@@ -1399,8 +1387,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
 
             LoadSolution(displace);
 
+        }while( counter<numiter2 && residualrhs>tol2 );
 
-        }
         if(conv==false)
         {
 
@@ -1417,11 +1405,16 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
             AcceptSolution();
             REAL delta=1.e-6;
             //lambda-=1.1*tol;
-            if(lambda<lambdan)lambda=lambdan;
+            if(lambda<lambdan)
+            {
+                lambda=lambdan;
+            }else{
+                lambdan=lambda;
+            }
             int ndesi=10;
             l*=REAL(ndesi)/counter;
             displacen=displace;
-            lambdan=lambda;
+
             if(l>3.)
             {
                 l=3.;
@@ -1431,7 +1424,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
 
 
         counterout++;
-    }
+
+    }while(counterout<numiter && diff>tol);
 
     AcceptSolution();
     cout << "lambda = "<<lambdan << endl;
