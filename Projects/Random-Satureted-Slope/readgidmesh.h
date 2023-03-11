@@ -61,6 +61,8 @@ public:
 
 
     void ReadMesh ( );
+
+    void ReadMesh2 ( std::vector<std::vector<int>>& topol, std::vector<std::vector<double>> &coords,std::string ffile);
 	
 
     
@@ -181,7 +183,7 @@ void  ToMatInt ( std::vector<std::vector<int>> in, TPZFMatrix<int> & out )
 }
 	
 	
-void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath )
+void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath,REAL delta )
 {
     TPZFMatrix<REAL> elcoords;
     int nels = fallcoords.size();
@@ -197,7 +199,7 @@ void FindIdsInPath ( const TPZFMatrix<REAL>& path, std::vector<int>& idpath )
                 REAL copathx = path.Get(ipath,0);
                 REAL copathy = path.Get(ipath,1);
 
-                if ( fabs ( x - copathx ) < 10.e-2 && fabs ( y - copathy ) < 10.e-2 ) {
+                if ( fabs ( x - copathx ) < delta && fabs ( y - copathy ) <delta) {
                     idpath.push_back ( fmeshtopology(iel,inode) );
                     ipath = path.Rows();
                 }
@@ -232,6 +234,60 @@ void Line ( TPZManVector<REAL,2> a, TPZManVector<REAL,2> b, int ndivs, TPZFMatri
 }
 
 
+void FindElements(TPZVec<double> constcoorddata,TPZVec<int> constcoord, std::vector<int>& ids)
+	{
+		REAL tol = 1.e-12;
+		//constcoorddata vector containig info about face to search id. It must contain any coodinate locate in the in the face
+        TPZFMatrix<REAL> elcoords;
+		std::vector<double> elcoodsvec;
+        int nels = fallcoords.size();
+        GetElCoords (  0, elcoords );
+
+        int sum=0;
+
+        std::vector<int> dirs;
+        for ( int iconst=0; iconst<constcoord.size(); iconst++ ) {
+            sum+=constcoord[iconst];
+            if ( constcoord[iconst]==1 ) {
+                dirs.push_back ( iconst );
+            }
+
+        }
+        for ( int iel = 0; iel < nels; iel++ ) {
+            GetElCoords (  iel, elcoords );
+			int nnodes = elcoords.Rows();
+			if(nnodes==4)continue;//warning this only works for 3D tetrahedrom and triangle
+            for ( int inode = 0; inode < nnodes; inode++ ) {
+                if ( sum!=1 )DebugStop();
+				if ( fabs ( elcoords(0,dirs[0]) - constcoorddata[dirs[0]] ) <tol  && fabs ( elcoords(1,dirs[0]) - constcoorddata[dirs[0]] ) <tol && fabs ( elcoords(2,dirs[0]) - constcoorddata[dirs[0]] ) <tol) {
+					ids.push_back ( iel );
+				}
+            }
+
+
+        }
+
+        sort ( ids.begin(), ids.end() );
+        ids.erase ( unique ( ids.begin(), ids.end() ), ids.end() );
+	}
+
+
+
+template <class T>
+void PrintVecVec(std::vector<std::vector<T>>& data)
+{
+    int rows= data.size();
+    for(int i=0;i<rows;i++)
+    {
+        int cols=data[i].size();
+        for(int j=0;j<cols;j++)
+        {
+            cout << data[i][j] << " ";
+        }
+        cout << endl;
+    }
+
+}
 private:
 
 string ffile;

@@ -120,3 +120,43 @@ void readgidmesh::ReadMesh (  )
 	  fOrder=2;
 	}
 }
+void readgidmesh::ReadMesh2 ( std::vector<std::vector<int>>& topol, std::vector<std::vector<double>> &coords,std::string ffile)
+{
+    string line, temp;
+    ifstream myfile ( ffile );
+    if ( myfile.is_open() ) {
+		getline ( myfile, line );
+		std::cout << line<< std::endl;
+		getline ( myfile, line );
+		std::cout << line<< std::endl;
+        while ( getline ( myfile, line ) ) {
+			if(line=="End Coordinates")break;
+            std::vector<string> tokens;
+            istringstream iss ( line );
+            while ( iss >> temp )
+                tokens.push_back ( temp );
+			std::vector<double> input_doub_temp= str_vec<double> ( tokens );
+            coords.push_back ( input_doub_temp );
+        }
+       // myfile.close();
+    } else std::cout << "Unable to open file";
+
+
+    if ( myfile.is_open() ) {
+		getline ( myfile, line );
+		std::cout << line<< std::endl;
+		getline ( myfile, line );
+		std::cout << line<< std::endl;
+        while ( getline ( myfile, line ) ) {
+			if(line=="End Elements")break;
+            std::vector<string> tokens;
+            istringstream iss ( line );
+            while ( iss >> temp )
+                tokens.push_back ( temp );
+            std::vector<int> input_int = str_vec<int> ( tokens );
+            topol.push_back ( input_int );
+        }
+        myfile.close();
+    } else std::cout << "Unable to open file";
+
+}

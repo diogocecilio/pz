@@ -85,10 +85,10 @@ public:
         for ( int iel = 0; iel < nels; iel++ ) {
             GetElCoords (  iel, elcoords );
 			int nnodes = elcoords.Rows();
-			if(nnodes==4)continue;//warning this only works for 3D tetrahedrom and triangle
+			if(nnodes==3)continue;//warning this only works for 3D tetrahedrom and triangle
             for ( int inode = 0; inode < nnodes; inode++ ) {
                 if ( sum!=1 )DebugStop();
-				if ( fabs ( elcoords(0,dirs[0]) - constcoorddata[dirs[0]] ) <tol  && fabs ( elcoords(1,dirs[0]) - constcoorddata[dirs[0]] ) <tol && fabs ( elcoords(2,dirs[0]) - constcoorddata[dirs[0]] ) <tol) {
+				if ( fabs ( elcoords(0,dirs[0]) - constcoorddata[dirs[0]] ) <tol  && fabs ( elcoords(1,dirs[0]) - constcoorddata[dirs[0]] ) <tol ) {
 					ids.push_back ( iel );
 				}
             }
