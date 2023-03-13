@@ -97,13 +97,13 @@ void PostDarcy(TPZAnalysis * analysis,string vtk);
 
 TPZManVector<TPZCompMesh *,2> CreateFields ( TPZGeoMesh * gmesh,int porder,int samples );
 
-TPZFMatrix<REAL> CreateLogNormalRandomField(TPZFMatrix<REAL> PHI, REAL mean, REAL cov,int samples);
+TPZFMatrix<REAL> CreateLogNormalRandomField(TPZFMatrix<REAL> PHI, REAL mean, REAL cov,int samples,string outdata);
 
 TPZCompMesh * CreateCMeshRF( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M );
 
 TPZManVector<  TPZCompMesh *,2>   SolveKL(TPZGeoMesh* gmesh,REAL porder,REAL lx,REAL ly,  int type, int M);
 
-void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMesh*,2> vecmesh,int isol );
+void SetMaterialParamenters (TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMesh,int isol,int param );
 
 void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol );
 
@@ -121,6 +121,16 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh* gmesh,REAL porder,
 
 TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,REAL porder,REAL lx,REAL ly,  int type, int M,bool createfield);
 
+void ComputeEigenFunctions(TPZCompMesh* cmesh);
+
+TPZFMatrix<REAL> ManageEigenFuntions(TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M);
+
+TPZManVector<TPZFMatrix<REAL>,2> ManageField(TPZFMatrix<REAL> eigenfunctions);
+
+void SetRamdomCompMeshes();
+
+REAL findnodalsol(TPZCompMesh *cmesh);
+
 int betax;
 bool water;
 REAL coesaofiu;
@@ -131,41 +141,268 @@ int main()
 {
 
 
+     string readfile="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/eigenfunctions.txt";
+     TPZFMatrix<REAL> eigenfunctions;
 
+     int porder=2;
+     int nref=0;
 
-    int porder=1;
-
-   // int nref=2;
-    //TPZGeoMesh *gmesh = CreateGMesh ( nref);
-
-   TPZGeoMesh *gmesh =CreateGMeshGid (  0 );
+     TPZGeoMesh *gmesh =CreateGMeshGid (  nref );
 
     REAL lx=20.;
     REAL ly=2.;
     int type=3;
     int M=30;
-    bool createfield=true;
+    TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
+    TPZCompMesh * cmesh2 =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
 
+    bool create=true;
+    TPZManVector<TPZFMatrix<REAL>,2> data(2);
+    if(create==true)
+    {
+        ComputeEigenFunctions(cmesh);
+        eigenfunctions=cmesh->Solution();
+        data = ManageField(eigenfunctions);
+    }else{
+        string read0="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/coesao.txt";
+        string read1="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/atrito.txt";
+        ReadFile ( read0,data[0] );
+        ReadFile ( read1,data[1] );
+    }
 
-    //TPZManVector<TPZCompMesh *,2>  vecmesh(2);
-    //vecmesh =  SettingCreateFilds(gmesh, porder,lx,ly,   type,  M, createfield);
+     TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( cmesh );
+     TPZElastoPlasticAnalysis * anal2 = new TPZElastoPlasticAnalysis ( cmesh2 );
 
-    SolveKL( gmesh, porder, lx, ly,type, M);
-    // MonteCarlo(0, 3,  gmesh, vecmesh, porder);
+     cmesh->LoadSolution(data[0]);
+     cmesh2->LoadSolution(data[1]);
 
+     TPZManVector<TPZCompMesh*,2> vecmesh(2);
 
+     vecmesh[0]=cmesh;
+     vecmesh[1]=cmesh2;
 
+     MonteCarlo(0, 3,  gmesh, vecmesh, porder);
 
-    //phi.Print(std::cout);
-
-    //TPZFMatrix<REAL> hhat= CreateLogNormalRandomField(phi,  mean,  cov,samples);
-
-    //hhat.Print(std::cout);
-
-
-    //ComputeDeterministic();
+    ComputeDeterministic();
 
     return 0;
+}
+
+TPZManVector<TPZFMatrix<REAL>,2> ManageField(TPZFMatrix<REAL> eigenfunctions)
+{
+
+
+    TPZManVector<TPZFMatrix<REAL>,2> out(2);
+
+     string outdatac="coesao.txt";
+     REAL meancoes =10.;
+     REAL covcoes=0.3;
+     int samples=1000;
+
+     TPZFMatrix<REAL> field = CreateLogNormalRandomField(eigenfunctions,  meancoes,  covcoes,samples,outdatac);
+
+     string outdataa="atrito.txt";
+     REAL meanphi =30*M_PI/180.;
+     REAL covphi=0.2;
+
+    TPZFMatrix<REAL> fieldp = CreateLogNormalRandomField(eigenfunctions,  meanphi,  covphi,samples,outdataa);
+
+    out[0]=field;
+    out[1]=fieldp;
+
+    return out;
+
+}
+
+TPZFMatrix<REAL> ManageEigenFuntions(TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M)
+{
+    TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
+    bool create=true;
+    if(create==true)
+    {
+        ComputeEigenFunctions(cmesh);
+    }else{
+        string outco="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/eigenfunctions.txt";
+        TPZFMatrix<REAL> readco;
+        ReadFile ( outco,readco );
+        cmesh->LoadSolution(readco);
+
+    }
+}
+
+// void ManageField()
+// {
+//     int porder=1;
+//     int nref=0;
+//
+//   //  TPZGeoMesh *gmesh = CreateGMesh ( nref);
+//    TPZGeoMesh *gmesh =CreateGMeshGid (  nref );
+//
+//     REAL lx=20.;
+//     REAL ly=2.;
+//     int type=3;
+//     int M=30;
+//
+//     TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
+//     bool create=true;
+//     if(create==true)
+//     {
+//         ComputeEigenFunctions(cmesh);
+//     }else{
+//         string outco="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/eigenfunctions.txt";
+//         TPZFMatrix<REAL> readco;
+//         ReadFile ( outco,readco );
+//         cmesh->LoadSolution(readco);
+//
+//     }
+//
+//     TPZFMatrix<REAL> sol = cmesh->Solution();
+//
+//     string outdatac="coesao.txt";
+//     REAL meancoes =10.;
+//     REAL covcoes=0.3;
+//     int samples=1000;
+//     //CreateLogNormalRandomField(sol,  meancoes,  covcoes,samples,outdata);
+//
+//     string outdataa="atrito.txt";
+//     REAL meanphi =30*M_PI/180.;
+//     REAL covphi=0.2;
+//     //CreateLogNormalRandomField(sol,  meanphi,  covphi,samples,outdata);
+//
+//     string outdatak="permeabilidade.txt";
+//     REAL meank =1.;
+//     REAL covk=0.2;
+//     //CreateLogNormalRandomField(sol,  meank,  covk,samples,outdata);
+//
+//     TPZFMatrix<REAL> field = CreateLogNormalRandomField(sol,  meancoes,  covcoes,samples,outdatac);
+//
+//     TPZFMatrix<REAL> fieldp = CreateLogNormalRandomField(sol,  meanphi,  covphi,samples,outdataa);
+//
+//     TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( cmesh );
+//
+//     cmesh->LoadSolution(field);
+//
+//     TPZCompMesh *cmeshmechanic = CreateCMesh ( gmesh,porder );
+//
+//     int param =0;
+//     SetMaterialParamenters(cmeshmechanic,cmesh,1,param);
+//
+//     cmesh->LoadSolution(fieldp);
+//
+//     param =1;
+//     SetMaterialParamenters(cmeshmechanic,cmesh,1,param);
+//
+//
+//
+//     TPZPostProcAnalysis * postproc = new TPZPostProcAnalysis();
+//     std::string vtkFile ="vtkfolder/teste-out.vtk";
+//
+//     CreatePostProcessingMesh ( postproc, cmeshmechanic );
+//     Post ( postproc,vtkFile );
+//
+// }
+
+void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMesh,int isol,int param )
+{
+
+    int nels = plasticCmesh->NElements();
+    int nels0 = RandomCMesh->NElements();
+
+    if ( nels!=nels0 ) {
+        cout << "nels "<< nels << " | nels0 = "<< nels0<<endl;
+        //DebugStop();
+    }
+
+    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
+    TPZAdmChunkVector<TPZElastoPlasticMem>  &mem = pMatWithMem2->GetMemory();
+
+    // cout << "mem.NElements() "<< mem.NElements()  <<endl;
+    if ( pMatWithMem2 ) {
+        pMatWithMem2->SetUpdateMem ( true );
+    }
+
+    int globpt=0;
+    for ( int iel=0; iel<nels0; iel++ ) {
+
+        TPZCompEl *celplastic = plasticCmesh->Element ( iel );
+        TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
+
+        TPZCompEl *celrandom1 = RandomCMesh->Element ( iel );
+        TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celrandom1 );
+
+        const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
+        const TPZIntPoints &intpoints1 = intelrandom1->GetIntegrationRule();
+
+        TPZManVector<REAL,3> point ( 3,0. );
+        TPZManVector<REAL,3> point1 ( 3,0. );
+
+        TPZMaterialData dataplastic,datarandom1,datarandom2;
+
+        datarandom1.fNeedsSol = true;
+        datarandom2.fNeedsSol = true;
+
+        intelplastic->InitMaterialData ( dataplastic );
+        intelrandom1->InitMaterialData ( datarandom1 );
+
+        REAL weight=0;
+        int nint = intpoints.NPoints();
+
+        TPZTensor<REAL> epst,epsp;
+        for ( long ip =0; ip<nint; ip++ ) {
+
+            intpoints.Point ( ip, point, weight );
+            intpoints1.Point ( ip, point1, weight );
+
+            dataplastic.intLocPtIndex = ip;
+
+            intelplastic->ComputeRequiredData ( dataplastic, point );
+            intelrandom1->ComputeRequiredData ( datarandom1, point1 );
+
+            mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
+
+            TPZSolVec sol;
+            ComputeSolution ( celrandom1,datarandom1.phi,sol );
+
+
+            TPZVec<REAL> cohes = sol[isol];
+
+            dataplastic.intGlobPtIndex = globpt;
+            mem[globpt].fPlasticState.fmatprop[param]= cohes[0];
+
+            TPZTensor<REAL> epsTotal,sigma;
+
+            globpt++;
+
+        }
+    }
+    pMatWithMem2->SetUpdateMem ( false );
+
+    plasticCmesh->Solution().Zero();
+
+}
+
+void  ComputeEigenFunctions(TPZCompMesh* cmesh)
+{
+
+    KLAnalysis * klanal = new KLAnalysis ( cmesh );
+
+     //KLMaterial * mat = dynamic_cast<KLMaterial*> ( cmesh->ElementVec() [0]->Material() );
+     KLMaterial *mat = dynamic_cast<KLMaterial*> (cmesh->MaterialVec()[1]);
+
+    klanal->SetExpansionOrder ( mat->GetExpansioOrder() );
+
+    klanal->Solve();
+
+    cmesh->LoadSolution(klanal->Solution());
+
+    string file1 ="vtkfolder/solution.vtk";
+
+    klanal->Post ( file1,2,0 );
+
+    string out="eigenfunctions.txt";
+
+    PrintMat ( out,klanal->Solution());
+
 }
 
 TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M )
@@ -179,12 +416,9 @@ TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int 
     TPZCompMesh * cmesh = new TPZCompMesh ( gmesh );
     KLMaterial * klmat = new KLMaterial ( id,lx,ly,Lz,dim,type,expansionorder );
 
-    klmat->SetId(id);
-
     cmesh->SetDefaultOrder ( porder );
     cmesh->SetDimModel ( dim );
     cmesh->InsertMaterialObject ( klmat );
-    //cmesh->InsertMaterialId(id);
     cmesh->SetAllCreateFunctionsContinuous();
     cmesh->AutoBuild();
     cmesh->AdjustBoundaryElements();
@@ -192,52 +426,7 @@ TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int 
     return cmesh;
 }
 
-TPZManVector<  TPZCompMesh *,2>  SolveKL(TPZGeoMesh* gmesh,REAL porder,REAL lx,REAL ly,  int type, int M)
-{
-     TPZCompMesh * cmesh = CreateCMeshRF (  gmesh, porder, lx, ly,  type,  M );
-     TPZCompMesh * cmesh2 = CreateCMeshRF (  gmesh, porder, lx, ly,  type,  M );
-
-     KLAnalysis * klanal = new KLAnalysis ( cmesh );
-
-     KLMaterial * mat = dynamic_cast<KLMaterial*> ( cmesh->ElementVec() [0]->Material() );
-
-     klanal->SetExpansionOrder ( mat->GetExpansioOrder() );
-
-     klanal->Solve();
-
-     TPZFMatrix<REAL> sol = klanal->Solution();
-
-     TPZManVector<TPZFMatrix<REAL>,2> fields(2);
-     TPZManVector< TPZCompMesh *,2> meshes(2);
-    REAL meancoes =10.;
-    REAL meanatrito =30.*M_PI/180.;
-    REAL covcoes=0.3;
-    REAL covatrito=0.2;
-    int samples=1000;
-    fields[0]= CreateLogNormalRandomField(sol,  meancoes,  covcoes,samples);
-    fields[1]= CreateLogNormalRandomField(sol,  meanatrito,  covatrito,samples);
-
-
-    cmesh->LoadSolution(fields[0]);
-    cmesh2->LoadSolution(fields[1]);
-
-
-    meshes[0]=cmesh;
-    meshes[1]=cmesh2;
-
-
-     //hhat.Print(std::cout);
-
-   //  cmesh->LoadSolution(hhat);
-
-     string file ="vtkfolder/outkl.vtk";
-     klanal->Post ( file,2,0 );
-
-     return meshes;
-}
-
-
-TPZFMatrix<REAL> CreateLogNormalRandomField(TPZFMatrix<REAL> PHI, REAL mean, REAL cov,int samples)
+TPZFMatrix<REAL> CreateLogNormalRandomField(TPZFMatrix<REAL> PHI, REAL mean, REAL cov,int samples,string outdata)
 {
     TPZFMatrix<REAL>  PHIt;
 
@@ -275,8 +464,14 @@ TPZFMatrix<REAL> CreateLogNormalRandomField(TPZFMatrix<REAL> PHI, REAL mean, REA
         }
     }
 
+    //string out="testefield.txt";
+
+    PrintMat ( outdata,hhat);
+
      return hhat;
 }
+
+
 
 
 void DarcySolution()
@@ -317,7 +512,7 @@ void ComputeDeterministic()
     int numiterfs =20;
     REAL tolres = 1.e-3;
     int numiterres =20;
-    REAL l =0.5;
+    REAL l =0.1;
     REAL lambda0=0.1;
 
     TPZGeoMesh *gmesh = CreateGMeshGid ( nref);
@@ -633,7 +828,9 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 {
     TPZGeoMesh *gmesh  =  new TPZGeoMesh();
 
-    string file ="/home/diogo/projects/pz/data/teste2.msh";
+    gmesh->SetDimension ( 2 );
+
+    string file ="/home/diogo/projects/pz/data/teste.msh";
 
     readgidmesh read;
 
@@ -669,7 +866,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
                 REAL x0 = meshcoords[TopoLine[0]][1];
                 REAL y0 = meshcoords[TopoLine[0]][2];
                 REAL xf = meshcoords[TopoLine[1]][1];
-                REAL yf = meshcoords[TopoLine[2]][2];
+                REAL yf = meshcoords[TopoLine[1]][2];
                 REAL tol=1.e-3;
                 if((fabs((y0-0))<tol && fabs((yf-0))<tol))
                 {
@@ -683,7 +880,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
                 {
                     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -3, *gmesh );//toprigth
                 }
-                else if((fabs((x0-40))<tol && fabs((xf-40))<tol))
+                else if((fabs((y0-40))<tol && fabs((yf-40))<tol))
                 {
                     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -4, *gmesh );//topleft
                 }
@@ -696,6 +893,9 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
                     new TPZGeoElRefPattern< pzgeom::TPZGeoLinear> ( iel, TopoLine, -6, *gmesh );//ramp
                 }
                 else{
+                    cout<< "bc element not found."<<endl;
+                    cout<< "x0 = " << x0 << " y0 = "<< y0 << endl;
+                    cout<< "xf = " << xf << " yf = "<< yf << endl;
                     DebugStop();
                 }
 
@@ -713,7 +913,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
             gel->Divide ( subels );
         }
     }
-    gmesh->Print(std::cout);
+   // gmesh->Print(std::cout);
     std::ofstream files ( "teste-mesh.vtk" );
     TPZVTKGeoMesh::PrintGMeshVTK ( gmesh,files,false );
 cout << "d" << endl;
@@ -1056,94 +1256,6 @@ void SetFlux ( TPZCompMesh * plasticCmesh,TPZCompMesh* incmesh)
 }
 
 
-
-void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMesh*,2> vecmesh,int isol )
-{
-
-    int nels = plasticCmesh->NElements();
-    int nels0 = vecmesh[0]->NElements();
-    int nels1 = vecmesh[1]->NElements();
-    //vecmesh[1]->Solution().Print ( "SOLUTION PHI" );
-    if ( nels!=nels0 || nels!=nels1 || nels0!=nels1 ) {
-        cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
-        DebugStop();
-    }
-
-    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
-    TPZAdmChunkVector<TPZElastoPlasticMem>  &mem = pMatWithMem2->GetMemory();
-
-    // cout << "mem.NElements() "<< mem.NElements()  <<endl;
-    if ( pMatWithMem2 ) {
-        pMatWithMem2->SetUpdateMem ( true );
-    }
-
-    int globpt=0;
-    for ( int iel=0; iel<nels0; iel++ ) {
-
-        TPZCompEl *celplastic = plasticCmesh->Element ( iel );
-        TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
-
-        TPZCompEl *celrandom1 = vecmesh[0]->Element ( iel );
-        TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celrandom1 );
-
-        TPZCompEl *celrandom2 = vecmesh[1]->Element ( iel );
-        TPZInterpolationSpace *intelrandom2 = dynamic_cast<TPZInterpolationSpace *> ( celrandom2 );
-
-        const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
-        const TPZIntPoints &intpoints1 = intelrandom1->GetIntegrationRule();
-        const TPZIntPoints &intpoints2 = intelrandom2->GetIntegrationRule();
-
-        TPZManVector<REAL,3> point ( 3,0. );
-        TPZManVector<REAL,3> point1 ( 3,0. );
-        TPZManVector<REAL,3> point2 ( 3,0. );
-
-        TPZMaterialData dataplastic,datarandom1,datarandom2;
-
-        datarandom1.fNeedsSol = true;
-        datarandom2.fNeedsSol = true;
-        intelplastic->InitMaterialData ( dataplastic );
-        intelrandom1->InitMaterialData ( datarandom1 );
-        intelrandom2->InitMaterialData ( datarandom2 );
-
-        REAL weight=0;
-        int nint = intpoints.NPoints();
-
-        TPZTensor<REAL> epst,epsp;
-        for ( long ip =0; ip<nint; ip++ ) {
-            intpoints.Point ( ip, point, weight );
-            intpoints1.Point ( ip, point1, weight );
-            intpoints2.Point ( ip, point2, weight );
-            dataplastic.intLocPtIndex = ip;
-            intelplastic->ComputeRequiredData ( dataplastic, point );
-            intelrandom1->ComputeRequiredData ( datarandom1, point1 );
-            intelrandom2->ComputeRequiredData ( datarandom2, point2 );
-            mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
-
-            TPZSolVec sol1,sol2;
-            ComputeSolution ( celrandom1,datarandom1.phi,sol1 );
-            ComputeSolution ( celrandom2,datarandom2.phi,sol2 );
-
-            TPZVec<REAL> cohes = sol1[isol];
-            TPZVec<REAL> phi = sol2[isol];
-
-            dataplastic.intGlobPtIndex = globpt;
-            mem[globpt].fPlasticState.fmatprop[0]= cohes[0];
-            mem[globpt].fPlasticState.fmatprop[1]= phi[0] ;
-
-            TPZTensor<REAL> epsTotal,sigma;
-
-            globpt++;
-
-        }
-
-        //pMatWithMem2->SetUpdateMem ( false );
-    }
-    pMatWithMem2->SetUpdateMem ( false );
-
-    plasticCmesh->Solution().Zero();
-
-}
-
 void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol )
 {
 
@@ -1228,9 +1340,12 @@ void MonteCarlo(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> 
         TPZManVector<REAL,10> out;
 
 
-		SetMaterialParamenters ( cmesh,vecmesh,isample);
+		SetMaterialParamenters ( cmesh,vecmesh[0],isample,0);
+        SetMaterialParamenters ( cmesh,vecmesh[1],isample,1);
 
         TPZElastoPlasticAnalysis  * anal0 = CreateAnal ( cmesh,true );
+
+        LoadingRamp ( cmesh,1.,gammasolo,gammaaugua );
         //for GIM set material param with FS = 1 only once.
         //The loading will increase inside the method, but the Strength will be constant
         anal0->IterativeProcessArcLength(tolfs,numiterfs,tolres,numiterres,l,lambda0);
@@ -1347,7 +1462,7 @@ TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,REAL porder,R
 	//if true creates random fields
 	//if false read random fields
     if (createfield ) {
-        vecmesh = SolveKL( gmesh, porder, lx, ly,type, M);
+//        vecmesh = SolveKL( gmesh, porder, lx, ly,type, M);
         PrintMat ( outco,vecmesh[0]->Solution() );
         PrintMat ( outphi,vecmesh[1]->Solution() );
 

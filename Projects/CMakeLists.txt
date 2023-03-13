@@ -184,6 +184,7 @@ add_subdirectory(proDG)
 			add_subdirectory(AAPlasticityDarcyTunnel)
 			add_subdirectory(DarcyIsotropic)
 			add_subdirectory(Random-Satureted-Slope)
+			add_subdirectory(Random-Satureted-Slope-v2)
 			#Projeto Denise
 			#add_subdirectory(HdivPressureTeste)
 			#add_subdirectory(HpAdaptivity)

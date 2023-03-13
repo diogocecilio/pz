@@ -1335,6 +1335,12 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
             material->SetLoadFactor(lambda);
 
             Assemble();
+
+            //TPZAutoPointer<TPZMatrix<REAL> > KG = this->fSolver->Matrix();
+
+            //fRhs.Print(std::cout);
+
+            //KG->Print(std::cout);
             //auto end = sc.now();
             //auto time_span = static_cast<chrono::duration<double>> ( end - start );
             //cout << "| time to assemble=  " << time_span.count()<< std::endl;

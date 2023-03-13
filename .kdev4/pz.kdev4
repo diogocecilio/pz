@@ -3,7 +3,8 @@ BuildItems=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x01\x00\x00\x00\x0b\x00\x00\x
 
 [CMake]
 Build Directory Count=2
-Current Build Directory Index-Host System=0
+Current Build Directory Index-Host System=1
+Temporary Build Directory Index=1
 
 [CMake][CMake Build Directory 0]
 Build Directory Path=/home/diogo/projects/pz-build-debug
@@ -26,7 +27,7 @@ Install Directory=/usr/local
 Runtime=Host System
 
 [Launch]
-Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4,Launch Configuration 5,Launch Configuration 6,Launch Configuration 7
+Launch Configurations=Launch Configuration 0,Launch Configuration 1,Launch Configuration 2,Launch Configuration 3,Launch Configuration 4,Launch Configuration 5,Launch Configuration 6,Launch Configuration 7,Launch Configuration 8,Launch Configuration 9
 
 [Launch][Launch Configuration 0]
 Configured Launch Modes=execute
@@ -173,6 +174,44 @@ Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
 Dependency Action=Nothing
 EnvironmentGroup=
 Executable=file:///home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope/Random-Satureted-Slope
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=pz,Projects,AADarcy,AADarcy
+Use External Terminal=false
+Working Directory=
+isExecutable=true
+
+[Launch][Launch Configuration 8]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=Random-Satureted-Slope-DEbug-v2
+Type=Native Application
+
+[Launch][Launch Configuration 8][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/Random-Satureted-Slope-v2
+External Terminal=konsole --noclose --workdir %workdir -e %exe
+Kill Before Executing Again=4194304
+Project Target=pz,Projects,AADarcy,AADarcy
+Use External Terminal=false
+Working Directory=
+isExecutable=true
+
+[Launch][Launch Configuration 9]
+Configured Launch Modes=execute
+Configured Launchers=nativeAppLauncher
+Name=Random-Satureted-Slope-release-v2
+Type=Native Application
+
+[Launch][Launch Configuration 9][Data]
+Arguments=
+Dependencies=@Variant(\x00\x00\x00\t\x00\x00\x00\x00\x00)
+Dependency Action=Nothing
+EnvironmentGroup=
+Executable=file:///home/diogo/projects/pzbuildrelease/Projects/Random-Satureted-Slope-v2/Random-Satureted-Slope-v2
 External Terminal=konsole --noclose --workdir %workdir -e %exe
 Kill Before Executing Again=4194304
 Project Target=pz,Projects,AADarcy,AADarcy

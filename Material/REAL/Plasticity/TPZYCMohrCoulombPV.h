@@ -101,7 +101,7 @@ public:
 
     void SetLocalMatState ( TPZPlasticState<REAL> & state )
     {
-        if ( fc<1.e-3 ) DebugStop();
+        //if ( fc<1.e-3 ) DebugStop();
         fc =   state.fmatprop[0];
         fPhi = state.fmatprop[1];
         fPsi = state.fmatprop[1];
