@@ -140,50 +140,109 @@ REAL gammaaugua;
 int main()
 {
 
-
-     string readfile="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/eigenfunctions.txt";
-     TPZFMatrix<REAL> eigenfunctions;
-
      int porder=2;
      int nref=0;
 
      TPZGeoMesh *gmesh =CreateGMeshGid (  nref );
 
+    string readfile="/home/diogo/projects/pzbuildrelease/Projects/Random-Satureted-Slope-v2/eigenfunctions.txt";
+    TPZManVector<TPZFMatrix<REAL>,2> data(2);
+    TPZFMatrix<REAL> eigenfunctions;
+    ReadFile ( readfile,eigenfunctions );
+    data = ManageField(eigenfunctions);
+
     REAL lx=20.;
     REAL ly=2.;
     int type=3;
     int M=30;
-    TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
-    TPZCompMesh * cmesh2 =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
+//     TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
+//     TPZCompMesh * cmesh2 =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
 
-    bool create=true;
-    TPZManVector<TPZFMatrix<REAL>,2> data(2);
-    if(create==true)
-    {
-        ComputeEigenFunctions(cmesh);
-        eigenfunctions=cmesh->Solution();
-        data = ManageField(eigenfunctions);
-    }else{
-        string read0="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/coesao.txt";
-        string read1="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/atrito.txt";
-        ReadFile ( read0,data[0] );
-        ReadFile ( read1,data[1] );
-    }
+    //TPZCompMesh *  cmesh =  CreateCMeshDarcy(gmesh,porder);
 
-     TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( cmesh );
-     TPZElastoPlasticAnalysis * anal2 = new TPZElastoPlasticAnalysis ( cmesh2 );
+    //TPZCompMesh *  cmesh2 =  CreateCMeshDarcy(gmesh,porder);
 
-     cmesh->LoadSolution(data[0]);
-     cmesh2->LoadSolution(data[1]);
 
      TPZManVector<TPZCompMesh*,2> vecmesh(2);
 
-     vecmesh[0]=cmesh;
-     vecmesh[1]=cmesh2;
+    vecmesh = CreateFieldsDummy (gmesh, porder, lx, ly,type, M );
 
-     MonteCarlo(0, 3,  gmesh, vecmesh, porder);
 
-    ComputeDeterministic();
+    TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( vecmesh[0] );
+    TPZElastoPlasticAnalysis * anal2 = new TPZElastoPlasticAnalysis ( vecmesh[1] );
+
+    vecmesh[0]->LoadSolution(data[0]);
+    vecmesh[1]->LoadSolution(data[1]);
+
+
+    TPZCompMesh *cmeshelastoplastic= CreateCMesh ( gmesh,porder );
+
+
+
+    int param =0;
+    int imc=23;
+    SetMaterialParamenters(cmeshelastoplastic,vecmesh[param],imc,param);
+
+    param =1;
+    SetMaterialParamenters(cmeshelastoplastic,vecmesh[param],imc,param);
+
+    gammasolo=20.;
+    gammaaugua=10.;
+    water=true;
+    if(!water)gammaaugua=0.;
+    cout<<"gamma agua = "<<gammaaugua <<endl;
+    coesaofiu=10.;
+    phifiu=30.*M_PI/180;
+
+    REAL tolfs = 0.01;
+    int numiterfs =20;
+    REAL tolres = 1.e-3;
+    int numiterres =20;
+    REAL l =0.1;
+    REAL lambda0=0.1;
+
+    string vtk = "Darcyx.vtk";
+
+    TPZPostProcAnalysis * postprocdetergim = new TPZPostProcAnalysis();
+    std::string vtkFiled ="vtkfolder/deterministicflux.vtk";
+    std::string vtkFiledgim ="vtkfolder/outvtk.vtk";
+
+
+    TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
+
+    if(water==true)
+    {
+        cout << "\n Solving Darcy... " << endl;
+        SolveDarcyProlem(darcycompmesh, vtk);
+
+        cout << "\n Setting flux in mechanic comp mesh... " << endl;
+        //SetFlux(cmeshsrm,darcycompmesh);
+        SetFlux(cmeshelastoplastic,darcycompmesh);
+    }
+
+    cout << "\n Gravity Increase routine.. " << endl;
+    TPZElastoPlasticAnalysis  * anal0 = CreateAnal ( cmeshelastoplastic,true );
+
+    LoadingRamp ( cmeshelastoplastic,1.,gammasolo,gammaaugua );
+    std::ofstream outnewton("saida-newton.txt");
+
+    chrono::steady_clock sc;
+    auto start = sc.now();
+    anal0->IterativeProcessArcLength(tolfs,numiterfs,tolres,numiterres,l,lambda0);
+    //GravityIncrease ( cmeshgi );
+    auto end = sc.now();
+    auto time_span = static_cast<chrono::duration<double>> ( end - start );
+    cout << "|  IterativeProcessArcLength time =  " << time_span.count()<< std::endl;
+
+    cout << "\n Post Processing gravity increase... " << endl;
+    CreatePostProcessingMesh ( postprocdetergim, cmeshelastoplastic );
+    Post ( postprocdetergim,vtkFiledgim );
+
+
+    return 0;
+
+
+  //  ComputeDeterministic();
 
     return 0;
 }
@@ -307,9 +366,10 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMe
 
     int nels = plasticCmesh->NElements();
     int nels0 = RandomCMesh->NElements();
+    int nelsgmesh = RandomCMesh->Reference()->NElements();
 
     if ( nels!=nels0 ) {
-        cout << "nels "<< nels << " | nels0 = "<< nels0<<endl;
+        cout << "nels "<< nels << " | nels0 = "<< nels0 << " nelsgmesh = " << nelsgmesh <<endl;
         //DebugStop();
     }
 
@@ -419,6 +479,42 @@ TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int 
     cmesh->SetDefaultOrder ( porder );
     cmesh->SetDimModel ( dim );
     cmesh->InsertMaterialObject ( klmat );
+
+
+
+    TPZFMatrix<STATE> val1 ( 2,2,0. );
+    TPZFMatrix<STATE>  val2 ( 2,1,0. );
+    int directionadirichlet =3;
+    int newman =1;
+    val2 ( 0,0 ) = 1;
+    val2 ( 1,0 ) = 1;
+    auto * bc_bottom = klmat->CreateBC ( klmat, -1,directionadirichlet, val1, val2 );//bottom
+    val2 ( 0,0 ) = 1;
+    val2 ( 1,0 ) = 0;
+    auto * bc_rigth = klmat->CreateBC ( klmat, -2, directionadirichlet, val1, val2 );//rigth
+    val2 ( 0,0 ) = 1;
+    val2 ( 1,0 ) = 0;
+    auto * bc_left = klmat->CreateBC ( klmat, -5, directionadirichlet, val1, val2 );//left
+
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_topr = klmat->CreateBC ( klmat, -3,newman, val1, val2 );//top rigth
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_topl = klmat->CreateBC ( klmat, -4, newman, val1, val2 );//top left
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_ramp = klmat->CreateBC ( klmat, -6, newman, val1, val2 );//ramp
+
+
+    cmesh->InsertMaterialObject ( bc_bottom );
+    cmesh->InsertMaterialObject ( bc_rigth );
+    cmesh->InsertMaterialObject ( bc_left );
+    cmesh->InsertMaterialObject ( bc_topr );
+    cmesh->InsertMaterialObject ( bc_topl );
+    cmesh->InsertMaterialObject ( bc_ramp );
+
+
     cmesh->SetAllCreateFunctionsContinuous();
     cmesh->AutoBuild();
     cmesh->AdjustBoundaryElements();
@@ -502,13 +598,13 @@ void ComputeDeterministic()
 
     gammasolo=20.;
     gammaaugua=10.;
-    water=false;
+    water=true;
     if(!water)gammaaugua=0.;
     cout<<"gamma agua = "<<gammaaugua <<endl;
-    coesaofiu=50.;
-    phifiu=20.*M_PI/180;
+    coesaofiu=10.;
+    phifiu=30.*M_PI/180;
 
-    REAL tolfs = 1.e-3;
+    REAL tolfs = 0.01;
     int numiterfs =20;
     REAL tolres = 1.e-3;
     int numiterres =20;
@@ -648,6 +744,26 @@ TPZCompMesh * CreateCMeshDarcy( TPZGeoMesh *gmesh, int pOrder )
 	//val2(0,0)=-1;
 	TPZMaterial * BCond2 = material->CreateBC ( material, -4, 0, val1, val2 );//tl
 	BCond2->SetForcingFunction(pressure);
+
+    int newman =1;
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_bottom = material->CreateBC ( material, -1,newman, val1, val2 );//bottom
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_rigth = material->CreateBC ( material, -2, newman, val1, val2 );//rigth
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_left = material->CreateBC ( material, -5, newman, val1, val2 );//left
+
+
+
+
+    cmesh->InsertMaterialObject ( bc_bottom );
+    cmesh->InsertMaterialObject ( bc_rigth );
+    cmesh->InsertMaterialObject ( bc_left );
+
+
 
     cmesh->InsertMaterialObject(BCond0);
     cmesh->InsertMaterialObject(BCond1);
@@ -968,6 +1084,7 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     TPZFMatrix<STATE> val1 ( 2,2,0. );
     TPZFMatrix<STATE>  val2 ( 2,1,0. );
     int directionadirichlet =3;
+    int newman =1;
     val2 ( 0,0 ) = 1;
     val2 ( 1,0 ) = 1;
     auto * bc_bottom = material->CreateBC ( material, -1,directionadirichlet, val1, val2 );//bottom
@@ -978,9 +1095,23 @@ TPZCompMesh * CreateCMesh ( TPZGeoMesh * gmesh,int porder )
     val2 ( 1,0 ) = 0;
     auto * bc_left = material->CreateBC ( material, -5, directionadirichlet, val1, val2 );//left
 
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_topr = material->CreateBC ( material, -3,newman, val1, val2 );//top rigth
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_topl = material->CreateBC ( material, -4, newman, val1, val2 );//top left
+    val2 ( 0,0 ) = 0;
+    val2 ( 1,0 ) = 0;
+    auto * bc_ramp = material->CreateBC ( material, -6, newman, val1, val2 );//ramp
+
+
     cmesh->InsertMaterialObject ( bc_bottom );
     cmesh->InsertMaterialObject ( bc_rigth );
     cmesh->InsertMaterialObject ( bc_left );
+    cmesh->InsertMaterialObject ( bc_topr );
+    cmesh->InsertMaterialObject ( bc_topl );
+    cmesh->InsertMaterialObject ( bc_ramp );
 
     //cmesh->InsertMaterialObject ( top );
     cmesh->SetAllCreateFunctionsContinuousWithMem();
