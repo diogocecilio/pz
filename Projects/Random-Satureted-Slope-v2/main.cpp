@@ -121,7 +121,7 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh* gmesh,REAL porder,
 
 TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,REAL porder,REAL lx,REAL ly,  int type, int M,bool createfield);
 
-void ComputeEigenFunctions(TPZCompMesh* cmesh);
+void ComputeEigenFunctions(TPZCompMesh* cmesh,string filename);
 
 TPZFMatrix<REAL> ManageEigenFuntions(TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M);
 
@@ -130,6 +130,8 @@ TPZManVector<TPZFMatrix<REAL>,2> ManageField(TPZFMatrix<REAL> eigenfunctions);
 void SetRamdomCompMeshes();
 
 REAL findnodalsol(TPZCompMesh *cmesh);
+
+void MonteCarloLoop(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> vecmesh,int porder);
 
 int betax;
 bool water;
@@ -145,22 +147,27 @@ int main()
 
      TPZGeoMesh *gmesh =CreateGMeshGid (  nref );
 
-    string readfile="/home/diogo/projects/pzbuildrelease/Projects/Random-Satureted-Slope-v2/eigenfunctions.txt";
-    TPZManVector<TPZFMatrix<REAL>,2> data(2);
-    TPZFMatrix<REAL> eigenfunctions;
-    ReadFile ( readfile,eigenfunctions );
-    data = ManageField(eigenfunctions);
 
+    TPZManVector<TPZFMatrix<REAL>,2> data(2);
     REAL lx=20.;
     REAL ly=2.;
     int type=3;
     int M=30;
-//     TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
-//     TPZCompMesh * cmesh2 =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
+    if(true)
+    {
 
-    //TPZCompMesh *  cmesh =  CreateCMeshDarcy(gmesh,porder);
+        TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
+        string finename = "teste-coarse-eigenfunctions.txt";
+        ComputeEigenFunctions(cmesh,finename);
+        return 0;
+    }else{
 
-    //TPZCompMesh *  cmesh2 =  CreateCMeshDarcy(gmesh,porder);
+        string readfile="/home/diogo/projects/pzbuildrelease/Projects/Random-Satureted-Slope-v2/eigenfunctions.txt";
+
+        TPZFMatrix<REAL> eigenfunctions;
+        ReadFile ( readfile,eigenfunctions );
+        data = ManageField(eigenfunctions);
+    }
 
 
      TPZManVector<TPZCompMesh*,2> vecmesh(2);
@@ -174,13 +181,15 @@ int main()
     vecmesh[0]->LoadSolution(data[0]);
     vecmesh[1]->LoadSolution(data[1]);
 
+    MonteCarloLoop(0, 3,  gmesh, vecmesh, porder);
+/*
 
     TPZCompMesh *cmeshelastoplastic= CreateCMesh ( gmesh,porder );
 
 
 
     int param =0;
-    int imc=23;
+    int imc=22;
     SetMaterialParamenters(cmeshelastoplastic,vecmesh[param],imc,param);
 
     param =1;
@@ -239,12 +248,91 @@ int main()
     Post ( postprocdetergim,vtkFiledgim );
 
 
-    return 0;
+    return 0;*/
 
 
   //  ComputeDeterministic();
 
     return 0;
+}
+
+void MonteCarloLoop(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *,2> vecmesh,int porder)
+{
+        std::string vtkFiled ="vtkfolder/deterministicflux.vtk";
+    std::string vtkFiledgim ="vtkfolder/outvtk.vtk";
+
+    vector<double> oufs;
+
+    for(int imc=a;imc<b;imc++)
+    {
+
+        cout<<"imc = "<<imc <<endl;
+
+    TPZCompMesh *cmeshelastoplastic= CreateCMesh ( gmesh,porder );
+
+    int param =0;
+
+    SetMaterialParamenters(cmeshelastoplastic,vecmesh[param],imc,param);
+
+    param =1;
+    SetMaterialParamenters(cmeshelastoplastic,vecmesh[param],imc,param);
+
+    gammasolo=20.;
+    gammaaugua=10.;
+    water=true;
+    if(!water)gammaaugua=0.;
+    cout<<"gamma agua = "<<gammaaugua <<endl;
+    coesaofiu=10.;
+    phifiu=30.*M_PI/180;
+
+    REAL tolfs = 0.01;
+    int numiterfs =20;
+    REAL tolres = 1.e-3;
+    int numiterres =20;
+    REAL l =0.1;
+    REAL lambda0=0.1;
+
+    string vtk = "Darcyx.vtk";
+
+    TPZPostProcAnalysis * postprocdetergim = new TPZPostProcAnalysis();
+
+
+    TPZCompMesh *  darcycompmesh =  CreateCMeshDarcy(gmesh,porder);
+
+    if(water==true)
+    {
+        cout << "\n Solving Darcy... " << endl;
+        SolveDarcyProlem(darcycompmesh, vtk);
+
+        cout << "\n Setting flux in mechanic comp mesh... " << endl;
+        //SetFlux(cmeshsrm,darcycompmesh);
+        SetFlux(cmeshelastoplastic,darcycompmesh);
+    }
+
+    cout << "\n Gravity Increase routine.. " << endl;
+    TPZElastoPlasticAnalysis  * anal0 = CreateAnal ( cmeshelastoplastic,true );
+
+    LoadingRamp ( cmeshelastoplastic,1.,gammasolo,gammaaugua );
+    std::ofstream outnewton("saida-newton.txt");
+
+    chrono::steady_clock sc;
+    auto start = sc.now();
+    REAL lambda = anal0->IterativeProcessArcLength(tolfs,numiterfs,tolres,numiterres,l,lambda0);
+
+    oufs.push_back(lambda);
+
+    //GravityIncrease ( cmeshgi );
+    auto end = sc.now();
+    auto time_span = static_cast<chrono::duration<double>> ( end - start );
+    cout << "|  IterativeProcessArcLength time =  " << time_span.count()<< std::endl;
+
+    cout << "\n Post Processing gravity increase... " << endl;
+    CreatePostProcessingMesh ( postprocdetergim, cmeshelastoplastic );
+    Post ( postprocdetergim,vtkFiledgim );
+    }
+
+    std::ofstream outfsprint("saida-fs.txt");
+    for(int i=0;i<oufs.size();i++)outfsprint << oufs[i] <<endl;
 }
 
 TPZManVector<TPZFMatrix<REAL>,2> ManageField(TPZFMatrix<REAL> eigenfunctions)
@@ -273,21 +361,6 @@ TPZManVector<TPZFMatrix<REAL>,2> ManageField(TPZFMatrix<REAL> eigenfunctions)
 
 }
 
-TPZFMatrix<REAL> ManageEigenFuntions(TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M)
-{
-    TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
-    bool create=true;
-    if(create==true)
-    {
-        ComputeEigenFunctions(cmesh);
-    }else{
-        string outco="/home/diogo/projects/pz-build-debug/Projects/Random-Satureted-Slope-v2/eigenfunctions.txt";
-        TPZFMatrix<REAL> readco;
-        ReadFile ( outco,readco );
-        cmesh->LoadSolution(readco);
-
-    }
-}
 
 // void ManageField()
 // {
@@ -441,7 +514,7 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMe
 
 }
 
-void  ComputeEigenFunctions(TPZCompMesh* cmesh)
+void  ComputeEigenFunctions(TPZCompMesh* cmesh,string finename)
 {
 
     KLAnalysis * klanal = new KLAnalysis ( cmesh );
@@ -459,9 +532,7 @@ void  ComputeEigenFunctions(TPZCompMesh* cmesh)
 
     klanal->Post ( file1,2,0 );
 
-    string out="eigenfunctions.txt";
-
-    PrintMat ( out,klanal->Solution());
+    PrintMat ( finename,klanal->Solution());
 
 }
 
@@ -946,7 +1017,7 @@ TPZGeoMesh * CreateGMeshGid ( int ref )
 
     gmesh->SetDimension ( 2 );
 
-    string file ="/home/diogo/projects/pz/data/teste.msh";
+    string file ="/home/diogo/projects/pz/data/teste-coarse.msh";
 
     readgidmesh read;
 

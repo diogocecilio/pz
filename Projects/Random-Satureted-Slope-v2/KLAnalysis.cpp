@@ -191,9 +191,9 @@ void KLAnalysis::Solve()
 
      REAL totalarea = ComputeTotalArea();
      cout << "total area = "<<totalarea << std::endl;
-//     //std::cout << " err / (fsig * fsig) = " <<err / (fsig * fsig) << std::endl;
-//     cout << "mean error 1 = " <<1. - 1./totalarea *   err2 << std::endl;
-//     cout << "mean error 2 = " <<1. - 1./totalarea *   err << std::endl;
+     //std::cout << " err / (fsig * fsig) = " <<err / (fsig * fsig) << std::endl;
+     cout << "mean error 1 = " <<1. - 1./totalarea *   err2 << std::endl;
+     cout << "mean error 2 = " <<1. - 1./totalarea *   err << std::endl;
 
     FromEigen(val,fEigenValues);
 

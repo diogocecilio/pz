@@ -1277,7 +1277,7 @@ void TPZElastoPlasticAnalysis::IterativeProcess(std::ostream &out,REAL tol,int n
 // }
 
 
-void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0){
+REAL TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,REAL tol2,int numiter2,REAL l,REAL lambda0){
 
     REAL diff=1000.;
     std::ofstream eout("debug.txt");
@@ -1435,6 +1435,8 @@ void TPZElastoPlasticAnalysis::IterativeProcessArcLength(REAL tol,int numiter,RE
 
     AcceptSolution();
     cout << "lambda = "<<lambdan << endl;
+
+    return lambdan;
 
 }
 
