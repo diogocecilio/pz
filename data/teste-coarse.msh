@@ -1827,12 +1827,6 @@ Elements
 1189 556 307 460
 1190 613 617 626
 1191 632 630 624
-End Elements
-MESH dimension 3 ElemType Linear Nnode 2
-Coordinates
-End Coordinates
-
-Elements
 1192 627 628
 1193 626 627
 1194 358 370
