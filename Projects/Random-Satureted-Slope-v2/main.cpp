@@ -104,6 +104,7 @@ TPZCompMesh * CreateCMeshRF( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int t
 TPZManVector<  TPZCompMesh *,2>   SolveKL(TPZGeoMesh* gmesh,REAL porder,REAL lx,REAL ly,  int type, int M);
 
 void SetMaterialParamenters (TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMesh*,2> vecmesh,int isol );
+void SetMaterialParamenters (TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMesh,int isol,int param );
 
 void ComputeSolution ( TPZCompEl *cel, TPZFMatrix<REAL> &phi,TPZSolVec &sol );
 
@@ -181,9 +182,9 @@ int main()
 
     vecmesh[0]->LoadSolution(data[0]);
     vecmesh[1]->LoadSolution(data[1]);
+//
+//     MonteCarloLoop(0, 3,  gmesh, vecmesh, porder);
 
-    MonteCarloLoop(0, 3,  gmesh, vecmesh, porder);
-/*
 
     TPZCompMesh *cmeshelastoplastic= CreateCMesh ( gmesh,porder );
 
@@ -249,7 +250,7 @@ int main()
     Post ( postprocdetergim,vtkFiledgim );
 
 
-    return 0;*/
+    return 0;
 
 
   //  ComputeDeterministic();
@@ -273,10 +274,10 @@ void MonteCarloLoop(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *
 
     int param =0;
 
-    SetMaterialParamenters(cmeshelastoplastic,vecmesh,imc);
+    SetMaterialParamenters(cmeshelastoplastic,vecmesh[param],imc,param);
 
     param =1;
-    SetMaterialParamenters(cmeshelastoplastic,vecmesh,imc);
+    SetMaterialParamenters(cmeshelastoplastic,vecmesh[param],imc,param);
 
     gammasolo=20.;
     gammaaugua=10.;
@@ -434,105 +435,15 @@ TPZManVector<TPZFMatrix<REAL>,2> ManageField(TPZFMatrix<REAL> eigenfunctions)
 //     Post ( postproc,vtkFile );
 //
 // }
-void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMesh*,2> vecmesh,int isol )
-{
-
-    int nels = plasticCmesh->NElements();
-    int nels0 = vecmesh[0]->NElements();
-    int nels1 = vecmesh[1]->NElements();
-
-    if ( nels!=nels0 || nels!=nels1 || nels0!=nels1 ) {
-        cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
-        //DebugStop();
-    }
-
-    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
-    TPZAdmChunkVector<TPZElastoPlasticMem>  &mem = pMatWithMem2->GetMemory();
-
-    // cout << "mem.NElements() "<< mem.NElements()  <<endl;
-    if ( pMatWithMem2 ) {
-        pMatWithMem2->SetUpdateMem ( true );
-    }
-
-    int globpt=0;
-    for ( int iel=0; iel<nels0; iel++ ) {
-
-
-        TPZCompEl *celplastic = plasticCmesh->Element ( iel );
-        TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
-
-        if(celplastic->Material()->Id()<0)continue;
-
-        TPZCompEl *celrandom1 = vecmesh[0]->Element ( iel );
-        TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celrandom1 );
-
-        TPZCompEl *celrandom2 = vecmesh[1]->Element ( iel );
-        TPZInterpolationSpace *intelrandom2 = dynamic_cast<TPZInterpolationSpace *> ( celrandom2 );
-
-        const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
-        const TPZIntPoints &intpoints1 = intelrandom1->GetIntegrationRule();
-        const TPZIntPoints &intpoints2 = intelrandom2->GetIntegrationRule();
-
-        TPZManVector<REAL,3> point ( 3,0. );
-        TPZManVector<REAL,3> point1 ( 3,0. );
-        TPZManVector<REAL,3> point2 ( 3,0. );
-
-        TPZMaterialData dataplastic,datarandom1,datarandom2;
-
-        datarandom1.fNeedsSol = true;
-        datarandom2.fNeedsSol = true;
-        intelplastic->InitMaterialData ( dataplastic );
-        intelrandom1->InitMaterialData ( datarandom1 );
-        intelrandom2->InitMaterialData ( datarandom2 );
-
-        REAL weight=0;
-        int nint = intpoints.NPoints();
-
-        TPZTensor<REAL> epst,epsp;
-        for ( long ip =0; ip<nint; ip++ ) {
-            intpoints.Point ( ip, point, weight );
-            intpoints1.Point ( ip, point1, weight );
-            intpoints2.Point ( ip, point2, weight );
-            dataplastic.intLocPtIndex = ip;
-            intelplastic->ComputeRequiredData ( dataplastic, point );
-            intelrandom1->ComputeRequiredData ( datarandom1, point1 );
-            intelrandom2->ComputeRequiredData ( datarandom2, point2 );
-            mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
-
-            TPZSolVec sol1,sol2;
-            ComputeSolution ( celrandom1,datarandom1.phi,sol1 );
-            ComputeSolution ( celrandom2,datarandom2.phi,sol2 );
-
-            TPZVec<REAL> cohes = sol1[isol];
-            TPZVec<REAL> phi = sol2[isol];
-
-            dataplastic.intGlobPtIndex = globpt;
-            mem[globpt].fPlasticState.fmatprop[0]=cohes[0];
-            mem[globpt].fPlasticState.fmatprop[1]= phi[0] ;
-
-            TPZTensor<REAL> epsTotal,sigma;
-
-            globpt++;
-
-        }
-
-        //pMatWithMem2->SetUpdateMem ( false );
-    }
-    pMatWithMem2->SetUpdateMem ( false );
-
-    plasticCmesh->Solution().Zero();
-
-
-}
-// void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMesh,int isol,int param )
+// void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMesh*,2> vecmesh,int isol )
 // {
 //
 //     int nels = plasticCmesh->NElements();
-//     int nels0 = RandomCMesh->NElements();
-//     int nelsgmesh = RandomCMesh->Reference()->NElements();
+//     int nels0 = vecmesh[0]->NElements();
+//     int nels1 = vecmesh[1]->NElements();
 //
-//     if ( nels!=nels0 ) {
-//         cout << "nels "<< nels << " | nels0 = "<< nels0 << " nelsgmesh = " << nelsgmesh <<endl;
+//     if ( nels!=nels0 || nels!=nels1 || nels0!=nels1 ) {
+//         cout << "nels "<< nels << " | nels0 = "<< nels0 <<" | nels1 = "<< nels1 <<endl;
 //         //DebugStop();
 //     }
 //
@@ -547,62 +458,154 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZManVector<TPZCompMes
 //     int globpt=0;
 //     for ( int iel=0; iel<nels0; iel++ ) {
 //
+//
 //         TPZCompEl *celplastic = plasticCmesh->Element ( iel );
 //         TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
 //
-//         TPZCompEl *celrandom1 = RandomCMesh->Element ( iel );
+//         if(celplastic->Material()->Id()<0)continue;
+//
+//         TPZCompEl *celrandom1 = vecmesh[0]->Element ( iel );
 //         TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celrandom1 );
+//
+//         TPZCompEl *celrandom2 = vecmesh[1]->Element ( iel );
+//         TPZInterpolationSpace *intelrandom2 = dynamic_cast<TPZInterpolationSpace *> ( celrandom2 );
 //
 //         const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
 //         const TPZIntPoints &intpoints1 = intelrandom1->GetIntegrationRule();
+//         const TPZIntPoints &intpoints2 = intelrandom2->GetIntegrationRule();
 //
 //         TPZManVector<REAL,3> point ( 3,0. );
 //         TPZManVector<REAL,3> point1 ( 3,0. );
+//         TPZManVector<REAL,3> point2 ( 3,0. );
 //
 //         TPZMaterialData dataplastic,datarandom1,datarandom2;
 //
 //         datarandom1.fNeedsSol = true;
 //         datarandom2.fNeedsSol = true;
-//
 //         intelplastic->InitMaterialData ( dataplastic );
 //         intelrandom1->InitMaterialData ( datarandom1 );
+//         intelrandom2->InitMaterialData ( datarandom2 );
 //
 //         REAL weight=0;
 //         int nint = intpoints.NPoints();
 //
 //         TPZTensor<REAL> epst,epsp;
 //         for ( long ip =0; ip<nint; ip++ ) {
-//
 //             intpoints.Point ( ip, point, weight );
 //             intpoints1.Point ( ip, point1, weight );
-//
+//             intpoints2.Point ( ip, point2, weight );
 //             dataplastic.intLocPtIndex = ip;
-//
 //             intelplastic->ComputeRequiredData ( dataplastic, point );
 //             intelrandom1->ComputeRequiredData ( datarandom1, point1 );
-//
+//             intelrandom2->ComputeRequiredData ( datarandom2, point2 );
 //             mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
 //
-//             TPZSolVec sol;
-//             ComputeSolution ( celrandom1,datarandom1.phi,sol );
+//             TPZSolVec sol1,sol2;
+//             ComputeSolution ( celrandom1,datarandom1.phi,sol1 );
+//             ComputeSolution ( celrandom2,datarandom2.phi,sol2 );
 //
-//
-//             TPZVec<REAL> cohes = sol[isol];
+//             TPZVec<REAL> cohes = sol1[isol];
+//             TPZVec<REAL> phi = sol2[isol];
 //
 //             dataplastic.intGlobPtIndex = globpt;
-//             mem[globpt].fPlasticState.fmatprop[param]= cohes[0];
+//             mem[globpt].fPlasticState.fmatprop[0]=cohes[0];
+//             mem[globpt].fPlasticState.fmatprop[1]= phi[0] ;
 //
 //             TPZTensor<REAL> epsTotal,sigma;
 //
 //             globpt++;
 //
 //         }
+//
+//         //pMatWithMem2->SetUpdateMem ( false );
 //     }
 //     pMatWithMem2->SetUpdateMem ( false );
 //
 //     plasticCmesh->Solution().Zero();
 //
+//
 // }
+void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMesh,int isol,int param )
+{
+
+    int nels = plasticCmesh->NElements();
+    int nels0 = RandomCMesh->NElements();
+    int nelsgmesh = RandomCMesh->Reference()->NElements();
+
+    if ( nels!=nels0 ) {
+        cout << "nels "<< nels << " | nels0 = "<< nels0 << " nelsgmesh = " << nelsgmesh <<endl;
+        //DebugStop();
+    }
+
+    TPZMatWithMem<TPZElastoPlasticMem> *pMatWithMem2 = dynamic_cast<TPZMatWithMem<TPZElastoPlasticMem> *> ( plasticCmesh->MaterialVec() [1] );
+    TPZAdmChunkVector<TPZElastoPlasticMem>  &mem = pMatWithMem2->GetMemory();
+
+    // cout << "mem.NElements() "<< mem.NElements()  <<endl;
+    if ( pMatWithMem2 ) {
+        pMatWithMem2->SetUpdateMem ( true );
+    }
+
+    int globpt=0;
+    for ( int iel=0; iel<nels0; iel++ ) {
+
+        TPZCompEl *celplastic = plasticCmesh->Element ( iel );
+        TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
+
+        if(celplastic->Material()->Id()<0)continue;
+
+        TPZCompEl *celrandom1 = RandomCMesh->Element ( iel );
+        TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celrandom1 );
+
+        const TPZIntPoints &intpoints = intelplastic->GetIntegrationRule();
+        const TPZIntPoints &intpoints1 = intelrandom1->GetIntegrationRule();
+
+        TPZManVector<REAL,3> point ( 3,0. );
+        TPZManVector<REAL,3> point1 ( 3,0. );
+
+        TPZMaterialData dataplastic,datarandom1,datarandom2;
+
+        datarandom1.fNeedsSol = true;
+        datarandom2.fNeedsSol = true;
+
+        intelplastic->InitMaterialData ( dataplastic );
+        intelrandom1->InitMaterialData ( datarandom1 );
+
+        REAL weight=0;
+        int nint = intpoints.NPoints();
+
+        TPZTensor<REAL> epst,epsp;
+        for ( long ip =0; ip<nint; ip++ ) {
+
+            intpoints.Point ( ip, point, weight );
+            intpoints1.Point ( ip, point1, weight );
+
+            dataplastic.intLocPtIndex = ip;
+
+            intelplastic->ComputeRequiredData ( dataplastic, point );
+            intelrandom1->ComputeRequiredData ( datarandom1, point1 );
+
+            mem[globpt].fPlasticState.fmatprop.Resize ( 2 );
+
+            TPZSolVec sol;
+            ComputeSolution ( celrandom1,datarandom1.phi,sol );
+
+
+            TPZVec<REAL> cohes = sol[isol];
+
+            dataplastic.intGlobPtIndex = globpt;
+            mem[globpt].fPlasticState.fmatprop[param]= cohes[0];
+
+            TPZTensor<REAL> epsTotal,sigma;
+
+            globpt++;
+
+        }
+    }
+    pMatWithMem2->SetUpdateMem ( false );
+
+    plasticCmesh->Solution().Zero();
+
+}
 
 void  ComputeEigenFunctions(TPZCompMesh* cmesh,string finename)
 {
