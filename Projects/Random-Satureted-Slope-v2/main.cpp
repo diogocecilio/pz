@@ -122,7 +122,7 @@ TPZManVector<TPZCompMesh *,2> CreateFieldsDummy ( TPZGeoMesh* gmesh,REAL porder,
 
 TPZManVector<TPZCompMesh *,2> SettingCreateFilds(TPZGeoMesh* gmesh,REAL porder,REAL lx,REAL ly,  int type, int M,bool createfield);
 
-void ComputeEigenFunctions(TPZCompMesh* cmesh,string filename);
+TPZFMatrix<REAL> ComputeEigenFunctions(TPZCompMesh* cmesh,string filename);
 
 TPZFMatrix<REAL> ManageEigenFuntions(TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int type, int M);
 
@@ -144,7 +144,7 @@ int main()
 {
     //ComputeDeterministic();
 
-     int porder=2;
+     int porder=1;
      int nref=0;
 
      TPZGeoMesh *gmesh =CreateGMeshGid (  nref );
@@ -155,18 +155,19 @@ int main()
     REAL ly=2.;
     int type=3;
     int M=500;
+    TPZFMatrix<REAL> eigenfunctions;
+    TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
     if(false)
     {
 
-        TPZCompMesh * cmesh =  CreateCMeshRF ( gmesh, porder, lx, ly,  type,  M );
-        string finename = "teste-coarse-eigenfunctions.txt";
-        ComputeEigenFunctions(cmesh,finename);
-        return 0;
+
+        string finename = "teste-eigenfunctions2.txt";
+        eigenfunctions=ComputeEigenFunctions(cmesh,finename);
+        data = ManageField(eigenfunctions);
+
     }else{
 
-        string readfile="/home/diogo/projects/pzbuildrelease/Projects/Random-Satureted-Slope-v2/teste-coarse-eigenfunctions.txt";
-
-        TPZFMatrix<REAL> eigenfunctions;
+        string readfile="/home/diogo/projects/pzbuildrelease/Projects/Random-Satureted-Slope-v2/teste-eigenfunctions2.txt";
         ReadFile ( readfile,eigenfunctions );
         data = ManageField(eigenfunctions);
     }
@@ -174,15 +175,17 @@ int main()
 
      TPZManVector<TPZCompMesh*,2> vecmesh(2);
 
-    vecmesh = CreateFieldsDummy (gmesh, porder, lx, ly,type, M );
-
+     vecmesh = CreateFieldsDummy (gmesh, porder, lx, ly,type, M );
 
     TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( vecmesh[0] );
     TPZElastoPlasticAnalysis * anal2 = new TPZElastoPlasticAnalysis ( vecmesh[1] );
 
     vecmesh[0]->LoadSolution(data[0]);
     vecmesh[1]->LoadSolution(data[1]);
+
 //
+//        TPZElastoPlasticAnalysis * anal = new TPZElastoPlasticAnalysis ( vecmesh[0] );
+ //   TPZElastoPlasticAnalysis * anal2 = new TPZElastoPlasticAnalysis ( vecmesh[1] );
 //     MonteCarloLoop(0, 3,  gmesh, vecmesh, porder);
 
 
@@ -191,7 +194,7 @@ int main()
 
 
     int param =0;
-    int imc=22;
+    int imc=2;
     SetMaterialParamenters(cmeshelastoplastic,vecmesh[param],imc,param);
 
     param =1;
@@ -199,7 +202,7 @@ int main()
 
     gammasolo=20.;
     gammaaugua=10.;
-    water=true;
+    water=false;
     if(!water)gammaaugua=0.;
     cout<<"gamma agua = "<<gammaaugua <<endl;
     coesaofiu=10.;
@@ -281,7 +284,7 @@ void MonteCarloLoop(int a, int b, TPZGeoMesh * gmesh, TPZManVector<TPZCompMesh *
 
     gammasolo=20.;
     gammaaugua=10.;
-    water=true;
+    water=false;
     if(!water)gammaaugua=0.;
     cout<<"gamma agua = "<<gammaaugua <<endl;
     coesaofiu=10.;
@@ -551,7 +554,12 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMe
         TPZCompEl *celplastic = plasticCmesh->Element ( iel );
         TPZInterpolationSpace *intelplastic = dynamic_cast<TPZInterpolationSpace *> ( celplastic );
 
-        if(celplastic->Material()->Id()<0)continue;
+        if(celplastic->Material()->Id()<0)
+        {
+            cout <<"Acessando elemento de contorno na malha plástica"<<endl;
+            cout <<"Significa transferir a slolução de forma errada. Elementos não correspontem, até porque a malha RF não tem elementos de contorno."<<endl;
+            DebugStop();
+        }
 
         TPZCompEl *celrandom1 = RandomCMesh->Element ( iel );
         TPZInterpolationSpace *intelrandom1 = dynamic_cast<TPZInterpolationSpace *> ( celrandom1 );
@@ -607,7 +615,7 @@ void SetMaterialParamenters ( TPZCompMesh * plasticCmesh,TPZCompMesh * RandomCMe
 
 }
 
-void  ComputeEigenFunctions(TPZCompMesh* cmesh,string finename)
+TPZFMatrix<REAL>  ComputeEigenFunctions(TPZCompMesh* cmesh,string finename)
 {
 
     KLAnalysis * klanal = new KLAnalysis ( cmesh );
@@ -626,6 +634,8 @@ void  ComputeEigenFunctions(TPZCompMesh* cmesh,string finename)
     klanal->Post ( file1,2,0 );
 
     PrintMat ( finename,klanal->Solution());
+
+    return klanal->Solution();
 
 }
 
@@ -646,37 +656,37 @@ TPZCompMesh * CreateCMeshRF ( TPZGeoMesh* gmesh,int porder,REAL lx,REAL ly, int 
 
 
 
-    TPZFMatrix<STATE> val1 ( 2,2,0. );
-    TPZFMatrix<STATE>  val2 ( 2,1,0. );
-    int directionadirichlet =3;
-    int newman =1;
-    val2 ( 0,0 ) = 1;
-    val2 ( 1,0 ) = 1;
-    auto * bc_bottom = klmat->CreateBC ( klmat, -1,directionadirichlet, val1, val2 );//bottom
-    val2 ( 0,0 ) = 1;
-    val2 ( 1,0 ) = 0;
-    auto * bc_rigth = klmat->CreateBC ( klmat, -2, directionadirichlet, val1, val2 );//rigth
-    val2 ( 0,0 ) = 1;
-    val2 ( 1,0 ) = 0;
-    auto * bc_left = klmat->CreateBC ( klmat, -5, directionadirichlet, val1, val2 );//left
-
-    val2 ( 0,0 ) = 0;
-    val2 ( 1,0 ) = 0;
-    auto * bc_topr = klmat->CreateBC ( klmat, -3,newman, val1, val2 );//top rigth
-    val2 ( 0,0 ) = 0;
-    val2 ( 1,0 ) = 0;
-    auto * bc_topl = klmat->CreateBC ( klmat, -4, newman, val1, val2 );//top left
-    val2 ( 0,0 ) = 0;
-    val2 ( 1,0 ) = 0;
-    auto * bc_ramp = klmat->CreateBC ( klmat, -6, newman, val1, val2 );//ramp
-
-
-    cmesh->InsertMaterialObject ( bc_bottom );
-    cmesh->InsertMaterialObject ( bc_rigth );
-    cmesh->InsertMaterialObject ( bc_left );
-    cmesh->InsertMaterialObject ( bc_topr );
-    cmesh->InsertMaterialObject ( bc_topl );
-    cmesh->InsertMaterialObject ( bc_ramp );
+//     TPZFMatrix<STATE> val1 ( 2,2,0. );
+//     TPZFMatrix<STATE>  val2 ( 2,1,0. );
+//     int directionadirichlet =3;
+//     int newman =1;
+//     val2 ( 0,0 ) = 1;
+//     val2 ( 1,0 ) = 1;
+//     auto * bc_bottom = klmat->CreateBC ( klmat, -1,directionadirichlet, val1, val2 );//bottom
+//     val2 ( 0,0 ) = 1;
+//     val2 ( 1,0 ) = 0;
+//     auto * bc_rigth = klmat->CreateBC ( klmat, -2, directionadirichlet, val1, val2 );//rigth
+//     val2 ( 0,0 ) = 1;
+//     val2 ( 1,0 ) = 0;
+//     auto * bc_left = klmat->CreateBC ( klmat, -5, directionadirichlet, val1, val2 );//left
+//
+//     val2 ( 0,0 ) = 0;
+//     val2 ( 1,0 ) = 0;
+//     auto * bc_topr = klmat->CreateBC ( klmat, -3,newman, val1, val2 );//top rigth
+//     val2 ( 0,0 ) = 0;
+//     val2 ( 1,0 ) = 0;
+//     auto * bc_topl = klmat->CreateBC ( klmat, -4, newman, val1, val2 );//top left
+//     val2 ( 0,0 ) = 0;
+//     val2 ( 1,0 ) = 0;
+//     auto * bc_ramp = klmat->CreateBC ( klmat, -6, newman, val1, val2 );//ramp
+//
+//
+//     cmesh->InsertMaterialObject ( bc_bottom );
+//     cmesh->InsertMaterialObject ( bc_rigth );
+//     cmesh->InsertMaterialObject ( bc_left );
+//     cmesh->InsertMaterialObject ( bc_topr );
+//     cmesh->InsertMaterialObject ( bc_topl );
+//     cmesh->InsertMaterialObject ( bc_ramp );
 
 
     cmesh->SetAllCreateFunctionsContinuous();
